@@ -55,8 +55,8 @@ size = sample_object[1]
 
 # Iterate over the datasets.
 for each_object in dataset:
-	# Raw bytes of the object.
-	print(each_object)
+  # Raw bytes of the object.
+  print(each_object)
 ```
 
 Dataflux Dataset for PyTorch offers the flexibility to transform the downloaded raw bytes of data into any format of choice. 
@@ -78,8 +78,8 @@ dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
 )
 
 for each_object in dataset:
-	# each_object is now a Numpy array.
-	print(each_object)
+  # each_object is now a Numpy array.
+  print(each_object)
 ```
 
 ## Performance
