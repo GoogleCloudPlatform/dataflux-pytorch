@@ -41,9 +41,9 @@ BUCKET_NAME = "<BUCKET_NAME>"
 PREFIX = "<PREFIX>"
 
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-    project_name=PROJECT_NAME,
-    bucket_name=BUCKET_NAME,
-	prefix=PREFIX,
+  project_name=PROJECT_NAME,
+  bucket_name=BUCKET_NAME,
+  prefix=PREFIX,
 )
 
 # Random access to an object.
@@ -55,8 +55,8 @@ size = sample_object[1]
 
 # Iterate over the datasets.
 for each_object in dataset:
-	# Raw bytes of the object.
-	print(each_object)
+  # Raw bytes of the object.
+  print(each_object)
 ```
 
 Dataflux Dataset for PyTorch offers the flexibility to transform the downloaded raw bytes of data into any format of choice. 
@@ -71,15 +71,15 @@ from PIL import Image
 transform = lambda img_in_bytes : numpy.asarray(Image.open(io.BytesIO(img_in_bytes)))
 
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-    project_name=PROJECT_NAME,
-    bucket_name=BUCKET_NAME,
-    prefix=PREFIX,
-    data_format_fn=transform,
+  project_name=PROJECT_NAME,
+  bucket_name=BUCKET_NAME,
+  prefix=PREFIX,
+  data_format_fn=transform,
 )
 
 for each_object in dataset:
-	# each_object is now a Numpy array.
-	print(each_object)
+  # each_object is now a Numpy array.
+  print(each_object)
 ```
 
 ## Performance
@@ -169,10 +169,10 @@ You can also turn off this behavior by setting the â€œmax_composite_object_sizeâ
 
 ```python
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-project_name=PROJECT_NAME,
-bucket_name=BUCKET_NAME,
-	prefix=PREFIX,
-	config=dataflux_mapstyle_dataset.Config(max_composite_object_size=0),
+  project_name=PROJECT_NAME,
+  bucket_name=BUCKET_NAME,
+  prefix=PREFIX,
+  config=dataflux_mapstyle_dataset.Config(max_composite_object_size=0),
 )
 ```
 
