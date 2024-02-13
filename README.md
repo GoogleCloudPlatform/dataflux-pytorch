@@ -68,7 +68,7 @@ import io
 import numpy as np
 from PIL import Image
 
-transform = lambda img_in_bytes : numpy.asarray(Image.open(io.BytesIO(img_in_bytes)))
+transform = lambda img_in_bytes : np.asarray(Image.open(io.BytesIO(img_in_bytes)))
 
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
