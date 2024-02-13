@@ -169,10 +169,10 @@ You can also turn off this behavior by setting the â€œmax_composite_object_sizeâ
 
 ```python
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-project_name=PROJECT_NAME,
-bucket_name=BUCKET_NAME,
-	prefix=PREFIX,
-	config=dataflux_mapstyle_dataset.Config(max_composite_object_size=0),
+  project_name=PROJECT_NAME,
+  bucket_name=BUCKET_NAME,
+  prefix=PREFIX,
+  config=dataflux_mapstyle_dataset.Config(max_composite_object_size=0),
 )
 ```
 
