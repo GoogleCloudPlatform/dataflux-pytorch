@@ -65,10 +65,10 @@ Dataflux Dataset for PyTorch offers the flexibility to transform the downloaded 
 # Assume that you have a bucket with image files and you want
 # to load them into Numpy arrays for training.
 import io
-import numpy as np
+import numpy
 from PIL import Image
 
-transform = lambda img_in_bytes : np.asarray(Image.open(io.BytesIO(img_in_bytes)))
+transform = lambda img_in_bytes : numpy.asarray(Image.open(io.BytesIO(img_in_bytes)))
 
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
