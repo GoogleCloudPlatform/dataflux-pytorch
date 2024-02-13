@@ -41,8 +41,8 @@ BUCKET_NAME = "<BUCKET_NAME>"
 PREFIX = "<PREFIX>"
 
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-    project_name=PROJECT_NAME,
-    bucket_name=BUCKET_NAME,
+  project_name=PROJECT_NAME,
+  bucket_name=BUCKET_NAME,
 	prefix=PREFIX,
 )
 
@@ -71,10 +71,10 @@ from PIL import Image
 transform = lambda img_in_bytes : numpy.asarray(Image.open(io.BytesIO(img_in_bytes)))
 
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-    project_name=PROJECT_NAME,
-    bucket_name=BUCKET_NAME,
-    prefix=PREFIX,
-    data_format_fn=transform,
+  project_name=PROJECT_NAME,
+  bucket_name=BUCKET_NAME,
+  prefix=PREFIX,
+  data_format_fn=transform,
 )
 
 for each_object in dataset:
