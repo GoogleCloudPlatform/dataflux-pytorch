@@ -1,0 +1,5 @@
+torch
+google-cloud-storage
+absl-py
+numpy
+pytest
