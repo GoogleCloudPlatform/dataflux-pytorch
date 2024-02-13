@@ -43,7 +43,7 @@ PREFIX = "<PREFIX>"
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
   bucket_name=BUCKET_NAME,
-	prefix=PREFIX,
+  prefix=PREFIX,
 )
 
 # Random access to an object.
