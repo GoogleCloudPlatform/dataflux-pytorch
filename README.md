@@ -1,10 +1,10 @@
 # Dataflux Dataset for PyTorch
 
-The Dataflux Dataset for PyTorch is an effort to improve ML-training efficiency when using data stored in GCS for training datasets. Using the Dataflux Dataset for training is up to 3X faster when the dataset consists of many small files (e.g., 100 - 500 KB).
+The Dataflux Dataset for PyTorch is an effort to improve ML-training efficiency when using data stored in GCS for training datasets. Using the Dataflux Dataset for training is up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
 
-The Dataflux Dataset for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that you can use to load training data quickly from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns.
+The Dataflux Dataset for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns.
 
-Note that the Dataflux Dataset for PyTorch library is in an early preview stage as the team is consistently working on improvements and supporting new features.
+Note that the Dataflux Dataset for PyTorch library is in an early preview stage and the team is consistently working on improvements and support for new features.
 
 ## Getting started
 
@@ -18,12 +18,11 @@ git clone --recurse-submodules https://github.com/GoogleCloudPlatform/dataflux-p
 cd dataflux-pytorch
 pip install .
 ```
-The Dataflux Dataset for PyTorch supports only Linux via pip for now.
 
 ### Configuration
-Authentication must be provided to use the Dataflux Dataset for PyTorch using [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) through one of the following methods:
-1. If you are running this library on a GCE VM, Application Default Credentials will automatically use the VM’s attached service account by default. More details can be found [here](https://cloud.google.com/compute/docs/access/app-authentication-methods).
-2. You can also configure Application Default Credentials manually as described [here](https://cloud.google.com/docs/authentication/application-default-credentials). The quickest way is to log in directly using the gcloud CLI:
+Authentication must be provided to use the Dataflux Dataset for PyTorch via [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) through one of the following methods:
+1. While running this library on a GCE VM, Application Default Credentials will automatically use the VM’s attached service account by default. More details can be found [here](https://cloud.google.com/compute/docs/access/app-authentication-methods).
+2. Application Default Credentials can also be configured manually as described [here](https://cloud.google.com/docs/authentication/application-default-credentials). The quickest way is to log in directly using the gcloud CLI:
 ```shell
 gcloud auth application-default login
 ```
@@ -31,7 +30,7 @@ gcloud auth application-default login
 ### Examples
 Before getting started, please make sure you have installed the library and configured authentication following the instructions above.
 
-You can construct the Dataflux Dataset for PyTorch by specifying the project name, bucket name and an optional prefix.
+Dataflux Dataset for PyTorch can be constructed by specifying the project name, bucket name and an optional prefix.
 
 ```python
 from dataflux_pytorch import dataflux_mapstyle_dataset
@@ -60,10 +59,10 @@ for each_object in dataset:
 	print(each_object)
 ```
 
-Dataflux Dataset for PyTorch offers flexibility to transform the downloaded raw bytes of data into the format you want. 
+Dataflux Dataset for PyTorch offers the flexibility to transform the downloaded raw bytes of data into any format of choice. 
 
 ```python
-# Now assume that you have a bucket with image files and you want
+# Assume that you have a bucket with image files and you want
 # to load them into Numpy arrays for training.
 import io
 import numpy as np
@@ -83,13 +82,85 @@ for each_object in dataset:
 	print(each_object)
 ```
 
+## Performance
+We tested Dataflux's early performance using [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) simulations with standard mean file-sizes and dataset sizes. A total of 5 training epochs were simulated. For small files (100KB, 500KB), Dataflux can be **2-3x** faster than using GCS native APIs.
+
+<table>
+  <tr>
+   <td style="background-color: #d9d2e9"><strong>File size / count</strong>
+   </td>
+   <td style="background-color: #d9d2e9"><strong>Tool</strong>
+   </td>
+   <td style="background-color: #d9d2e9"><strong>Training time (s)</strong>
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2" style="background-color: #d9d9d9"><em>100 KiB / 500000 files</em>
+   </td>
+   <td style="background-color: #d9d9d9">Direct GCS API calls
+   </td>
+   <td style="background-color: #d9d9d9">2,459
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9"><strong>Dataflux</strong>
+   </td>
+   <td style="background-color: #d9d9d9"><strong>757</strong>
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2" style="background-color: #f3f3f3"><em>500 KiB / 2.2m files</em>
+   </td>
+   <td style="background-color: #f3f3f3">Direct GCS API calls
+   </td>
+   <td style="background-color: #f3f3f3">7,472
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3"><strong>Dataflux</strong>
+   </td>
+   <td style="background-color: #f3f3f3"><strong>2,696</strong>
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2" style="background-color: #d9d9d9"><em>3 MiB / 50000 files</em>
+   </td>
+   <td style="background-color: #d9d9d9">Direct GCS API calls
+   </td>
+   <td style="background-color: #d9d9d9">463
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9"><strong>Dataflux</strong>
+   </td>
+   <td style="background-color: #d9d9d9"><strong>318</strong>
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2" style="background-color: #f3f3f3"><em>150 MiB / 5000 files</em>
+   </td>
+   <td style="background-color: #f3f3f3">Direct GCS API calls
+   </td>
+   <td style="background-color: #f3f3f3">1,228
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3"><strong>Dataflux</strong>
+   </td>
+   <td style="background-color: #f3f3f3"><strong>1,288</strong>
+   </td>
+  </tr>
+</table>
+
+*Note: Within each experiment, all training parameters such as batch size and parallelism are consistent. The team is working on publishing a detailed analysis soon.*
+
 ## Limitations
 
 ### Billing
-To optimize listing performance, the Dataflux Dataset for PyTorch library utilizes a “fast listing” algorithm developed to parallelize GCS object listing. Therefore, you will be billed with more listing API calls, which are classified as [Class A operations](https://cloud.google.com/storage/pricing).
+To optimize listing performance, the Dataflux Dataset for PyTorch library utilizes a “fast listing” algorithm developed to balance the listing workload among parallelized GCS object listing processes. Therefore, the library will cause more listing API calls to be made than a regular sequential listing, which are charged as [Class A operations](https://cloud.google.com/storage/pricing).
 
 ### Composite Objects
-To optimize the download performance of small files, the Dataflux Dataset for PyTorch library utilizes the [GCS Compose API](https://cloud.google.com/storage/docs/json_api/v1/objects/compose) to concatenate a list of smaller objects into a new and larger one in the same bucket under a folder named “dataflux-composed-objects”. The new composite objects will be removed at the end of your training loop but in rare cases that they don’t, you can run this command to clean up.
+To optimize the download performance of small files, the Dataflux Dataset for PyTorch library utilizes the [GCS Compose API](https://cloud.google.com/storage/docs/json_api/v1/objects/compose) to concatenate a set of smaller objects into a new and larger one in the same bucket under a folder named “dataflux-composed-objects”. The new composite objects will be removed at the end of your training loop but in rare cases that they don’t, you can run this command to clean the composed files.
 ``` shell
 gcloud storage rm --recursive gs://<my-bucket>/dataflux-composed-objects/
 ```
