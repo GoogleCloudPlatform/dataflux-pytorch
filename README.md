@@ -1,4 +1,4 @@
-# Dataflux Dataset for PyTorch
+# Dataflux Dataset for PyTorch with Google Cloud Storage
 
 The Dataflux Dataset for PyTorch is an effort to improve ML-training efficiency when using data stored in GCS for training datasets. Using the Dataflux Dataset for training is up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
 
