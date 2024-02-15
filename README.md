@@ -190,4 +190,4 @@ This project has adopted the Google Open Source Code of Conduct. Please see [cod
 
 ### License
 
-The Dataflux Python Client has an Apache License 2.0. Please see the [LICENSE](LICENSE) file for more information.
+The Dataflux Dataset for PyTorch library has an Apache License 2.0. Please see the [LICENSE](LICENSE) file for more information.
