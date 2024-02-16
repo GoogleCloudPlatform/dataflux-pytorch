@@ -1,6 +1,6 @@
 # Dataflux Dataset for PyTorch with Google Cloud Storage
 
-The Dataflux Dataset for PyTorch is an effort to improve ML-training efficiency when using data stored in GCS for training datasets. Using the Dataflux Dataset for training is up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
+The Dataflux Dataset for PyTorch lets you connect directly to a GCS bucket as a PyTorch dataset, without pre-loading the data to local disk, and with optimizations to make training up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
 
 The Dataflux Dataset for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns.
 
