@@ -1,0 +1,9 @@
+{
+    "editor.formatOnSave": true,
+    "python.testing.pytestArgs": [
+        "-s",
+        "dataflux_pytorch/tests",
+    ],
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false
+}
