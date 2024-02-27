@@ -13,6 +13,11 @@ flags.DEFINE_string(
     "the name of the GCP project. If not specified, it will be set to gcs-tess.",
 )
 flags.DEFINE_string("bucket", "", "the name of the bucket")
+flags.DEFINE_integer(
+    "warm_up_hrs",
+    10,
+    "the hours to warm up the bucket for. This is directly set to the number of epochs run because we will sleep for an hour between epochs",
+)
 
 
 def main(argv: Sequence[str]) -> None:
@@ -38,7 +43,7 @@ def main(argv: Sequence[str]) -> None:
         prefetch_factor=2,
     )
 
-    for i in range(5):
+    for i in range(FLAGS.warm_up_hrs):
         total_objects = 0
         epoch_start = time.time()
         for batch in data_loader:
