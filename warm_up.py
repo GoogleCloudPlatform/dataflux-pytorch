@@ -47,12 +47,13 @@ def main(argv: Sequence[str]) -> None:
         total_objects = 0
         epoch_start = time.time()
         for batch in data_loader:
-            # Do training here.
             total_objects += len(batch)
         epoch_end = time.time()
         print(
             f"Epoch {i} took {epoch_end - epoch_start} seconds to iterate over {total_objects} objects."
         )
+        if i != FLAGS.warm_up_hrs - 1:
+            time.sleep(60 * 60)  # one hour
 
 
 if __name__ == "__main__":
