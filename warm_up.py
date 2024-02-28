@@ -53,7 +53,9 @@ def main(argv: Sequence[str]) -> None:
             f"Epoch {i} took {epoch_end - epoch_start} seconds to iterate over {total_objects} objects."
         )
         if i != FLAGS.warm_up_hrs - 1:
-            time.sleep(60 * 60)  # one hour
+            time.sleep(
+                60 * 60
+            )  # one hour. Used to wait for the period of GCS ramping up. https://cloud.google.com/storage/docs/request-rate#ramp-up
 
 
 if __name__ == "__main__":
