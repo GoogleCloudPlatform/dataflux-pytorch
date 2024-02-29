@@ -59,11 +59,18 @@ We will spin up a [Ray cluster](https://docs.ray.io/en/latest/cluster/key-concep
 
 > **_NOTE:_**  It would be best to run the following steps on your workstation with a display device so you can see the Ray dashboard using a browser.
 
-1. [Install Ray](https://docs.ray.io/en/latest/ray-overview/installation.html).
+1. Clone the `dataflux-pytorch` repository and go to the working directory.
+   ```shell
+   git clone --recurse-submodules https://github.com/GoogleCloudPlatform/dataflux-pytorch
+   cd dataflux-pytorch
+   pip install .
+   cd demo/image-segmentation
+   ```
+2. [Install Ray](https://docs.ray.io/en/latest/ray-overview/installation.html).
    ```shell
    pip install -U "ray[default]" 
    ```
-2. Modify the [cluster.yaml](cluster.yaml) file by replacing all the parameters highlighted in the curly brackets. Specifically, they are `{YOUR_CLUSTER_NAME}
+3. Modify the [cluster.yaml](cluster.yaml) file by replacing all the parameters highlighted in the curly brackets. Specifically, they are `{YOUR_CLUSTER_NAME}
 `, `{YOUR_REGION}`, `{{YOUR_AVAILABILITY_ZONE}}` and `{YOUR_PROJECT_ID}`. Note that there's an additional `{YOUR_PROJECT_ID}` field in the `serviceAccounts` field that you'll need to replace.
 1. Run the following command to start the Ray cluster. You may follow the logs to check the startup progress.
     ```shell
