@@ -224,7 +224,7 @@ train_dataset = DatafluxPytTrain(
 
 3. Finally, we support these additional flags in [`arguments.py`](arguments.py) and pass those values in from [`run_and_time.sh`](run_and_time.sh).
 
-> **_IMPORTANT:_**  Make sure to modify the [`run_and_time.sh`](run_and_time.sh) file by specifying the values for `IMAGES_PREFIX`, `LABELS_PREFIX`, `GCP_PROJECT` and `GCS_BUCKET`.
+> **_IMPORTANT:_**  Make sure to modify the [`run_and_time.sh`](run_and_time.sh) file by specifying the values for `IMAGES_PREFIX`, `LABELS_PREFIX`, `GCP_PROJECT` and `GCS_BUCKET` based on the replicated project created in the earlier Dataset Preparation step.
 
 4. Submit the workload job by running
 
