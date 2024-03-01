@@ -83,8 +83,7 @@ def main():
 
     def read_png(bytes_content):
         img = numpy.asarray(Image.open(io.BytesIO(bytes_content)))
-        transformed = numpy.transpose(img, (2, 0, 1))
-        tensor = torch.tensor(transformed)
+        tensor = torch.tensor(img)
         print(tensor.shape)
         return tensor
 
