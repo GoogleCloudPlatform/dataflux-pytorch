@@ -97,6 +97,9 @@ def main():
         config.num_processes = 1
     print(f"Listing started at time {list_start_time}")
 
+    def custom_collate(batch):
+        return batch
+
     def read_png(bytes_content):
         img = numpy.asarray(Image.open(io.BytesIO(bytes_content)))
         tensor = torch.tensor(img)
@@ -122,6 +125,7 @@ def main():
         shuffle=True,
         num_workers=args.num_workers,
         prefetch_factor=args.prefetch_factor,
+        collate_fn=custom_collate,
     )
     training_start_time = time.time()
     print(f"Training started at time {training_start_time}")
