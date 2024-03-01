@@ -67,6 +67,22 @@ algorithms. In this case, all training on the bucket above takes 400 seconds.
 import numpy
 from PIL import Image
 import io
+import torchvision.transforms as transforms
+from torchvision.io import read_image
+
+
+transform = transforms.Compose(
+    [
+        # resize
+        transforms.Resize(32),
+        # center-crop
+        transforms.CenterCrop(32),
+        # to-tensor
+        transforms.ToTensor(),
+        # normalize
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+    ]
+)
 
 
 def main():
@@ -82,10 +98,11 @@ def main():
     print(f"Listing started at time {list_start_time}")
 
     def read_png(bytes_content):
-        img = numpy.asarray(Image.open(io.BytesIO(bytes_content)))
-        tensor = torch.tensor(img)
-        print(tensor.shape)
-        return tensor
+        # img = numpy.asarray(Image.open(io.BytesIO(bytes_content)))
+        # tensor = torch.tensor(img)
+        # print(tensor.shape)
+        # return tensor
+        return read_image(io.BytesIO(bytes_content))
 
     dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
         args.project,
