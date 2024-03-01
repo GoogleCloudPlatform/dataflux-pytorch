@@ -102,8 +102,10 @@ def main():
         return torch.utils.data.dataloader.default_collate(batch)
 
     def read_png(bytes_content):
-        img = numpy.asarray(Image.open(io.BytesIO(bytes_content)))
-        tensor = torch.tensor(img)
+        img = Image.open(io.BytesIO(bytes_content))
+        resized_image = img.resize((512, 512))
+        resized_array = numpy.asarray(resized_image)
+        tensor = torch.tensor(resized_array)
         return tensor
 
     dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -122,7 +124,7 @@ def main():
         shuffle=True,
         num_workers=args.num_workers,
         prefetch_factor=args.prefetch_factor,
-        collate_fn=custom_collate_fn,
+        # collate_fn=custom_collate_fn,
         drop_last=True,
         pin_memory=True,
     )
