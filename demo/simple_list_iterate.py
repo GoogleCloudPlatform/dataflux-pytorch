@@ -84,7 +84,9 @@ def main():
     def read_png(bytes_content):
         img = numpy.asarray(Image.open(io.BytesIO(bytes_content)))
         transformed = numpy.transpose(img, (2, 0, 1))
-        return torch.tensor(transformed)
+        tensor = torch.tensor(transformed)
+        print(tensor.shape)
+        return tensor
 
     dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
         args.project,
