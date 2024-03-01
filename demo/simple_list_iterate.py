@@ -103,11 +103,7 @@ def main():
     def read_png(bytes_content):
         img = numpy.asarray(Image.open(io.BytesIO(bytes_content)))
         tensor = torch.tensor(img)
-        print(tensor.shape)
-
-        reshaped = tensor.resize(512, 512, 3)
-        print(reshaped.shape)
-        return reshaped
+        return tensor
 
     dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
         args.project,
