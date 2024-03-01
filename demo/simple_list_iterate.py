@@ -102,7 +102,7 @@ def main():
         tensor = torch.tensor(img)
         print(tensor.shape)
 
-        reshaped = tensor.reshape(512, 512, 3)
+        reshaped = tensor.resize(512, 512, 3)
         print(reshaped.shape)
         return reshaped
 
