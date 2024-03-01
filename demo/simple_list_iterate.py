@@ -122,6 +122,8 @@ def main():
         num_workers=args.num_workers,
         prefetch_factor=args.prefetch_factor,
         # collate_fn=custom_collate,
+        drop_last=True,
+        pin_memory=True,
     )
     training_start_time = time.time()
     print(f"Training started at time {training_start_time}")
