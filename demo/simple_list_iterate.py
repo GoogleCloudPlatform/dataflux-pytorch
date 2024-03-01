@@ -17,6 +17,7 @@
 import argparse
 import time
 
+import torch
 from torch.utils import data
 from dataflux_pytorch import dataflux_mapstyle_dataset
 
@@ -81,7 +82,7 @@ def main():
     print(f"Listing started at time {list_start_time}")
 
     def read_png(bytes_content):
-        return numpy.asarray(Image.open(io.BytesIO(bytes_content)))
+        return torch.tensor(numpy.asarray(Image.open(io.BytesIO(bytes_content))))
 
     dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
         args.project,
