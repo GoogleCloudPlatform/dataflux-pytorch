@@ -4,6 +4,8 @@ The Dataflux Dataset for PyTorch lets you connect directly to a GCS bucket as a 
 
 The Dataflux Dataset for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns.
 
+Furthermore, the Dataflux Dataset for PyTorch provides a checkpointing interface to conveniently save and load checkpoints directly to and from a Google Cloud Storage (GCS) bucket.
+
 Note that the Dataflux Dataset for PyTorch library is in an early preview stage and the team is consistently working on improvements and support for new features.
 
 ## Getting started
@@ -30,8 +32,8 @@ gcloud auth application-default login
 ### Examples
 Before getting started, please make sure you have installed the library and configured authentication following the instructions above.
 
+#### Data Loading
 Dataflux Dataset for PyTorch can be constructed by specifying the project name, bucket name and an optional prefix.
-
 ```python
 from dataflux_pytorch import dataflux_mapstyle_dataset
 
@@ -80,6 +82,32 @@ dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
 for each_object in dataset:
   # each_object is now a Numpy array.
   print(each_object)
+```
+
+#### Checkpointing
+
+The Dataflux Dataset for PyTorch not only supports fast data loading but also allows you to save and load model checkpoints directly to and from a Google Cloud Storage (GCS) bucket.
+
+```python
+import torch
+import torchvision
+
+from dataflux_pytorch import dataflux_checkpoint
+
+ckpt = dataflux_checkpoint.DatafluxCheckpoint(
+  project_name=PROJECT_NAME, bucket_name=BUCKET_NAME
+)
+CKPT_PATH = "checkpoints/epoch0.ckpt"
+
+model = torchvision.models.resnet50()
+
+with ckpt.writer(CKPT_PATH) as writer:
+  torch.save(model.state_dict(), writer)
+
+with ckpt.reader(CKPT_PATH) as reader:
+  read_state_dict = torch.load(reader)
+
+model.load_state_dict(read_state_dict)
 ```
 
 ## Performance
