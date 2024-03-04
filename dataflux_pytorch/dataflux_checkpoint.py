@@ -22,9 +22,9 @@ from typing import Optional
 
 
 class DatafluxCheckpoint:
-    """A class that implements the interface of saving and loading model checkpoints.
+    """Implements the interface of saving and loading model checkpoints.
 
-    The reader and writer returns a BlobReader and BlobWriter respectively, which
+    The reader and writer return a BlobReader and BlobWriter respectively, which
     both implement io.BufferedIOBase. Therefore, they can be safely passed to torch.load()
     and torch.save() to load and save model checkpoints.
     """
@@ -42,10 +42,7 @@ class DatafluxCheckpoint:
             bucket_name: The name of the GCS bucket that is going to hold the checkpoint.
             storage_client: The google.cloud.storage.Client object initiated with sufficient
                 permission to access the project and the bucket. If not specified, it will
-                be created during initialization.
-
-        Returns:
-            None.
+                be created during initialization with background authentication.
         """
         self.project_name = project_name
         self.bucket_name = bucket_name

@@ -86,7 +86,7 @@ for each_object in dataset:
 
 #### Checkpointing
 
-The Dataflux Dataset for PyTorch not only supports fast data loading but also allows you to save and load model checkpoints directly to and from a Google Cloud Storage (GCS) bucket.
+The Dataflux Dataset for PyTorch supports fast data loading and allows the user to save and load model checkpoints directly to/from a Google Cloud Storage (GCS) bucket.
 
 ```python
 import torch
