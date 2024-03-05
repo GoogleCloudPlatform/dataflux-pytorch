@@ -97,16 +97,9 @@ def main():
         config.num_processes = 1
     print(f"Listing started at time {list_start_time}")
 
-    def custom_collate_fn(batch):
-        batch = list(filter(lambda x: x is not None, batch))
-        return torch.utils.data.dataloader.default_collate(batch)
-
     def read_png(bytes_content):
         img = Image.open(io.BytesIO(bytes_content))
-        resized_image = img.resize((512, 512))
-        resized_array = numpy.asarray(resized_image)
-        tensor = torch.tensor(resized_array)
-        return tensor
+        return torch.rand((512, 512))
 
     dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
         args.project,
