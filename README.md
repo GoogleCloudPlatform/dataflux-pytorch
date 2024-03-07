@@ -30,9 +30,12 @@ gcloud auth application-default login
 ```
 
 ### Examples
+Please checkout the `demo` directory for a complete set of examples, which include a [simple starter Jupyter Notebook (hosted by Google Colab)](demo/simple-walkthrough/Getting%20Started%20with%20Dataflux%20Dataset%20for%20PyTorch%20with%20Google%20Cloud%20Storage.ipynb) and an [end-to-end image segmentation training workload walkthrough](demo/image-segmentation/README.md). Those examples will help you understand how the Dataflux Dataset for PyTorch works and how you can integrate it into your own workload. 
+
+#### Sample Examples
 Before getting started, please make sure you have installed the library and configured authentication following the instructions above.
 
-#### Data Loading
+##### Data Loading
 Dataflux Dataset for PyTorch can be constructed by specifying the project name, bucket name and an optional prefix.
 ```python
 from dataflux_pytorch import dataflux_mapstyle_dataset
@@ -61,7 +64,7 @@ for each_object in dataset:
   print(each_object)
 ```
 
-Dataflux Dataset for PyTorch offers the flexibility to transform the downloaded raw bytes of data into any format of choice. 
+Dataflux Dataset for PyTorch offers the flexibility to transform the downloaded raw bytes of data into any format of choice. This is particularly useful since the `PyTorch DataLoader` works well with Numpy arrays or PyTorch tensors.
 
 ```python
 # Assume that you have a bucket with image files and you want
@@ -84,7 +87,7 @@ for each_object in dataset:
   print(each_object)
 ```
 
-#### Checkpointing
+##### Checkpointing
 
 The Dataflux Dataset for PyTorch supports fast data loading and allows the user to save and load model checkpoints directly to/from a Google Cloud Storage (GCS) bucket.
 
