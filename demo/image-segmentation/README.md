@@ -59,11 +59,11 @@ We will spin up a [Ray cluster](https://docs.ray.io/en/latest/cluster/key-concep
 
 > **_NOTE:_**  It would be best to run the following steps on your workstation with a display device so you can see the Ray dashboard using a browser.
 
-1. Clone the `dataflux-pytorch` repository and go to the working directory.
+1. Clone the `dataflux-pytorch` repository, install the packages and go to the working directory.
    ```shell
    git clone --recurse-submodules https://github.com/GoogleCloudPlatform/dataflux-pytorch
    cd dataflux-pytorch
-   pip install .
+   pip install gcs-torch-dataflux
    cd demo/image-segmentation
    ```
 2. [Install Ray](https://docs.ray.io/en/latest/ray-overview/installation.html).

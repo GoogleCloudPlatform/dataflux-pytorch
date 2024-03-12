@@ -16,9 +16,7 @@ Note that the Dataflux Dataset for PyTorch library is in an early preview stage 
 ### Installation
 
 ```shell
-git clone --recurse-submodules https://github.com/GoogleCloudPlatform/dataflux-pytorch
-cd dataflux-pytorch
-pip install .
+pip install gcs-torch-dataflux
 ```
 
 ### Configuration
