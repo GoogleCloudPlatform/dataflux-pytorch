@@ -48,7 +48,7 @@ PREFIX = "<PREFIX>"
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
   bucket_name=BUCKET_NAME,
-  prefix=PREFIX,
+  config=dataflux_mapstyle_dataset.Config(prefix=PREFIX),
 )
 
 # Random access to an object.
@@ -78,7 +78,7 @@ transform = lambda img_in_bytes : numpy.asarray(Image.open(io.BytesIO(img_in_byt
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
   bucket_name=BUCKET_NAME,
-  prefix=PREFIX,
+  config=dataflux_mapstyle_dataset.Config(prefix=PREFIX),
   data_format_fn=transform,
 )
 
@@ -202,8 +202,10 @@ You can also turn off this behavior by setting the â€œmax_composite_object_sizeâ
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
   bucket_name=BUCKET_NAME,
-  prefix=PREFIX,
-  config=dataflux_mapstyle_dataset.Config(max_composite_object_size=0),
+  config=dataflux_mapstyle_dataset.Config(
+    prefix=PREFIX,
+    max_composite_object_size=0,
+  ),
 )
 ```
 
