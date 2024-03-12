@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gcs-torch-dataflux"
+version = "0.0.0"
+description = "A GCS data loading integration for PyTorch"
+requires-python = ">=3.8,<3.13"
+readme = "README.md"
+maintainers = [
+    { name = "Google Dataflux Dev Team", email = "dataflux-customer-support@google.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Utilities",
+]
+
+dependencies = ["torch >= 2.0.1", "numpy", "google-cloud-storage", "absl-py"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/GoogleCloudPlatform/dataflux-pytorch"
+Issues = "https://github.com/GoogleCloudPlatform/dataflux-pytorch/issues"
