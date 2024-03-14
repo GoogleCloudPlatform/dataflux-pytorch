@@ -1,5 +1,5 @@
 """
- Copyright 2023 Google LLC
+ Copyright 2024 Google LLC
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  """
 
 import os
+import math
 import logging
 
 from torch.utils import data
@@ -25,7 +26,7 @@ import dataflux_core
 
 
 class Config:
-    """Customizable configuration to the DataFluxMapStyleDataset.
+    """Customizable configuration to the DataFluxIterableDataset.
 
     Attributes:
         sort_listing_results: A boolean flag indicating if data listing results
@@ -60,7 +61,7 @@ class Config:
         self.max_listing_retries = max_listing_retries
 
 
-class DataFluxMapStyleDataset(data.Dataset):
+class DataFluxIterableDataset(data.IterableDataset):
     def __init__(
         self,
         project_name,
@@ -69,7 +70,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         data_format_fn=lambda data: data,
         storage_client=None,
     ):
-        """Initializes the DataFluxMapStyleDataset.
+        """Initializes the DataFluxIterableDataset.
 
         The initialization sets up the needed configuration and runs data
         listing using the Dataflux algorithm.
@@ -79,16 +80,13 @@ class DataFluxMapStyleDataset(data.Dataset):
             bucket_name: The name of the GCS bucket that holds the objects to compose.
                 The Dataflux download algorithm uploads the the composed object to this bucket too.
             destination_blob_name: The name of the composite object to be created.
-            config: A dataflux_mapstyle_dataset.Config object that includes configuration
+            config: A dataflux_iterable_dataset.Config object that includes configuration
                 customizations. If not specified, a default config with default parameters is created.
             data_format_fn: A function that formats the downloaded bytes to the desired format.
                 If not specified, the default formatting function leaves the data as-is.
             storage_client: The google.cloud.storage.Client object initiated with sufficient permission
                 to access the project and the bucket. If not specified, it will be created
                 during initialization.
-
-        Returns:
-            None.
         """
         super().__init__()
         self.storage_client = storage_client
@@ -109,29 +107,39 @@ class DataFluxMapStyleDataset(data.Dataset):
 
         self.objects = self._list_GCS_blobs_with_retry()
 
-    def __len__(self):
-        return len(self.objects)
-
-    def __getitem__(self, idx):
-        return self.data_format_fn(
-            dataflux_core.download.download_single(
-                storage_client=self.storage_client,
-                bucket_name=self.bucket_name,
-                object_name=self.objects[idx][0],
+    def __iter__(self):
+        worker_info = data.get_worker_info()
+        if worker_info is None:
+            # Single-process data loading.
+            yield from [
+                self.data_format_fn(bytes_content)
+                for bytes_content in dataflux_core.download.dataflux_download_lazy(
+                    project_name=self.project_name,
+                    bucket_name=self.bucket_name,
+                    objects=self.objects,
+                    storage_client=self.storage_client,
+                    dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+                )
+            ]
+        else:
+            # Multi-process data loading. Split the workload among workers.
+            # Ref: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset.
+            per_worker = int(
+                math.ceil(len(self.objects) / float(worker_info.num_workers))
             )
-        )
-
-    def __getitems__(self, indices):
-        return [
-            self.data_format_fn(bytes_content)
-            for bytes_content in dataflux_core.download.dataflux_download(
-                project_name=self.project_name,
-                bucket_name=self.bucket_name,
-                objects=[self.objects[idx] for idx in indices],
-                storage_client=self.storage_client,
-                dataflux_download_optimization_params=self.dataflux_download_optimization_params,
-            )
-        ]
+            worker_id = worker_info.id
+            start = worker_id * per_worker
+            end = min(start + per_worker, len(self.objects))
+            yield from [
+                self.data_format_fn(bytes_content)
+                for bytes_content in dataflux_core.download.dataflux_download_lazy(
+                    project_name=self.project_name,
+                    bucket_name=self.bucket_name,
+                    objects=self.objects[start:end],
+                    storage_client=self.storage_client,
+                    dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+                )
+            ]
 
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
