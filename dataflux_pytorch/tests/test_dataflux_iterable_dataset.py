@@ -16,6 +16,7 @@
 
 import unittest
 from unittest import mock
+import math
 
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch import dataflux_iterable_dataset
@@ -156,9 +157,9 @@ class IterableDatasetTestCase(unittest.TestCase):
         )
 
     @mock.patch("dataflux_pytorch.dataflux_iterable_dataset.dataflux_core")
-    @mock.patch("torch.utils.data")
-    def test_iter(self, mock_torch_utils_data, mock_dataflux_core):
-        """Tests that the using the iterator of the dataset downloads the list of the correct objects."""
+    @mock.patch("torch.utils.data.get_worker_info")
+    def test_iter_single_process(self, mock_worker_info, mock_dataflux_core):
+        """Tests that the using the iterator of the dataset downloads the list of the correct objects with a single process setup."""
         # Arrange.
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
@@ -177,7 +178,7 @@ class IterableDatasetTestCase(unittest.TestCase):
         mock_dataflux_core.download.dataflux_download_lazy.return_value = iter(
             dataflux_download_return_val
         )
-        mock_torch_utils_data.get_worker_info.return_value = None
+        mock_worker_info.return_value = None
 
         data_format_fn = lambda content: len(content)
         want_downloaded = [
@@ -202,10 +203,87 @@ class IterableDatasetTestCase(unittest.TestCase):
             got_downloaded,
             want_downloaded,
         )
+        # Since this is a single process setup, we expect dataflux_download_lazy to be
+        # called with the full list of objects.
         mock_dataflux_core.download.dataflux_download_lazy.assert_called_with(
             project_name=self.project_name,
             bucket_name=self.bucket_name,
             objects=self.want_objects,
+            storage_client=self.storage_client,
+            dataflux_download_optimization_params=want_optimization_params,
+        )
+
+    @mock.patch("dataflux_pytorch.dataflux_iterable_dataset.dataflux_core")
+    @mock.patch("torch.utils.data.get_worker_info")
+    def test_iter_multiple_processes(self, mock_worker_info, mock_dataflux_core):
+        """
+        Tests that the using the iterator of the dataset downloads the list of the correct objects with a multi-process setup.
+        Specifically, each worker should be assigned to download a different batch of the dataset.
+        """
+        # Arrange.
+        want_objects = [("objectA", 1), ("objectB", 2), ("objectC", 3), ("objectD", 4)]
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.run.return_value = want_objects
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller
+        )
+        want_optimization_params = object()
+        mock_dataflux_core.download.DataFluxDownloadOptimizationParams.return_value = (
+            want_optimization_params
+        )
+        dataflux_download_return_val = [
+            bytes("contentA", "utf-8"),
+            bytes("contentBB", "utf-8"),
+        ]
+
+        mock_dataflux_core.download.dataflux_download_lazy.return_value = iter(
+            dataflux_download_return_val
+        )
+
+        class _WorkerInfo:
+            """A fake WorkerInfo class for testing purpose."""
+
+            def __init__(self, num_workers, id):
+                self.num_workers = num_workers
+                self.id = id
+
+        num_workers = 2
+        id = 0
+        want_per_worker = math.ceil(len(want_objects) / num_workers)
+        want_start = id * want_per_worker
+        want_end = want_start + want_per_worker
+        worker_info = _WorkerInfo(num_workers=num_workers, id=id)
+        mock_worker_info.return_value = worker_info
+
+        data_format_fn = lambda content: len(content)
+        want_downloaded = [
+            data_format_fn(bytes_content)
+            for bytes_content in dataflux_download_return_val
+        ]
+
+        # Act.
+        ds = dataflux_iterable_dataset.DataFluxIterableDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            data_format_fn=data_format_fn,
+            storage_client=self.storage_client,
+        )
+        got_downloaded = []
+        for downloaded in ds:
+            got_downloaded.append(downloaded)
+
+        # Assert.
+        self.assertEqual(
+            got_downloaded,
+            want_downloaded,
+        )
+        # Since this is a multi-process setup, we expect dataflux_download_lazy to be
+        # only called to download a slice of the objects want_objects[want_start:want_end].
+        mock_dataflux_core.download.dataflux_download_lazy.assert_called_with(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            objects=want_objects[want_start:want_end],
             storage_client=self.storage_client,
             dataflux_download_optimization_params=want_optimization_params,
         )
