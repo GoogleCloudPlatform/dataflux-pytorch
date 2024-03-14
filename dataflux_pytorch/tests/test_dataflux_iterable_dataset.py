@@ -37,7 +37,7 @@ class IterableDatasetTestCase(unittest.TestCase):
 
     @mock.patch("dataflux_pytorch.dataflux_iterable_dataset.dataflux_core")
     def test_init(self, mock_dataflux_core):
-        """Tests the DataFluxIterableStyleDataset can be initiated with the expected listing results."""
+        """Tests the DataFluxIterableDataset can be initiated with the expected listing results."""
         # Arrange.
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
@@ -46,7 +46,7 @@ class IterableDatasetTestCase(unittest.TestCase):
         )
 
         # Act.
-        ds = dataflux_iterable_dataset.DataFluxIterableStyleDataset(
+        ds = dataflux_iterable_dataset.DataFluxIterableDataset(
             project_name=self.project_name,
             bucket_name=self.bucket_name,
             config=self.config,
@@ -63,7 +63,7 @@ class IterableDatasetTestCase(unittest.TestCase):
 
     @mock.patch("dataflux_pytorch.dataflux_iterable_dataset.dataflux_core")
     def test_init_with_required_parameters(self, mock_dataflux_core):
-        """Tests the DataFluxIterableStyleDataset can be initiated with only the required parameters."""
+        """Tests the DataFluxIterableDataset can be initiated with only the required parameters."""
         # Arrange.
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
@@ -72,7 +72,7 @@ class IterableDatasetTestCase(unittest.TestCase):
         )
 
         # Act.
-        ds = dataflux_iterable_dataset.DataFluxIterableStyleDataset(
+        ds = dataflux_iterable_dataset.DataFluxIterableDataset(
             project_name=self.project_name,
             bucket_name=self.bucket_name,
             # storage_client is optional param but still needed here
@@ -105,7 +105,7 @@ class IterableDatasetTestCase(unittest.TestCase):
         )
 
         # Act.
-        ds = dataflux_iterable_dataset.DataFluxIterableStyleDataset(
+        ds = dataflux_iterable_dataset.DataFluxIterableDataset(
             project_name=self.project_name,
             bucket_name=self.bucket_name,
             config=self.config,
@@ -137,7 +137,7 @@ class IterableDatasetTestCase(unittest.TestCase):
 
         # Act & Assert.
         with self.assertRaises(RuntimeError) as re:
-            ds = dataflux_iterable_dataset.DataFluxIterableStyleDataset(
+            ds = dataflux_iterable_dataset.DataFluxIterableDataset(
                 project_name=self.project_name,
                 bucket_name=self.bucket_name,
                 config=self.config,
@@ -186,7 +186,7 @@ class IterableDatasetTestCase(unittest.TestCase):
         ]
 
         # Act.
-        ds = dataflux_iterable_dataset.DataFluxIterableStyleDataset(
+        ds = dataflux_iterable_dataset.DataFluxIterableDataset(
             project_name=self.project_name,
             bucket_name=self.bucket_name,
             config=self.config,

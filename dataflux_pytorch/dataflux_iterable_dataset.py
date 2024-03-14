@@ -26,7 +26,7 @@ import dataflux_core
 
 
 class Config:
-    """Customizable configuration to the DataFluxIterableStyleDataset.
+    """Customizable configuration to the DataFluxIterableDataset.
 
     Attributes:
         sort_listing_results: A boolean flag indicating if data listing results
@@ -61,7 +61,7 @@ class Config:
         self.max_listing_retries = max_listing_retries
 
 
-class DataFluxIterableStyleDataset(data.IterableDataset):
+class DataFluxIterableDataset(data.IterableDataset):
     def __init__(
         self,
         project_name,
@@ -70,7 +70,7 @@ class DataFluxIterableStyleDataset(data.IterableDataset):
         data_format_fn=lambda data: data,
         storage_client=None,
     ):
-        """Initializes the DataFluxIterableStyleDataset.
+        """Initializes the DataFluxIterableDataset.
 
         The initialization sets up the needed configuration and runs data
         listing using the Dataflux algorithm.
