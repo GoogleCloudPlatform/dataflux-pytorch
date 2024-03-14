@@ -2,7 +2,7 @@
 
 The Dataflux Dataset for PyTorch lets you connect directly to a GCS bucket as a PyTorch dataset, without pre-loading the data to local disk, and with optimizations to make training up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
 
-The Dataflux Dataset for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns.
+The Dataflux Dataset for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns and [iterable-style datasets](https://pytorch.org/docs/stable/data.html#iterable-style-datasets) for streaming data access patterns.
 
 Furthermore, the Dataflux Dataset for PyTorch provides a checkpointing interface to conveniently save and load checkpoints directly to and from a Google Cloud Storage (GCS) bucket.
 
@@ -34,7 +34,7 @@ Please checkout the `demo` directory for a complete set of examples, which inclu
 Before getting started, please make sure you have installed the library and configured authentication following the instructions above.
 
 ##### Data Loading
-Dataflux Dataset for PyTorch can be constructed by specifying the project name, bucket name and an optional prefix.
+Both Dataflux map-style and iterable-style datasets for PyTorch can be constructed by specifying the project name, bucket name and an optional prefix.
 ```python
 from dataflux_pytorch import dataflux_mapstyle_dataset
 
@@ -43,21 +43,37 @@ PROJECT_NAME = "<PROJECT_NAME>"
 BUCKET_NAME = "<BUCKET_NAME>"
 PREFIX = "<PREFIX>"
 
-dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+# Map-style dataset.
+map_dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
   bucket_name=BUCKET_NAME,
   config=dataflux_mapstyle_dataset.Config(prefix=PREFIX),
 )
 
 # Random access to an object.
-sample_object = dataset.objects[0]
+sample_object = map_dataset.objects[0]
 
 # Learn about the name and the size (in bytes) of the object.
 name = sample_object[0]
 size = sample_object[1]
 
 # Iterate over the datasets.
-for each_object in dataset:
+for each_object in map_dataset:
+  # Raw bytes of the object.
+  print(each_object)
+```
+Similarly, for `DataFluxIterableDataset`:
+```python
+from dataflux_pytorch import dataflux_iterable_dataset
+
+# Iterable-style dataset.
+iterable_dataset = dataflux_iterable_dataset.DataFluxIterableDataset(
+  project_name=PROJECT_ID,
+  bucket_name=BUCKET_NAME,
+  config=dataflux_iterable_dataset.Config(prefix=PREFIX),
+)
+
+for each_object in iterable_dataset:
   # Raw bytes of the object.
   print(each_object)
 ```
@@ -73,13 +89,26 @@ from PIL import Image
 
 transform = lambda img_in_bytes : numpy.asarray(Image.open(io.BytesIO(img_in_bytes)))
 
-dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+map_dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
   bucket_name=BUCKET_NAME,
   config=dataflux_mapstyle_dataset.Config(prefix=PREFIX),
   data_format_fn=transform,
 )
 
+for each_object in map_dataset:
+  # each_object is now a Numpy array.
+  print(each_object)
+```
+
+Similarly, for `DataFluxIterableDataset`:
+```python
+iterable_dataset = dataflux_iterable_dataset.DataFluxIterableDataset(
+  project_name=PROJECT_ID,
+  bucket_name=BUCKET_NAME,
+  config=dataflux_mapstyle_dataset.Config(prefix=PREFIX),
+  data_format_fn=transform,
+)
 for each_object in dataset:
   # each_object is now a Numpy array.
   print(each_object)
