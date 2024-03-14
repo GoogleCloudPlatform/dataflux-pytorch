@@ -77,7 +77,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         Args:
             project_name: The name of the GCP project.
             bucket_name: The name of the GCS bucket that holds the objects to compose.
-                The function uploads the the composed object to this bucket too.
+                The Dataflux download algorithm uploads the the composed object to this bucket too.
             destination_blob_name: The name of the composite object to be created.
             config: A dataflux_mapstyle_dataset.Config object that includes configuration
                 customizations. If not specified, a default config with default parameters is created.
