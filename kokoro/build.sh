@@ -27,7 +27,7 @@ function run_git_commands() {
     echo Installing git submodules.
     git submodule init
 
-    echo updating git submodules.
+    echo Updating git submodules.
     git submodule update
 }
 
