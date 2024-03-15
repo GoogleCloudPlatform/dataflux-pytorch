@@ -25,6 +25,9 @@ function run_git_commands() {
     git config --global --add safe.directory /tmpfs/src/github/dataflux-pytorch 
 
     echo Installing git submodules.
+    git submodule init
+
+    echo Updating git submodules.
     git submodule update
 }
 
