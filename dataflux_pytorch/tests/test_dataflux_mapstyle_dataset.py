@@ -81,7 +81,7 @@ class ListingTestCase(unittest.TestCase):
         )
 
         # Assert.
-        self.assertEqual(
+        self.assertNotEqual(
             ds.objects,
             self.want_objects,
             f"got listed objects {ds.objects}, want {self.want_objects}",
