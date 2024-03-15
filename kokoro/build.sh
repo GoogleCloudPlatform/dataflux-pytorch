@@ -18,7 +18,7 @@
 set -e
 
 # Code under repo is checked out to this directory.
-cd "${KOKORO_ARTIFACTS_DIR}/git/dataflux-pytorch"
+cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
 
 function run_git_commands() {
     echo Installing git submodules.
