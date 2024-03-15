@@ -22,7 +22,7 @@ cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
 
 function run_git_commands() {
     echo Setting git permissions.
-    git config --global --add safe.directory /tmpfs/src/github/dataflux-pytorch 
+    git config --global --add safe.directory "*" 
 
     echo Installing git submodules.
     git submodule init
