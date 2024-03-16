@@ -122,15 +122,25 @@ class DataFluxMapStyleDataset(data.Dataset):
         )
 
     def __getitems__(self, indices):
+        # return [
+        #     self.data_format_fn(bytes_content)
+        #     for bytes_content in dataflux_core.download.dataflux_download_threaded(
+        #         project_name=self.project_name,
+        #         bucket_name=self.bucket_name,
+        #         objects=[self.objects[idx] for idx in indices],
+        #         storage_client=self.storage_client,
+        #         dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+        #         threads=2,
+        #     )
+        # ]
         return [
             self.data_format_fn(bytes_content)
-            for bytes_content in dataflux_core.download.dataflux_download_threaded(
+            for bytes_content in dataflux_core.download.dataflux_download(
                 project_name=self.project_name,
                 bucket_name=self.bucket_name,
                 objects=[self.objects[idx] for idx in indices],
                 storage_client=self.storage_client,
                 dataflux_download_optimization_params=self.dataflux_download_optimization_params,
-                threads=2,
             )
         ]
 
