@@ -17,6 +17,7 @@
 import os
 import logging
 
+import torch
 from torch.utils import data
 from google.cloud import storage
 from google.api_core.client_info import ClientInfo
@@ -122,6 +123,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         )
 
     def __getitems__(self, indices):
+        print(f"Worker {data.get_worker_info().id} trying to fetch {len(indices)} data")
         return [
             self.data_format_fn(bytes_content)
             for bytes_content in dataflux_core.download.dataflux_download_threaded(
