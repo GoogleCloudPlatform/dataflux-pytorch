@@ -123,7 +123,6 @@ class DataFluxMapStyleDataset(data.Dataset):
         )
 
     def __getitems__(self, indices):
-        print(f"Worker {data.get_worker_info().id} trying to fetch {len(indices)} data")
         return [
             self.data_format_fn(bytes_content)
             for bytes_content in dataflux_core.download.dataflux_download_threaded(
