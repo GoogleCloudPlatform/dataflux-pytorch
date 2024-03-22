@@ -130,7 +130,7 @@ class DataFluxMapStyleDataset(data.Dataset):
                 bucket_name=self.bucket_name,
                 objects=[self.objects[idx] for idx in indices],
                 dataflux_download_optimization_params=self.dataflux_download_optimization_params,
-                threads=3,
+                threads=4,
             )
         ]
         # return [
