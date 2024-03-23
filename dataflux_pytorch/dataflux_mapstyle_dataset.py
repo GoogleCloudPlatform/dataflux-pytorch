@@ -133,25 +133,25 @@ class DataFluxMapStyleDataset(data.Dataset):
         #         threads=3,
         #     )
         # ]
-        return [
-            self.data_format_fn(bytes_content)
-            for bytes_content in dataflux_core.download.dataflux_download_parallel(
-                project_name=self.project_name,
-                bucket_name=self.bucket_name,
-                objects=[self.objects[idx] for idx in indices],
-                dataflux_download_optimization_params=self.dataflux_download_optimization_params,
-                parallelization=3,
-            )
-        ]
         # return [
         #     self.data_format_fn(bytes_content)
-        #     for bytes_content in dataflux_core.download.dataflux_download(
+        #     for bytes_content in dataflux_core.download.dataflux_download_parallel(
         #         project_name=self.project_name,
         #         bucket_name=self.bucket_name,
         #         objects=[self.objects[idx] for idx in indices],
         #         dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+        #         parallelization=3,
         #     )
         # ]
+        return [
+            self.data_format_fn(bytes_content)
+            for bytes_content in dataflux_core.download.dataflux_download(
+                project_name=self.project_name,
+                bucket_name=self.bucket_name,
+                objects=[self.objects[idx] for idx in indices],
+                dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+            )
+        ]
 
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
