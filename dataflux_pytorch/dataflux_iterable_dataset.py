@@ -141,6 +141,9 @@ class DataFluxIterableDataset(data.IterableDataset):
                 )
             ]
 
+    def __len__(self):
+        return len(self.objects)
+
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
         error = None
