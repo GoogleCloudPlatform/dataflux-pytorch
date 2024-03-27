@@ -130,6 +130,7 @@ class DataFluxIterableDataset(data.IterableDataset):
             worker_id = worker_info.id
             start = worker_id * per_worker
             end = min(start + per_worker, len(self.objects))
+            print(f"worker_id {worker_id} responsible for [{start} : {end}]")
             yield from [
                 self.data_format_fn(bytes_content)
                 for bytes_content in dataflux_core.download.dataflux_download_lazy(

@@ -97,6 +97,8 @@ def main():
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         prefetch_factor=args.prefetch_factor,
+        persistent_workers=True,
+        pin_memory=True,
     )
     training_start_time = time.time()
     print(f"Training started at time {training_start_time}")
