@@ -13,11 +13,15 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  """
+
+import numpy
+import io
 import argparse
 import time
 
 from torch.utils import data
-from dataflux_pytorch import dataflux_mapstyle_dataset
+from dataflux_pytorch import dataflux_mapstyle_dataset, dataflux_iterable_dataset
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -29,6 +33,7 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--prefetch-factor", type=int, default=2)
     return parser.parse_args()
+
 
 """
 Sample training loop that iterates over the given bucket and counts the number of objects/bytes. For example:
@@ -60,19 +65,37 @@ is done sequentially and objects are downloaded individually, allowing you to co
 performance numbers from Dataflux to a naive GCS-API implementation without Dataflux's
 algorithms. In this case, all training on the bucket above takes 400 seconds.
 """
+
+
 def main():
     args = parse_args()
     list_start_time = time.time()
-    config = dataflux_mapstyle_dataset.Config()
+    config = dataflux_iterable_dataset.Config()
     if args.no_dataflux:
-        print("Overriding parallelism and composite object configurations to simulate non-dataflux loop")
+        print(
+            "Overriding parallelism and composite object configurations to simulate non-dataflux loop"
+        )
         config.max_composite_object_size = 0
         config.num_processes = 1
     print(f"Listing started at time {list_start_time}")
-    dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(args.project, args.bucket, config=config)
+
+    def read_image_modified(content_in_bytes):
+        return numpy.load(io.BytesIO(content_in_bytes), allow_pickle=True)["x"]
+
+    config.prefix = "UNet3D/large/150MB-750GB/train"
+    dataset = dataflux_iterable_dataset.DataFluxIterableDataset(
+        args.project, args.bucket, config=config, data_format_fn=read_image_modified
+    )
     list_end_time = time.time()
-    print(f"Listing discovered {len(dataset)} objects in {list_end_time - list_start_time} seconds.")
-    data_loader = data.DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, prefetch_factor=args.prefetch_factor)
+    print(
+        f"Listing discovered {len(dataset)} objects in {list_end_time - list_start_time} seconds."
+    )
+    data_loader = data.DataLoader(
+        dataset=dataset,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        prefetch_factor=args.prefetch_factor,
+    )
     training_start_time = time.time()
     print(f"Training started at time {training_start_time}")
     for i in range(args.epochs):
@@ -86,12 +109,19 @@ def main():
             for object_bytes in batch:
                 total_bytes += len(object_bytes)
             if time.time() - last_update > 5:
-                print(f"Iterated over {total_objects} objects and {total_bytes} bytes so far")
+                print(
+                    f"Iterated over {total_objects} objects and {total_bytes} bytes so far"
+                )
                 last_update = time.time()
         epoch_end = time.time()
-        print(f"Epoch {i} took {epoch_end - epoch_start} seconds to iterate over {total_objects} objects and {total_bytes} bytes.")
+        print(
+            f"Epoch {i} took {epoch_end - epoch_start} seconds to iterate over {total_objects} objects and {total_bytes} bytes."
+        )
     training_end_time = time.time()
-    print(f"All training ({args.epochs} epochs) took {training_end_time - training_start_time} seconds.")
+    print(
+        f"All training ({args.epochs} epochs) took {training_end_time - training_start_time} seconds."
+    )
+
 
 if __name__ == "__main__":
     main()
