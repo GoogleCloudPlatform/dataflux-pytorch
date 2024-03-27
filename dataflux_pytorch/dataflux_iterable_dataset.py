@@ -111,7 +111,7 @@ class DataFluxIterableDataset(data.IterableDataset):
         worker_info = data.get_worker_info()
         if worker_info is None:
             # Single-process data loading.
-            yield from [
+            yield from (
                 self.data_format_fn(bytes_content)
                 for bytes_content in dataflux_core.download.dataflux_download_lazy(
                     project_name=self.project_name,
@@ -120,7 +120,7 @@ class DataFluxIterableDataset(data.IterableDataset):
                     storage_client=self.storage_client,
                     dataflux_download_optimization_params=self.dataflux_download_optimization_params,
                 )
-            ]
+            )
         else:
             # Multi-process data loading. Split the workload among workers.
             # Ref: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset.
@@ -130,7 +130,7 @@ class DataFluxIterableDataset(data.IterableDataset):
             worker_id = worker_info.id
             start = worker_id * per_worker
             end = min(start + per_worker, len(self.objects))
-            yield from [
+            yield from (
                 self.data_format_fn(bytes_content)
                 for bytes_content in dataflux_core.download.dataflux_download_lazy(
                     project_name=self.project_name,
@@ -139,7 +139,7 @@ class DataFluxIterableDataset(data.IterableDataset):
                     storage_client=self.storage_client,
                     dataflux_download_optimization_params=self.dataflux_download_optimization_params,
                 )
-            ]
+            )
 
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
