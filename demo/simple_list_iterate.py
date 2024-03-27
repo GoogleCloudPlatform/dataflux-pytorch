@@ -27,6 +27,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", type=str)
     parser.add_argument("--bucket", type=str)
+    parser.add_argument("--prefix", type=str)
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--no-dataflux", type=bool, default=False)
@@ -82,7 +83,7 @@ def main():
     def read_image_modified(content_in_bytes):
         return numpy.load(io.BytesIO(content_in_bytes), allow_pickle=True)["x"]
 
-    config.prefix = "UNet3D/large/150MB-750GB/train"
+    config.prefix = args.prefix
     dataset = dataflux_iterable_dataset.DataFluxIterableDataset(
         args.project, args.bucket, config=config, data_format_fn=read_image_modified
     )
