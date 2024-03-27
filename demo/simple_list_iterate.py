@@ -32,6 +32,7 @@ def parse_args():
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--no-dataflux", type=bool, default=False)
     parser.add_argument("--batch-size", type=int, default=100)
+    parser.add_argument("--sleep_per_step", type=float, default=1.3604)
     parser.add_argument("--prefetch-factor", type=int, default=2)
     return parser.parse_args()
 
@@ -105,6 +106,9 @@ def main():
         epoch_start = time.time()
         last_update = time.time()
         for batch in data_loader:
+            if args.sleep_per_step:
+                time.sleep(args.sleep_per_step)
+
             # Do training here.
             total_objects += len(batch)
             for object_bytes in batch:
