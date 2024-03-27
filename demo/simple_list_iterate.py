@@ -90,7 +90,7 @@ def main():
     )
     list_end_time = time.time()
     print(
-        f"Listing discovered {len(dataset)} objects in {list_end_time - list_start_time} seconds."
+        f"Listing discovered {len(dataset.objects)} objects in {list_end_time - list_start_time} seconds."
     )
     data_loader = data.DataLoader(
         dataset=dataset,
