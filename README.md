@@ -141,7 +141,9 @@ model.load_state_dict(read_state_dict)
 ```
 
 ## Performance
-We tested Dataflux's early performance using [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) simulations with standard mean file-sizes and dataset sizes. A total of 5 training epochs were simulated. For small files (100KB, 500KB), Dataflux can be **2-3x** faster than using GCS native APIs.
+
+### Dataflux Map-style Dataset
+We tested Dataflux Map-style Dataset's early performance using [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) simulations with standard mean file-sizes and dataset sizes. A total of 5 training epochs were simulated. For small files (100KB, 500KB), Dataflux can be **2-3x** faster than using GCS native APIs.
 
 <table>
   <tr>
@@ -161,7 +163,7 @@ We tested Dataflux's early performance using [DLIO benchmark](https://github.com
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Dataflux</strong>
+   <td style="background-color: #d9d9d9"><strong>Dataflux Map-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>757</strong>
    </td>
@@ -175,7 +177,7 @@ We tested Dataflux's early performance using [DLIO benchmark](https://github.com
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Dataflux</strong>
+   <td style="background-color: #f3f3f3"><strong>Dataflux Map-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>2,696</strong>
    </td>
@@ -189,7 +191,7 @@ We tested Dataflux's early performance using [DLIO benchmark](https://github.com
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Dataflux</strong>
+   <td style="background-color: #d9d9d9"><strong>Dataflux Map-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>318</strong>
    </td>
@@ -203,9 +205,79 @@ We tested Dataflux's early performance using [DLIO benchmark](https://github.com
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Dataflux</strong>
+   <td style="background-color: #f3f3f3"><strong>Dataflux Map-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>1,288</strong>
+   </td>
+  </tr>
+</table>
+
+### Dataflux Iterable-style Dataset
+Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn’t easily support an implementation of a PyTorch iterable dataset, we implemented a simple training loop that has similar IO behaviors as the DLIO benchmark and used that loop to benchmark the Dataflux Iterable Datasets.
+
+<table>
+  <tr>
+   <td style="background-color: #d9d2e9"><strong>File size / count</strong>
+   </td>
+   <td style="background-color: #d9d2e9"><strong>Tool</strong>
+   </td>
+   <td style="background-color: #d9d2e9"><strong>Training time (s)</strong>
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2" style="background-color: #d9d9d9"><em>100 KiB / 500000 files</em>
+   </td>
+   <td style="background-color: #d9d9d9">Direct GCS API calls
+   </td>
+   <td style="background-color: #d9d9d9">2,257
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9"><strong>Dataflux Iterable-style Dataset</strong>
+   </td>
+   <td style="background-color: #d9d9d9"><strong>589</strong>
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2" style="background-color: #f3f3f3"><em>500 KiB / 2.2m files</em>
+   </td>
+   <td style="background-color: #f3f3f3">Direct GCS API calls
+   </td>
+   <td style="background-color: #f3f3f3">7,097
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3"><strong>Dataflux Iterable-style Dataset</strong>
+   </td>
+   <td style="background-color: #f3f3f3"><strong>2,242</strong>
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2" style="background-color: #d9d9d9"><em>3 MiB / 50000 files</em>
+   </td>
+   <td style="background-color: #d9d9d9">Direct GCS API calls
+   </td>
+   <td style="background-color: #d9d9d9">451
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9"><strong>Dataflux Iterable-style Dataset</strong>
+   </td>
+   <td style="background-color: #d9d9d9"><strong>408</strong>
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2" style="background-color: #f3f3f3"><em>150 MiB / 5000 files</em>
+   </td>
+   <td style="background-color: #f3f3f3">Direct GCS API calls
+   </td>
+   <td style="background-color: #f3f3f3">1,558
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3"><strong>Dataflux Iterable-style Dataset</strong>
+   </td>
+   <td style="background-color: #f3f3f3"><strong>1,506</strong>
    </td>
   </tr>
 </table>
