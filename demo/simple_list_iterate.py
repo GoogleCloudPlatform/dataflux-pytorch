@@ -106,7 +106,7 @@ def main():
         total_objects = 0
         total_bytes = 0
         epoch_start = time.time()
-        last_update = time.time()
+        # last_update = time.time()
         for batch in data_loader:
             if args.sleep_per_step:
                 time.sleep(args.sleep_per_step)
@@ -115,11 +115,11 @@ def main():
             total_objects += len(batch)
             for object_bytes in batch:
                 total_bytes += len(object_bytes)
-            if time.time() - last_update > 5:
-                print(
-                    f"Iterated over {total_objects} objects and {total_bytes} bytes so far"
-                )
-                last_update = time.time()
+            # if time.time() - last_update > 5:
+            #     print(
+            #         f"Iterated over {total_objects} objects and {total_bytes} bytes so far"
+            #     )
+            #     last_update = time.time()
         epoch_end = time.time()
         print(
             f"Epoch {i} took {epoch_end - epoch_start} seconds to iterate over {total_objects} objects and {total_bytes} bytes."
