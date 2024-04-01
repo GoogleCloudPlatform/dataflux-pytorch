@@ -13,66 +13,82 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  """
+
 import argparse
 import time
+import numpy
+import io
 
 from torch.utils import data
 from dataflux_pytorch import dataflux_mapstyle_dataset
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", type=str)
     parser.add_argument("--bucket", type=str)
+    parser.add_argument("--prefix", type=str)
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--no-dataflux", type=bool, default=False)
     parser.add_argument("--batch-size", type=int, default=100)
+    parser.add_argument("--sleep_per_step", type=float, default=1.3604)
     parser.add_argument("--prefetch-factor", type=int, default=2)
     return parser.parse_args()
 
+
 """
-Sample training loop that iterates over the given bucket and counts the number of objects/bytes. For example:
+Sample training loop that utilizes the Dataflux Map-style Dataset, iterates over the given bucket and 
+counts the number of objects/bytes. For example:
 
-$ python3 -m demo.simple_list_iterate --project=zimbruplayground --bucket=bernardhan-diffusion-small --epochs=2 --num-workers=8
-
-Listing started at time 1706310135.8997579
-Listing discovered 10003 objects in 4.665696382522583 seconds.
-Training started at time 1706310140.5665798
-Iterated over 200 objects and 118331981 bytes so far
-Iterated over 1700 objects and 1026198500 bytes so far
-Iterated over 3300 objects and 2081709038 bytes so far
-Iterated over 4900 objects and 3079001576 bytes so far
-Iterated over 6500 objects and 4110702193 bytes so far
-Iterated over 8100 objects and 5112547098 bytes so far
-Epoch 0 took 38.01222038269043 seconds to iterate over 10003 objects and 6320912111 bytes.
-Iterated over 200 objects and 138402866 bytes so far
-Iterated over 2100 objects and 1295573582 bytes so far
-Iterated over 3400 objects and 2127651395 bytes so far
-Iterated over 5300 objects and 3317803831 bytes so far
-Iterated over 6200 objects and 3884287582 bytes so far
-Iterated over 8400 objects and 5267435784 bytes so far
-Iterated over 9400 objects and 5929520073 bytes so far
-Epoch 1 took 37.49032020568848 seconds to iterate over 10003 objects and 6320912111 bytes.
-All training (2 epochs) took 75.50275588035583 seconds.
+$ python3 -m demo.simple_map_style_dataset --project=<YOUR_PROJECT> --bucket=<YOUR_BUCKET> --prefix=<YOUR_PREFIX> --epochs=2 --num-workers=8
 
 You can also use the --no-dataflux flag to override the configuration so that listing
 is done sequentially and objects are downloaded individually, allowing you to compare
 performance numbers from Dataflux to a naive GCS-API implementation without Dataflux's
-algorithms. In this case, all training on the bucket above takes 400 seconds.
+algorithms.
 """
+
+
 def main():
     args = parse_args()
     list_start_time = time.time()
     config = dataflux_mapstyle_dataset.Config()
     if args.no_dataflux:
-        print("Overriding parallelism and composite object configurations to simulate non-dataflux loop")
+        print(
+            "Overriding parallelism and composite object configurations to simulate non-dataflux loop"
+        )
         config.max_composite_object_size = 0
         config.num_processes = 1
     print(f"Listing started at time {list_start_time}")
-    dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(args.project, args.bucket, config=config)
+
+    # Define the data_format_fn to transform the data samples.
+    # NOTE: Make sure to modify this to fit your data format.
+    def read_image_modified(content_in_bytes):
+        return numpy.load(io.BytesIO(content_in_bytes), allow_pickle=True)["x"]
+
+    if args.prefix:
+        config.prefix = args.prefix
+
+    dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+        project_name=args.project,
+        bucket_name=args.bucket,
+        config=config,
+        data_format_fn=read_image_modified,
+    )
     list_end_time = time.time()
-    print(f"Listing discovered {len(dataset)} objects in {list_end_time - list_start_time} seconds.")
-    data_loader = data.DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, prefetch_factor=args.prefetch_factor)
+    print(
+        f"Listing discovered {len(dataset)} objects in {list_end_time - list_start_time} seconds."
+    )
+    data_loader = data.DataLoader(
+        dataset=dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
+        prefetch_factor=args.prefetch_factor,
+        persistent_workers=True,
+        pin_memory=True,
+    )
     training_start_time = time.time()
     print(f"Training started at time {training_start_time}")
     for i in range(args.epochs):
@@ -86,12 +102,19 @@ def main():
             for object_bytes in batch:
                 total_bytes += len(object_bytes)
             if time.time() - last_update > 5:
-                print(f"Iterated over {total_objects} objects and {total_bytes} bytes so far")
+                print(
+                    f"Iterated over {total_objects} objects and {total_bytes} bytes so far"
+                )
                 last_update = time.time()
         epoch_end = time.time()
-        print(f"Epoch {i} took {epoch_end - epoch_start} seconds to iterate over {total_objects} objects and {total_bytes} bytes.")
+        print(
+            f"Epoch {i} took {epoch_end - epoch_start} seconds to iterate over {total_objects} objects and {total_bytes} bytes."
+        )
     training_end_time = time.time()
-    print(f"All training ({args.epochs} epochs) took {training_end_time - training_start_time} seconds.")
+    print(
+        f"All training ({args.epochs} epochs) took {training_end_time - training_start_time} seconds."
+    )
+
 
 if __name__ == "__main__":
     main()
