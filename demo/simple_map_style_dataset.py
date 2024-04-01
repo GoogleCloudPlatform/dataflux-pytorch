@@ -67,6 +67,9 @@ def main():
     def read_image_modified(content_in_bytes):
         return numpy.load(io.BytesIO(content_in_bytes), allow_pickle=True)["x"]
 
+    if args.prefix:
+        config.prefix = args.prefix
+
     dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
         project_name=args.project,
         bucket_name=args.bucket,
