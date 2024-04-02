@@ -43,7 +43,7 @@ function install_requirements() {
 
 function run_unit_tests() {
     echo Running unit tests.
-    python -m pytest dataflux_pytorch/tests --junit-xml="${KOKORO_ARTIFACTS_DIR}/unit_tests/sponge_log.xml"
+    python -m pytest dataflux_pytorch/tests --junit-xml="${KOKORO_ARTIFACTS_DIR}/unit_tests/sponge_log.xml" --log-cli-level=DEBUG
 }
 
 run_git_commands
