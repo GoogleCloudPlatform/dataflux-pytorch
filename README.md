@@ -1,12 +1,10 @@
-# Dataflux Dataset for PyTorch with Google Cloud Storage
+# Accelerated Dataloader for PyTorch with Google Cloud Storage
 
-The Dataflux Dataset for PyTorch lets you connect directly to a GCS bucket as a PyTorch dataset, without pre-loading the data to local disk, and with optimizations to make training up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
+The Accelerated Dataloader for PyTorch with Google Cloud Storage lets you connect directly to a GCS bucket as a PyTorch dataset, without pre-loading the data to local disk, and with optimizations to make training up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
 
-The Dataflux Dataset for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns and [iterable-style datasets](https://pytorch.org/docs/stable/data.html#iterable-style-datasets) for streaming data access patterns.
+The Accelerated Dataloader for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns and [iterable-style datasets](https://pytorch.org/docs/stable/data.html#iterable-style-datasets) for streaming data access patterns.
 
-Furthermore, the Dataflux Dataset for PyTorch provides a checkpointing interface to conveniently save and load checkpoints directly to and from a Google Cloud Storage (GCS) bucket.
-
-Note that the Dataflux Dataset for PyTorch library is in an early preview stage and the team is consistently working on improvements and support for new features.
+Furthermore, the Accelerated Dataloader for PyTorch provides a checkpointing interface to conveniently save and load checkpoints directly to and from a Google Cloud Storage (GCS) bucket.
 
 ## Getting started
 
@@ -20,7 +18,7 @@ pip install gcs-torch-dataflux
 ```
 
 ### Configuration
-Authentication must be provided to use the Dataflux Dataset for PyTorch via [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) through one of the following methods:
+Authentication must be provided to use the Accelerated Dataloader for PyTorch via [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) through one of the following methods:
 1. While running this library on a GCE VM, Application Default Credentials will automatically use the VM’s attached service account by default. More details can be found [here](https://cloud.google.com/compute/docs/access/app-authentication-methods).
 2. Application Default Credentials can also be configured manually as described [here](https://cloud.google.com/docs/authentication/application-default-credentials). The quickest way is to log in directly using the gcloud CLI:
 ```shell
@@ -28,13 +26,13 @@ gcloud auth application-default login
 ```
 
 ### Examples
-Please checkout the `demo` directory for a complete set of examples, which includes a [simple starter Jupyter Notebook (hosted by Google Colab)](demo/simple-walkthrough/Getting%20Started%20with%20Dataflux%20Dataset%20for%20PyTorch%20with%20Google%20Cloud%20Storage.ipynb) and an [end-to-end image segmentation training workload walkthrough](demo/image-segmentation/README.md). Those examples will help you understand how the Dataflux Dataset for PyTorch works and how you can integrate it into your own workload. 
+Please checkout the `demo` directory for a complete set of examples, which includes a [simple starter Jupyter Notebook (hosted by Google Colab)](demo/simple-walkthrough/Getting%20Started%20with%20Dataflux%20Dataset%20for%20PyTorch%20with%20Google%20Cloud%20Storage.ipynb) and an [end-to-end image segmentation training workload walkthrough](demo/image-segmentation/README.md). Those examples will help you understand how the Accelerated Dataloader for PyTorch works and how you can integrate it into your own workload. 
 
 #### Sample Examples
 Before getting started, please make sure you have installed the library and configured authentication following the instructions above.
 
 ##### Data Loading
-Both Dataflux map-style and iterable-style datasets for PyTorch can be constructed by specifying the project name, bucket name and an optional prefix.
+Both map-style and iterable-style datasets for PyTorch can be constructed by specifying the project name, bucket name and an optional prefix.
 ```python
 from dataflux_pytorch import dataflux_mapstyle_dataset
 
@@ -78,7 +76,7 @@ for each_object in iterable_dataset:
   print(each_object)
 ```
 
-Dataflux Dataset for PyTorch offers the flexibility to transform the downloaded raw bytes of data into any format of choice. This is particularly useful since the `PyTorch DataLoader` works well with Numpy arrays or PyTorch tensors.
+The Accelerated Dataloader for PyTorch offers the flexibility to transform the downloaded raw bytes of data into any format of choice. This is particularly useful since the `PyTorch DataLoader` works well with Numpy arrays or PyTorch tensors.
 
 ```python
 # Assume that you have a bucket with image files and you want
@@ -116,7 +114,7 @@ for each_object in dataset:
 
 ##### Checkpointing
 
-The Dataflux Dataset for PyTorch supports fast data loading and allows the user to save and load model checkpoints directly to/from a Google Cloud Storage (GCS) bucket.
+The Accelerated Dataloader for PyTorch supports fast data loading and allows the user to save and load model checkpoints directly to/from a Google Cloud Storage (GCS) bucket.
 
 ```python
 import torch
@@ -142,8 +140,8 @@ model.load_state_dict(read_state_dict)
 
 ## Performance
 
-### Dataflux Map-style Dataset
-We tested Dataflux Map-style Dataset's early performance using [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) simulations with standard mean file-sizes and dataset sizes. A total of 5 training epochs were simulated. For small files (100KB, 500KB), Dataflux can be **2-3x** faster than using GCS native APIs.
+### Map-style Dataset
+We tested the Map-style Dataset's early performance using [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) simulations with standard mean file-sizes and dataset sizes. A total of 5 training epochs were simulated. For small files (100KB, 500KB), the Accelerated Dataloader for PyTorch can be **2-3x** faster than using GCS native APIs.
 
 <table>
   <tr>
@@ -163,7 +161,7 @@ We tested Dataflux Map-style Dataset's early performance using [DLIO benchmark](
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Dataflux Map-style Dataset</strong>
+   <td style="background-color: #d9d9d9"><strong>Accelerated Dataloader Map-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>515</strong>
    </td>
@@ -177,7 +175,7 @@ We tested Dataflux Map-style Dataset's early performance using [DLIO benchmark](
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Dataflux Map-style Dataset</strong>
+   <td style="background-color: #f3f3f3"><strong>Accelerated Dataloader Map-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>2,058</strong>
    </td>
@@ -191,7 +189,7 @@ We tested Dataflux Map-style Dataset's early performance using [DLIO benchmark](
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Dataflux Map-style Dataset</strong>
+   <td style="background-color: #d9d9d9"><strong>Accelerated Dataloader Map-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>277</strong>
    </td>
@@ -205,15 +203,15 @@ We tested Dataflux Map-style Dataset's early performance using [DLIO benchmark](
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Dataflux Map-style Dataset</strong>
+   <td style="background-color: #f3f3f3"><strong>Accelerated Dataloader Map-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>1,173</strong>
    </td>
   </tr>
 </table>
 
-### Dataflux Iterable-style Dataset
-Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn’t easily support an implementation of a PyTorch iterable dataset, we implemented a [simple training loop](demo/simple_iterable_dataset.py) that has similar IO behaviors as the DLIO benchmark and used that loop to benchmark the Dataflux Iterable Datasets.
+### Iterable-style Dataset
+Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn’t easily support an implementation of a PyTorch iterable dataset, we implemented a [simple training loop](demo/simple_iterable_dataset.py) that has similar IO behaviors as the DLIO benchmark and used that loop to benchmark the Iterable Datasets.
 
 <table>
   <tr>
@@ -233,7 +231,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn�
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Dataflux Iterable-style Dataset</strong>
+   <td style="background-color: #d9d9d9"><strong>Accelerated Dataloader Iterable-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>611</strong>
    </td>
@@ -247,7 +245,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn�
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Dataflux Iterable-style Dataset</strong>
+   <td style="background-color: #f3f3f3"><strong>Accelerated Dataloader Iterable-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>2,503</strong>
    </td>
@@ -261,7 +259,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn�
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Dataflux Iterable-style Dataset</strong>
+   <td style="background-color: #d9d9d9"><strong>Accelerated Dataloader Iterable-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>384</strong>
    </td>
@@ -275,7 +273,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn�
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Dataflux Iterable-style Dataset</strong>
+   <td style="background-color: #f3f3f3"><strong>Accelerated Dataloader Iterable-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>1,143</strong>
    </td>
@@ -287,10 +285,10 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn�
 ## Limitations
 
 ### Billing
-To optimize listing performance, the Dataflux Dataset for PyTorch library utilizes a “fast listing” algorithm developed to balance the listing workload among parallelized GCS object listing processes. Therefore, the library will cause more listing API calls to be made than a regular sequential listing, which are charged as [Class A operations](https://cloud.google.com/storage/pricing).
+To optimize listing performance, the Accelerated Dataloader for PyTorch library utilizes a “fast listing” algorithm developed to balance the listing workload among parallelized GCS object listing processes. Therefore, the library will cause more listing API calls to be made than a regular sequential listing, which are charged as [Class A operations](https://cloud.google.com/storage/pricing).
 
 ### Composite Objects
-To optimize the download performance of small files, the Dataflux Dataset for PyTorch library utilizes the [GCS Compose API](https://cloud.google.com/storage/docs/json_api/v1/objects/compose) to concatenate a set of smaller objects into a new and larger one in the same bucket under a folder named “dataflux-composed-objects”. The new composite objects will be removed at the end of your training loop but in rare cases that they don’t, you can run this command to clean the composed files.
+To optimize the download performance of small files, the Accelerated Dataloader for PyTorch library utilizes the [GCS Compose API](https://cloud.google.com/storage/docs/json_api/v1/objects/compose) to concatenate a set of smaller objects into a new and larger one in the same bucket under a folder named “dataflux-composed-objects”. The new composite objects will be removed at the end of your training loop but in rare cases that they don’t, you can run this command to clean the composed files.
 ``` shell
 gcloud storage rm --recursive gs://<my-bucket>/dataflux-composed-objects/
 ```
@@ -322,4 +320,4 @@ This project has adopted the Google Open Source Code of Conduct. Please see [cod
 
 ### License
 
-The Dataflux Dataset for PyTorch library has an Apache License 2.0. Please see the [LICENSE](LICENSE) file for more information.
+The Accelerated Dataloader for PyTorch library has an Apache License 2.0. Please see the [LICENSE](LICENSE) file for more information.
