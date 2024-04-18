@@ -26,6 +26,12 @@ from torch.utils import data
 from dataflux_pytorch import dataflux_iterable_dataset, dataflux_mapstyle_dataset
 
 
+# Define the data_format_fn to transform the data samples.
+# NOTE: Make sure to modify this to fit your data format.
+def read_image_modified(content_in_bytes):
+    return numpy.load(io.BytesIO(content_in_bytes), allow_pickle=True)["x"]
+
+
 class IntegrationTest(unittest.TestCase):
     def get_config(self):
         config = {}
@@ -64,17 +70,12 @@ class IntegrationTest(unittest.TestCase):
         return config
 
     def test_list_and_load_iter(self):
-        list_start_time = time.time()
         test_config = self.get_config()
         config = dataflux_iterable_dataset.Config()
         if test_config["prefix"]:
             config.prefix = test_config["prefix"]
 
-        # Define the data_format_fn to transform the data samples.
-        # NOTE: Make sure to modify this to fit your data format.
-        def read_image_modified(content_in_bytes):
-            return numpy.load(io.BytesIO(content_in_bytes), allow_pickle=True)["x"]
-
+        list_start_time = time.time()
         dataset = dataflux_iterable_dataset.DataFluxIterableDataset(
             project_name=test_config["project"],
             bucket_name=test_config["bucket"],
@@ -104,21 +105,15 @@ class IntegrationTest(unittest.TestCase):
         )
         training_start_time = time.time()
         for i in range(1):
-            total_objects = 0
             total_bytes = 0
-            epoch_start = time.time()
-            last_update = time.time()
             for batch in data_loader:
                 # A simple sleep function to simulate the GPU training time.
                 time.sleep(0.1)
 
-                total_objects += len(batch)
                 for object_bytes in batch:
                     total_bytes += len(object_bytes)
-                if time.time() - last_update > 5:
-                    last_update = time.time()
-            epoch_end = time.time()
         training_end_time = time.time()
+        training_time = training_end_time - training_start_time
         if (
             test_config["download_timeout"]
             and training_time > test_config["download_timeout"]
@@ -128,17 +123,12 @@ class IntegrationTest(unittest.TestCase):
             )
 
     def test_list_and_load_map(self):
-        list_start_time = time.time()
         test_config = self.get_config()
         config = dataflux_iterable_dataset.Config()
         if test_config["prefix"]:
             config.prefix = test_config["prefix"]
 
-        # Define the data_format_fn to transform the data samples.
-        # NOTE: Make sure to modify this to fit your data format.
-        def read_image_modified(content_in_bytes):
-            return numpy.load(io.BytesIO(content_in_bytes), allow_pickle=True)["x"]
-
+        list_start_time = time.time()
         dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
             project_name=test_config["project"],
             bucket_name=test_config["bucket"],
@@ -168,20 +158,13 @@ class IntegrationTest(unittest.TestCase):
         )
         training_start_time = time.time()
         for i in range(2):
-            total_objects = 0
             total_bytes = 0
-            epoch_start = time.time()
-            last_update = time.time()
             for batch in data_loader:
                 # A simple sleep function to simulate the GPU training time.
                 time.sleep(0.1)
 
-                total_objects += len(batch)
                 for object_bytes in batch:
                     total_bytes += len(object_bytes)
-                if time.time() - last_update > 5:
-                    last_update = time.time()
-            epoch_end = time.time()
         training_end_time = time.time()
         training_time = training_end_time - training_start_time
         if (
