@@ -69,6 +69,26 @@ class IntegrationTest(unittest.TestCase):
 
         return config
 
+    def train(self, data_loader, epochs, test_config):
+        training_start_time = time.time()
+        for i in range(epochs):
+            total_bytes = 0
+            for batch in data_loader:
+                # A simple sleep function to simulate the GPU training time.
+                time.sleep(0.1)
+
+                for object_bytes in batch:
+                    total_bytes += len(object_bytes)
+        training_end_time = time.time()
+        training_time = training_end_time - training_start_time
+        if (
+            test_config["download_timeout"]
+            and training_time > test_config["download_timeout"]
+        ):
+            raise AssertionError(
+                f"Expected download operation to complete in under {test_config['download_timeout']} seconds, but took {training_time} seconds."
+            )
+
     def test_list_and_load_iter(self):
         test_config = self.get_config()
         config = dataflux_iterable_dataset.Config()
@@ -103,24 +123,7 @@ class IntegrationTest(unittest.TestCase):
             persistent_workers=True,
             pin_memory=True,
         )
-        training_start_time = time.time()
-        for i in range(1):
-            total_bytes = 0
-            for batch in data_loader:
-                # A simple sleep function to simulate the GPU training time.
-                time.sleep(0.1)
-
-                for object_bytes in batch:
-                    total_bytes += len(object_bytes)
-        training_end_time = time.time()
-        training_time = training_end_time - training_start_time
-        if (
-            test_config["download_timeout"]
-            and training_time > test_config["download_timeout"]
-        ):
-            raise AssertionError(
-                f"Expected download operation to complete in under {test_config['download_timeout']} seconds, but took {training_time} seconds."
-            )
+        self.train(data_loader, 1, test_config)
 
     def test_list_and_load_map(self):
         test_config = self.get_config()
@@ -156,21 +159,4 @@ class IntegrationTest(unittest.TestCase):
             persistent_workers=True,
             pin_memory=True,
         )
-        training_start_time = time.time()
-        for i in range(2):
-            total_bytes = 0
-            for batch in data_loader:
-                # A simple sleep function to simulate the GPU training time.
-                time.sleep(0.1)
-
-                for object_bytes in batch:
-                    total_bytes += len(object_bytes)
-        training_end_time = time.time()
-        training_time = training_end_time - training_start_time
-        if (
-            test_config["download_timeout"]
-            and training_time > test_config["download_timeout"]
-        ):
-            raise AssertionError(
-                f"Expected download operation to complete in under {test_config['download_timeout']} seconds, but took {training_time} seconds."
-            )
+        self.train(data_loader, 2, test_config)
