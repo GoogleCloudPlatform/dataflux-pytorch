@@ -5,9 +5,16 @@ import datasets
 
 
 def main():
-    print(
-        ft.read_feather("/mnt/disks/ssd-array/dataset/train/data-00000-of-00078.arrow")
-    )
+    ds = datasets.load_from_disk("/mnt/disks/ssd-array/dataset")
+    for train_instance in ds["train"]:
+        instruction = train_instance["instruction"]  # str
+        inputs = train_instance["inputs"]  # str
+        outputs = train_instance["outputs"]  # str
+        image_base64_str_list = train_instance["image_base64_str"]  # str (base64)
+        print(instruction)
+        print(inputs)
+        print(outputs)
+        print(image_base64_str_list)
 
 
 if __name__ == "__main__":
