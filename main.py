@@ -15,6 +15,7 @@ def main():
         print(inputs)
         print(outputs)
         print(image_base64_str_list)
+        break
 
 
 if __name__ == "__main__":
