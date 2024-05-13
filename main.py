@@ -6,6 +6,8 @@ import datasets
 
 def main():
     ds = datasets.load_from_disk("/mnt/disks/ssd-array/dataset")
+    print(ds)
+
     for train_instance in ds["train"]:
         instruction = train_instance["instruction"]  # str
         inputs = train_instance["inputs"]  # str
