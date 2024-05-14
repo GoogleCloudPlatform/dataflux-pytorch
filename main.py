@@ -7,11 +7,11 @@ from datasets import load_dataset
 
 def main():
     files = [
-        "test.parquet",
-        "test1.parquet",
-        "test2.parquet",
-        "test3.parquet",
-        "test4.parquet",
+        "/mnt/disks/ssd-array/raw-dataset/test.parquet",
+        "/mnt/disks/ssd-array/raw-dataset/test1.parquet",
+        "/mnt/disks/ssd-array/raw-dataset/test2.parquet",
+        "/mnt/disks/ssd-array/raw-dataset/test3.parquet",
+        "/mnt/disks/ssd-array/raw-dataset/test4.parquet",
     ]
 
     schema = pq.ParquetFile(files[0]).schema_arrow
