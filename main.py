@@ -9,7 +9,7 @@ def main():
     df = pd.read_parquet("/mnt/disks/ssd-array/raw-dataset/test.parquet")
     print(df.loc[0])
     print(df.dtypes)
-    print(df.shape)
+    print(df.info())
 
 
 if __name__ == "__main__":
