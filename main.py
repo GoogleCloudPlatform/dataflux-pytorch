@@ -39,9 +39,6 @@ def main():
 
         shutil.copyfile(source, destination)
 
-        if i == 10:
-            break
-
 
 if __name__ == "__main__":
     main()
