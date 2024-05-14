@@ -21,10 +21,10 @@ def main():
     #     for file in files:
     #         writer.write_table(pq.read_table(file, schema=schema))
 
-    df = pd.read_parquet("/mnt/disks/ssd-array/dataflux-pytorch/output.parquet")
-    print(df.loc[0]["image_base64_str"][0])
-    image_0 = Image.open(BytesIO(b64decode(df.loc[0]["image_base64_str"][0])))
-    print(image_0)
+    # df = pd.read_parquet("/mnt/disks/ssd-array/dataflux-pytorch/output.parquet")
+    # print(df.loc[0]["image_base64_str"][0])
+    # image_0 = Image.open(BytesIO(b64decode(df.loc[0]["image_base64_str"][0])))
+    # print(image_0)
     print(df.dtypes)
     print(df.shape)
 
