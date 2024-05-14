@@ -7,7 +7,7 @@ from datasets import load_dataset
 
 def main():
     ds = pd.read_parquet("/mnt/disks/ssd-array/raw-dataset/train/0001.parquet")
-    print(ds)
+    print(ds.loc[0])
     print(ds.dtypes)
     print(ds.size)
 
