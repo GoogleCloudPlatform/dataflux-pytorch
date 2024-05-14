@@ -6,9 +6,8 @@ from datasets import load_dataset
 
 
 def main():
-    ds_name = "imagenet-es"
-    dataset = load_dataset("MMInstruction/M3IT-80", ds_name)
-    dataset.save_to_disk("/mnt/disks/ssd-array/raw-dataset")
+    ds = pd.read_parquet("/mnt/disks/ssd-array/raw-dataset/train/0001.parquet")
+    print(ds.size)
 
 
 if __name__ == "__main__":
