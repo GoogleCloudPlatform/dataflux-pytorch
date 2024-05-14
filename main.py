@@ -24,7 +24,7 @@ def main():
     df = pd.read_parquet("/mnt/disks/ssd-array/dataflux-pytorch/output.parquet")
     print(df.loc[0]["image_base64_str"][0])
     image_0 = Image.open(BytesIO(b64decode(df.loc[0]["image_base64_str"][0])))
-    image_0.show()
+    print(image_0)
     print(df.dtypes)
     print(df.shape)
 
