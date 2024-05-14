@@ -8,6 +8,12 @@ from PIL import Image
 from datasets import load_dataset
 
 import shutil
+import math
+import multiprocessing
+
+
+def download(chunks):
+    print(123)
 
 
 def main():
@@ -29,15 +35,36 @@ def main():
     # print(image_0)
     # print(df.dtypes)
     # print(df.shape)
+    parallelization = 128
+    chunks = []
+    objects = [
+        "/mnt/disks/ssd-array/dataflux-pytorch/generated-data/"
+        + ("{:04d}".format(i) + ".parquet")
+        for i in range(10000)
+    ]
+    chunk_size = math.ceil(len(objects) / parallelization)
 
-    source = "/mnt/disks/ssd-array/dataflux-pytorch/output.parquet"
-
-    for i in range(10000):
-        destination = "/mnt/disks/ssd-array/dataflux-pytorch/generated-data/" + (
-            "{:04d}".format(i) + ".parquet"
+    for i in range(parallelization):
+        chunk = objects[i * chunk_size : (i + 1) * chunk_size]
+        if chunk:
+            chunks.append(chunk)
+    print(len(chunks))
+    with multiprocessing.Pool(processes=len(chunks)) as pool:
+        pool.starmap(
+            download,
+            ((chunk) for chunk in chunks),
         )
 
-        shutil.copyfile(source, destination)
+    # for i in range(parallelization):
+
+    # source = "/mnt/disks/ssd-array/dataflux-pytorch/output.parquet"
+
+    # for i in range(10000):
+    #     destination = "/mnt/disks/ssd-array/dataflux-pytorch/generated-data/" + (
+    #         "{:04d}".format(i) + ".parquet"
+    #     )
+
+    #     shutil.copyfile(source, destination)
 
 
 if __name__ == "__main__":
