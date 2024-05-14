@@ -2,6 +2,9 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import datasets
+from base64 import b64decode
+from io import BytesIO
+from PIL import Image
 from datasets import load_dataset
 
 
@@ -20,6 +23,8 @@ def main():
 
     df = pd.read_parquet("/mnt/disks/ssd-array/dataflux-pytorch/output.parquet")
     print(df.loc[0]["image_base64_str"][0])
+    image_0 = Image.open(BytesIO(b64decode(df.loc[0]["image_base64_str"][0])))
+    image_0.show()
     print(df.dtypes)
     print(df.shape)
 
