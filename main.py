@@ -21,7 +21,7 @@ def main():
     df = pd.read_parquet("/mnt/disks/ssd-array/dataflux-pytorch/output.parquet")
     print(df.loc[0])
     print(df.dtypes)
-    print(df.size)
+    print(df.shape)
 
 
 if __name__ == "__main__":
