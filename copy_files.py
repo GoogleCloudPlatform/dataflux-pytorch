@@ -7,8 +7,7 @@ def main():
     destination_bucket = storage_client.bucket("xai-hf-dataset-parquet")
 
     for i in range(371):
-        source_name = "/mnt/disks/ssd-array/dataflux-pytorch/generated-data/"
-        +("{:04d}".format(i) + ".parquet")
+        source_name = "{:04d}".format(i) + ".parquet"
         destination_name = "{:04d}".format(i + 371) + ".parquet"
 
         source_blob = source_bucket.blob(source_name)
