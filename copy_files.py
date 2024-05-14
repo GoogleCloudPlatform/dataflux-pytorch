@@ -6,9 +6,9 @@ def main():
     source_bucket = storage_client.bucket("xai-hf-dataset-parquet")
     destination_bucket = storage_client.bucket("xai-hf-dataset-parquet")
 
-    for i in range(2000):
+    for i in range(4000):
         source_name = "{:04d}".format(i) + ".parquet"
-        destination_name = "{:04d}".format(i + 2000) + ".parquet"
+        destination_name = "{:04d}".format(i + 4000) + ".parquet"
 
         source_blob = source_bucket.blob(source_name)
         source_bucket.copy_blob(source_blob, destination_bucket, destination_name)
