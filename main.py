@@ -6,10 +6,10 @@ from datasets import load_dataset
 
 
 def main():
-    ds = pd.read_parquet("/mnt/disks/ssd-array/raw-dataset/train/0001.parquet")
-    print(ds.loc[0])
-    print(ds.dtypes)
-    print(ds.size)
+    df = pd.read_parquet("/mnt/disks/ssd-array/raw-dataset/train/test.parquet")
+    print(df.loc[0])
+    print(df.dtypes)
+    print(df.size)
 
 
 if __name__ == "__main__":
