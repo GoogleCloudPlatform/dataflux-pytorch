@@ -7,6 +7,8 @@ from io import BytesIO
 from PIL import Image
 from datasets import load_dataset
 
+import shutil
+
 
 def main():
     # files = [
@@ -21,12 +23,24 @@ def main():
     #     for file in files:
     #         writer.write_table(pq.read_table(file, schema=schema))
 
-    df = pd.read_parquet("/mnt/disks/ssd-array/dataflux-pytorch/output.parquet")
+    # df = pd.read_parquet("/mnt/disks/ssd-array/dataflux-pytorch/output.parquet")
     # print(df.loc[0]["image_base64_str"][0])
     # image_0 = Image.open(BytesIO(b64decode(df.loc[0]["image_base64_str"][0])))
     # print(image_0)
-    print(df.dtypes)
-    print(df.shape)
+    # print(df.dtypes)
+    # print(df.shape)
+
+    source = "/mnt/disks/ssd-array/dataflux-pytorch/output.parquet"
+
+    for i in range(10000):
+        destination = "/mnt/disks/ssd-array/dataflux-pytorch/generated-data/" + (
+            "{:04d}".format(i) + ".parquet"
+        )
+
+        shutil.copyfile(source, destination)
+
+        if i == 10:
+            break
 
 
 if __name__ == "__main__":
