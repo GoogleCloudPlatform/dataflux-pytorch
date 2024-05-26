@@ -308,6 +308,9 @@ dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
 
 Note that turning off this behavior will cause the training loop to take significantly longer to complete when working with small files.
 
+### Soft Delete
+To avoid storage charges for retaining the temporary composite objects, consider disabling the [Soft Delete](https://cloud.google.com/storage/docs/soft-delete) retention duration on the bucket.
+
 ### Google Cloud Storage Class
 Due to the quick creation and deletion of composite objects, we recommend that only the [Standard storage class](https://cloud.google.com/storage/docs/storage-classes) is applied to your bucket to minimize cost and maximize performance.
 
