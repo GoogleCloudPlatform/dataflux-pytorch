@@ -28,6 +28,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self,
         checkpoint: Dict[str, Any],
         path: str,
+        storage_options: Optional[Any] = None,
     ) -> None:
         blob = self.bucket.blob(path)
         return torch.save(checkpoint, blob.open("wb", ignore_flush=True))
