@@ -26,12 +26,12 @@ classifiers = [
 
 dependencies = ["torch >= 2.0.1", "numpy", "google-cloud-storage", "absl-py"]
 
+[project.optional-dependencies]
+test = ["pytest"]
+
 lightning = [
     "lightning >= 2.0"
 ]
-
-[project.optional-dependencies]
-test = ["pytest"]
 
 [project.urls]
 Homepage = "https://github.com/GoogleCloudPlatform/dataflux-pytorch"
