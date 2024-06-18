@@ -24,13 +24,30 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             )
         self.bucket = self.storage_client.bucket(self.bucket_name)
 
+    def _parse_gcs_path(self, path: str) -> str:
+        if not path or not path.startswith("gcs://"):
+            raise ValueError("Path needs to begin with gcs://")
+        path = path[len("gcs://") :]
+        if not path:
+            raise ValueError("Bucket name must be non-empty")
+        split = path.split("/", maxsplit=1)
+        if len(split) == 1:
+            bucket = split[0]
+            prefix = ""
+        else:
+            bucket, prefix = split
+        if not bucket:
+            raise ValueError("Bucket name must be non-empty")
+        return prefix
+
     def save_checkpoint(
         self,
         checkpoint: Dict[str, Any],
         path: str,
         storage_options: Optional[Any] = None,
     ) -> None:
-        blob = self.bucket.blob(path)
+        key = self._parse_gcs_path(path)
+        blob = self.bucket.blob(key)
         return torch.save(checkpoint, blob.open("wb", ignore_flush=True))
 
     def load_checkpoint(
@@ -38,16 +55,18 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: str,
         map_location: Optional[Any] = None,
     ) -> Dict[str, Any]:
-        blob = self.bucket.blob(path)
+        key = self._parse_gcs_path(path)
+        blob = self.bucket.blob(key)
         return torch.load(blob.open("rb"), map_location)
 
     def remove_checkpoint(
         self,
         path: str,
     ) -> None:
+       key = self._parse_gcs_path(path)
        """This command may take a while if it is many objects
         https://cloud.google.com/storage/docs/deleting-objects#client-libraries"""
-       blob = self.bucket.blob(path)
+       blob = self.bucket.blob(key)
        blob.delete()
 
     def teardown(
