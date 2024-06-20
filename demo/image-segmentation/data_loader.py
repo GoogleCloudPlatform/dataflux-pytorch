@@ -149,7 +149,7 @@ def get_data_loaders(flags, num_shards, global_rank):
         batch_size=flags.batch_size,
         shuffle=not flags.benchmark and train_sampler is None,
         sampler=train_sampler,
-        num_workers=flags.num_workers,
+        num_workers=flags.num_dataloader_threads,
         pin_memory=True,
         drop_last=True,
     )

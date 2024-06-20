@@ -39,6 +39,7 @@ PARSER.add_argument("--input_shape", nargs="+", type=int, default=[128, 128, 128
 PARSER.add_argument("--val_input_shape", nargs="+", type=int, default=[128, 128, 128])
 PARSER.add_argument("--seed", dest="seed", default=-1, type=int)
 PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=8)
+PARSER.add_argument("--num_dataloader_threads", dest="num_dataloader_threads", type=int, default=8)
 PARSER.add_argument(
     "--exec_mode", dest="exec_mode", choices=["train", "evaluate"], default="train"
 )
