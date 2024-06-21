@@ -1,0 +1,2 @@
+# Enforce top level code-owners CodeOwners (this will auto-tag reviewers)
+*  @GoogleCloudPlatform/dataflux-python
