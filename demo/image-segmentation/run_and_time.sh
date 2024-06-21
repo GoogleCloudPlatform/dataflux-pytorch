@@ -24,6 +24,7 @@ EVALUATE_EVERY=20
 LEARNING_RATE="0.8"
 LR_WARMUP_EPOCHS=20
 NUM_WORKERS=8
+NUM_DATALOADER_THREADS=8
 BATCH_SIZE=32
 GRADIENT_ACCUMULATION_STEPS=1
 SEED=5
@@ -39,6 +40,7 @@ echo "STARTING TIMING RUN AT $start_fmt"
 
 python train.py \
   --num_workers=${NUM_WORKERS} \
+  --num_dataloader_threads=${NUM_DATALOADER_THREADS} \
   --epochs=${MAX_EPOCHS} \
   --evaluate_every=${EVALUATE_EVERY} \
   --start_eval_at=${START_EVAL_AT} \
