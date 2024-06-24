@@ -26,7 +26,7 @@ gcloud auth application-default login
 ```
 
 ### Examples
-Please checkout the `demo` directory for a complete set of examples, which includes a [simple starter Jupyter Notebook (hosted by Google Colab)](demo/simple-walkthrough/Getting%20Started%20with%20Dataflux%20Dataset%20for%20PyTorch%20with%20Google%20Cloud%20Storage.ipynb) and an [end-to-end image segmentation training workload walkthrough](demo/image-segmentation/README.md). Those examples will help you understand how the Accelerated Dataloader for PyTorch works and how you can integrate it into your own workload. 
+Please checkout the `demo` directory for a complete set of examples, which includes a [simple starter Jupyter Notebook (hosted by Google Colab)](demo/simple-walkthrough/Getting%20Started%20with%20Dataflux%20Dataset%20for%20PyTorch%20with%20Google%20Cloud%20Storage.ipynb) and an [end-to-end image segmentation training workload walkthrough](demo/image-segmentation/README.md). Those examples will help you understand how the Accelerated Dataloader for PyTorch works and how you can integrate it into your own workload.
 
 #### Sample Examples
 Before getting started, please make sure you have installed the library and configured authentication following the instructions above.
@@ -136,6 +136,39 @@ with ckpt.reader(CKPT_PATH) as reader:
   read_state_dict = torch.load(reader)
 
 model.load_state_dict(read_state_dict)
+```
+
+##### Lightning Checkpointing
+
+The Accelerated Dataloader for PyTorch also provides an integration for PyTorch Lightning, featuring a DatafluxLightningCheckpoint, an implementation of PyTorch Lightning's CheckpointIO.
+
+End to end examples for the PyTorch Lightning integration can be found in the [examples/lightning](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/examples/lightning) directory. A notebook that can be run in Google Colab can be found in the [demo/lightning](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning) directory.
+
+```python
+import torch
+from lightning import Trainer
+from lightning.pytorch.demos import WikiText2, LightningTransformer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from torch.utils.data import DataLoader
+
+from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+
+CKPT_DIR = "checkpoints/"
+dataflux_ckpt = DatafluxLightningCheckpoint(project_name=PROJECT_NAME, bucket_name=BUCKET_NAME)
+
+dataset = WikiText2()
+dataloader = DataLoader(dataset, num_workers=1)
+model = LightningTransformer(vocab_size=dataset.vocab_size)
+trainer = Trainer(
+    plugins=[dataflux_ckpt],
+    min_epochs=4,
+    max_epochs=5,
+    max_steps=10,
+    accelerator="cpu",
+)
+
+trainer.fit(model, dataloader)
+trainer.save_checkpoint(CKPT_DIR)
 ```
 
 ## Performance

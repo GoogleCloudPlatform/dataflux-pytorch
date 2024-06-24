@@ -38,6 +38,8 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             bucket, prefix = split
         if not bucket:
             raise ValueError("Bucket name must be non-empty")
+        if bucket != self.bucket_name:
+            raise ValueError("Unexpected bucket name, expected {expected} got {real}".format(expected = self.bucket_name, real=bucket))
         return prefix
 
     def save_checkpoint(
