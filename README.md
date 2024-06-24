@@ -145,7 +145,6 @@ The Accelerated Dataloader for PyTorch also provides an integration for PyTorch 
 End to end examples for the PyTorch Lightning integration can be found in the [examples/lightning](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/examples/lightning) directory. A notebook that can be run in Google Colab can be found in the [demo/lightning](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning) directory.
 
 ```python
-import torch
 from lightning import Trainer
 from lightning.pytorch.demos import WikiText2, LightningTransformer
 from lightning.pytorch.callbacks import ModelCheckpoint
