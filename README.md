@@ -142,7 +142,7 @@ model.load_state_dict(read_state_dict)
 
 The Accelerated Dataloader for PyTorch also provides an integration for PyTorch Lightning, featuring a DatafluxLightningCheckpoint, an implementation of PyTorch Lightning's CheckpointIO.
 
-End to end examples for the PyTorch Lightning integration can be found in the [examples/lightning](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/examples/lightning) directory. A notebook that can be run in Google Colab can be found in the [demo/lightning](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning) directory.
+End to end example and the notebook for the PyTorch Lightning integration can be found in the [demo/lightning](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning) directory.
 
 ```python
 from lightning import Trainer
