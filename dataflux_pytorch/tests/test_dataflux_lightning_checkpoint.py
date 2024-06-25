@@ -5,8 +5,6 @@ from typing import Dict, Any
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch.lightning.dataflux_lightning_checkpoint import DatafluxLightningCheckpoint
 
-LIGHTNING_ACCELERATOR = "cpu"
-
 class LightningCheckpointTestCase(unittest.TestCase):
   def setUp(self):
         super().setUp()
