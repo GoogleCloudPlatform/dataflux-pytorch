@@ -25,12 +25,12 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self.bucket = self.storage_client.bucket(self.bucket_name)
 
     def _parse_gcs_path(self, path: str) -> str:
-        if not path or not path.startswith("gcs://"):
-            raise ValueError("Path needs to begin with gcs://")
-        path = path[len("gcs://") :]
-        if not path:
+        if not path or not (path.startswith("gcs://") or path.startswith("gs://")):
+            raise ValueError("Path needs to begin with gcs:// or gs://")
+        path =  path.split("//", maxsplit=1)
+        if not path or len(path) < 2:
             raise ValueError("Bucket name must be non-empty")
-        split = path.split("/", maxsplit=1)
+        split = path[1].split("/", maxsplit=1)
         if len(split) == 1:
             bucket = split[0]
             prefix = ""
@@ -39,7 +39,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         if not bucket:
             raise ValueError("Bucket name must be non-empty")
         if bucket != self.bucket_name:
-            raise ValueError("Unexpected bucket name, expected {expected} got {real}".format(expected = self.bucket_name, real=bucket))
+            raise ValueError(f'Unexpected bucket name, expected {self.bucket_name} got {bucket}')
         return prefix
 
     def save_checkpoint(

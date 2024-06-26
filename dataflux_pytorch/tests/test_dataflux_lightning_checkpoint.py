@@ -58,6 +58,14 @@ class LightningCheckpointTestCase(unittest.TestCase):
           return
       self.fail("Attempted to save to a path with an unexpect bucket, expects this to fail")
 
+  def test_valid_path(self):
+      paths = {f'gs://{self.bucket_name}/path', f'gcs://{self.bucket_name}/path'}
+      for p in paths:
+        try:
+          self.ckpt._parse_gcs_path(p)
+        except:
+          self.fail(msg=f'Valid path: {p} parsed but failed')
+
   def test_save_and_load_checkpoint(self):
       tensor = torch.rand(3, 10, 10)
       ckpt_path = "gcs://fake_bucket/checkpoint.ckpt"
