@@ -152,7 +152,7 @@ from torch.utils.data import DataLoader
 
 from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 
-CKPT_DIR = "checkpoints/"
+CKPT_DIR = "gcs://BUCKET_NAME/checkpoints/"
 dataflux_ckpt = DatafluxLightningCheckpoint(project_name=PROJECT_NAME, bucket_name=BUCKET_NAME)
 
 dataset = WikiText2()
