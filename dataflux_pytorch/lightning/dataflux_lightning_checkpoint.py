@@ -6,7 +6,7 @@ from google.cloud import storage
 from google.api_core.client_info import ClientInfo
 
 class DatafluxLightningCheckpoint(CheckpointIO):
-    """A checkpoint manager for GCS using the :ckass:'CheckpointIO' interface"""
+    """A checkpoint manager for GCS using the :class:'CheckpointIO' interface"""
 
     def __init__(
         self,
@@ -50,7 +50,8 @@ class DatafluxLightningCheckpoint(CheckpointIO):
     ) -> None:
         key = self._parse_gcs_path(path)
         blob = self.bucket.blob(key)
-        return torch.save(checkpoint, blob.open("wb", ignore_flush=True))
+        with blob.open("wb", ignore_flush=True) as blobwriter:
+          torch.save(checkpoint, blob.open("wb", ignore_flush=True))
 
     def load_checkpoint(
         self,
@@ -66,8 +67,6 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: str,
     ) -> None:
        key = self._parse_gcs_path(path)
-       """This command may take a while if it is many objects
-        https://cloud.google.com/storage/docs/deleting-objects#client-libraries"""
        blob = self.bucket.blob(key)
        blob.delete()
 
