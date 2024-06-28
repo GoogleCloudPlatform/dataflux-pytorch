@@ -40,6 +40,7 @@ function run_git_commands() {
 
 function install_requirements() {
     echo Installing requirements.
+    pip install -r requirements.txt
 
     echo Installing python3-pip.
     sudo apt-get -y install python3-pip
