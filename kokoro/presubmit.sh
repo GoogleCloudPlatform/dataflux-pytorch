@@ -20,6 +20,12 @@ set -e
 # Code under repo is checked out to this directory.
 cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
 
+function setup_virtual_envs() {
+    echo Setting up Python virtual environment.
+    python3 -m venv venv
+    source venv/bin/activate
+}
+
 function run_git_commands() {
     echo Setting git permissions.
     git config --global --add safe.directory "*" 
@@ -52,6 +58,7 @@ function run_integration_tests(){
     python3 -m pytest dataflux_pytorch/integration_tests/integration_test.py -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/integration_tests/sponge_log.xml" --log-cli-level=DEBUG
 }
 
+setup_virtual_envs
 run_git_commands
 install_requirements
 run_unit_tests
