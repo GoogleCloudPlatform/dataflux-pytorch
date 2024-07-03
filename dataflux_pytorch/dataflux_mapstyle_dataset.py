@@ -52,12 +52,14 @@ class Config:
         num_processes: int = os.cpu_count(),
         prefix: str = None,
         max_listing_retries: int = 3,
+        threads_per_process: int = 1,
     ):
         self.sort_listing_results = sort_listing_results
         self.max_composite_object_size = max_composite_object_size
         self.num_processes = num_processes
         self.prefix = prefix
         self.max_listing_retries = max_listing_retries
+        self.threads_per_process = threads_per_process
 
 
 class DataFluxMapStyleDataset(data.Dataset):
@@ -124,12 +126,13 @@ class DataFluxMapStyleDataset(data.Dataset):
     def __getitems__(self, indices):
         return [
             self.data_format_fn(bytes_content)
-            for bytes_content in dataflux_core.download.dataflux_download(
+            for bytes_content in dataflux_core.download.dataflux_download_threaded(
                 project_name=self.project_name,
                 bucket_name=self.bucket_name,
                 objects=[self.objects[idx] for idx in indices],
                 storage_client=self.storage_client,
                 dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+                threads=self.config.threads_per_process,
             )
         ]
 
