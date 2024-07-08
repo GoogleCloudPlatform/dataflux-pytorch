@@ -51,7 +51,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         key = self._parse_gcs_path(path)
         blob = self.bucket.blob(key)
         with blob.open("wb", ignore_flush=True) as blobwriter:
-          torch.save(checkpoint, blob.open("wb", ignore_flush=True))
+          torch.save(checkpoint, blobwriter)
 
     def load_checkpoint(
         self,
