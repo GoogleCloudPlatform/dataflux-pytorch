@@ -46,6 +46,7 @@ class IntegrationTest(unittest.TestCase):
         config["list_timeout"] = os.getenv("LIST_TIMEOUT")
         config["download_timeout"] = os.getenv("DOWNLOAD_TIMEOUT")
         config["parallelization"] = os.getenv("PARALLELIZATION")
+        config["threads_per_process"] = os.getenv("THREADS_PER_PROCESS")
 
         # Type convert env vars.
         if config["num_workers"]:
@@ -65,6 +66,10 @@ class IntegrationTest(unittest.TestCase):
             config["download_timeout"] = float(config["download_timeout"])
         config["parallelization"] = (
             int(config["parallelization"]) if config["parallelization"] else 1
+        )
+        config["threads_per_process"] = (
+            int(config["threads_per_process"]
+                ) if config["threads_per_process"] else 1
         )
 
         return config
@@ -127,7 +132,7 @@ class IntegrationTest(unittest.TestCase):
 
     def test_list_and_load_map(self):
         test_config = self.get_config()
-        config = dataflux_iterable_dataset.Config()
+        config = dataflux_mapstyle_dataset.Config()
         if test_config["prefix"]:
             config.prefix = test_config["prefix"]
 

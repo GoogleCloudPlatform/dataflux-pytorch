@@ -232,10 +232,10 @@ class ListingTestCase(unittest.TestCase):
             bytes("contentA", "utf-8"),
             bytes("contentBB", "utf-8"),
         ]
-        mock_dataflux_core.download.dataflux_download.return_value = (
+        mock_dataflux_core.download.dataflux_download_threaded.return_value = (
             dataflux_download_return_val
         )
-        data_format_fn = lambda content: len(content)
+        def data_format_fn(content): return len(content)
         want_downloaded = [
             data_format_fn(bytes_content)
             for bytes_content in dataflux_download_return_val
@@ -257,12 +257,13 @@ class ListingTestCase(unittest.TestCase):
             got_downloaded,
             want_downloaded,
         )
-        mock_dataflux_core.download.dataflux_download.assert_called_with(
+        mock_dataflux_core.download.dataflux_download_threaded.assert_called_with(
             project_name=self.project_name,
             bucket_name=self.bucket_name,
             objects=self.want_objects,
             storage_client=self.storage_client,
             dataflux_download_optimization_params=want_optimization_params,
+            threads=1,
         )
 
 
