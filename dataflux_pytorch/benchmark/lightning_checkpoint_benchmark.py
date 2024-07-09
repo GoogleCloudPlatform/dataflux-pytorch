@@ -10,6 +10,7 @@ from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import WikiText2, Transformer
 from lightning.pytorch import LightningModule
+from lightning.pytorch.plugins.io import TorchCheckpointIO
 
 from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 
@@ -38,11 +39,13 @@ class LightningTransformer(LightningModule):
         return DataLoader(dataset)
 
 
-def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, model_size: int = 100, steps: int = 5):
+def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, model_size: int = 100, steps: int = 5):
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
     model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=model_size)
-    dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project,bucket_name=bucket)
+    ckpt = TorchCheckpointIO()
+    if dataflux_ckpt:
+      ckpt = DatafluxLightningCheckpoint(project_name=project,bucket_name=bucket)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
@@ -54,11 +57,11 @@ def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, 
     )
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
-        plugins=[dataflux_ckpt],
+        plugins=[ckpt],
         callbacks=[checkpoint_callback],
         min_epochs=4,
         max_epochs=5,
-        max_steps=5,
+        max_steps=steps,
         accelerator="cpu",
     )
     start = time.time()
@@ -70,14 +73,15 @@ if __name__ == "__main__":
 
     DEFAULT_SIZE = 100
     DEFAULT_STEPS = 5
-    size = int(os.getenv("CHECKPOINT_SIZE'",DEFAULT_SIZE))
-    steps = int(os.getenv("STEPS'",DEFAULT_STEPS))
+    size = int(os.getenv("CHECKPOINT_SIZE",DEFAULT_SIZE))
+    steps = int(os.getenv("STEPS",DEFAULT_STEPS))
 
     main(
         os.getenv("PROJECT"),
         os.getenv("BUCKET"),
         os.getenv("CKPT_DIR_PATH"),
         os.getenv("SAVE_ONLY_LATEST") == "1",
+        os.getenv("DATAFLUX_CKPT") == "1",
         size,
         steps,
     )
