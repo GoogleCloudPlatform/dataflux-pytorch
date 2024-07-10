@@ -39,10 +39,10 @@ class LightningTransformer(LightningModule):
         return DataLoader(dataset)
 
 
-def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, model_size: int = 100, steps: int = 5):
+def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, layers: int = 100, steps: int = 5):
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
-    model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=model_size)
+    model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=layers)
     ckpt = TorchCheckpointIO()
     if dataflux_ckpt:
       ckpt = DatafluxLightningCheckpoint(project_name=project,bucket_name=bucket)
@@ -67,13 +67,18 @@ def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, 
     start = time.time()
     trainer.fit(model, dataloader)
     end = time.time()
-    print(end-start)
+    print(f"Time to train over {steps} steps: " + str(end-start) + " seconds")
+
+    start = time.time()
+    trainer.save_checkpoint(ckpt_dir_path)
+    end = time.time()
+    print("Time to save one checkpoint: " + str(end-start) + " seconds")
 
 if __name__ == "__main__":
 
-    DEFAULT_SIZE = 100
+    DEFAULT_LAYERS = 100
     DEFAULT_STEPS = 5
-    size = int(os.getenv("CHECKPOINT_SIZE",DEFAULT_SIZE))
+    layers = int(os.getenv("LAYERS",DEFAULT_LAYERS))
     steps = int(os.getenv("STEPS",DEFAULT_STEPS))
 
     main(
@@ -82,6 +87,6 @@ if __name__ == "__main__":
         os.getenv("CKPT_DIR_PATH"),
         os.getenv("SAVE_ONLY_LATEST") == "1",
         os.getenv("DATAFLUX_CKPT") == "1",
-        size,
+        layers,
         steps,
     )
