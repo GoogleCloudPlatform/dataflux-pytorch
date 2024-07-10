@@ -44,6 +44,9 @@ class Config:
         max_listing_retries: An integer indicating the maximum number of retries
         to attempt in case of any Python multiprocessing errors during
         GCS objects listing. Default to 3.
+
+        disable_compose: A boolean flag indicating if compose download should be active.
+        Compose should be disabled for highly scaled implementations.
     """
 
     def __init__(
@@ -53,12 +56,15 @@ class Config:
         num_processes: int = os.cpu_count(),
         prefix: str = None,
         max_listing_retries: int = 3,
+        disable_compose: bool = False,
     ):
         self.sort_listing_results = sort_listing_results
         self.max_composite_object_size = max_composite_object_size
         self.num_processes = num_processes
         self.prefix = prefix
         self.max_listing_retries = max_listing_retries
+        if disable_compose:
+            self.max_composite_object_size = 0
 
 
 class DataFluxIterableDataset(data.IterableDataset):
