@@ -338,9 +338,8 @@ dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
 )
 ```
 
-**Note that this feature should always be disabled for highly scaled operations that are likely to approach the maximum throughput speeds allowed in the user project.** If left enabled on such operations, users are likely to hit their throughput limit earlier than expected.
+Note that turning off this behavior may cause the training loop to take significantly longer to complete when working with small files. However, composed download will hit QPS and throughput limits at a lower scale than downloading files directly, so you should disable this behavior when running at high multi-node scales where you are able to hit project QPS or throughput limits without composed download.
 
-Turning off this behavior will cause the training loop to take significantly longer to complete when working with small files when the operation is not approaching project throughput or QPS limits.
 
 ### Soft Delete
 To avoid storage charges for retaining the temporary composite objects, consider disabling the [Soft Delete](https://cloud.google.com/storage/docs/soft-delete) retention duration on the bucket.
