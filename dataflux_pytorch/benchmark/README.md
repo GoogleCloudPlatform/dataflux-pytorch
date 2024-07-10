@@ -40,6 +40,11 @@ python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py
 The time will print out and the checkpoints can be viewed in GCS at the location passed in.
 
 ### Results
+
+The table below contains benchmarking times to run trainer.fit() with writing checkpoints to GCS.
+
+Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to fsspec.
+
 <table>
   <tr>
    <td style="background-color: #d9d2e9"><strong>Checkpoint Type</strong>
