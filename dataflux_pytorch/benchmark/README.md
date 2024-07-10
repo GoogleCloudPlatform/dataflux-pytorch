@@ -40,11 +40,6 @@ python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py
 The time will print out and the checkpoints can be viewed in GCS at the location passed in.
 
 ### Results
-
-Type Size Steps Time
-Default
-Dataflux
-
 <table>
   <tr>
    <td style="background-color: #d9d2e9"><strong>Checkpoint Type</strong>
@@ -129,11 +124,9 @@ Dataflux
    </td>
    <td style="background-color: #f3f3f3">2500
    </td>
+   <td style="background-color: #f3f3f3">5
    </td>
    <td style="background-color: #f3f3f3">349.19
-   </td>
-   </td>
-   <td style="background-color: #f3f3f3">
    </td>
   </tr>
 </table>
