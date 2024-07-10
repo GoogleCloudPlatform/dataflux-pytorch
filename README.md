@@ -325,8 +325,7 @@ To optimize the download performance of small files, the Accelerated Dataloader 
 gcloud storage rm --recursive gs://<my-bucket>/dataflux-composed-objects/
 ```
 
-You can also turn off this behavior by setting the “max_composite_object_size” parameter to 0 when constructing the dataset. Example:
-
+You can turn of this behavior by setting the "disable_compose" parameter to true, or by setting the “max_composite_object_size” parameter to 0 when constructing the dataset. Example:
 ```python
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
@@ -334,11 +333,13 @@ dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   config=dataflux_mapstyle_dataset.Config(
     prefix=PREFIX,
     max_composite_object_size=0,
+    disable_compose=True,
   ),
 )
 ```
 
-Note that turning off this behavior will cause the training loop to take significantly longer to complete when working with small files.
+Note that turning off this behavior may cause the training loop to take significantly longer to complete when working with small files. However, composed download will hit QPS and throughput limits at a lower scale than downloading files directly, so you should disable this behavior when running at high multi-node scales where you are able to hit project QPS or throughput limits without composed download.
+
 
 ### Soft Delete
 To avoid storage charges for retaining the temporary composite objects, consider disabling the [Soft Delete](https://cloud.google.com/storage/docs/soft-delete) retention duration on the bucket.
