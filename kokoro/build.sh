@@ -21,6 +21,8 @@ set -e
 cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
 
 function setup_virtual_envs() {
+    sudo apt-get update
+    
     echo Setting up Python virtual environment.
     sudo apt install python3.8-venv
     python3 -m venv venv
