@@ -1,6 +1,6 @@
 # Benchmarking PyTorch Lightning Checkpoints with Google Cloud Storage
 
-This benchmarking script will allow you to run and benchmark the performance of the PyTorch Lightning Checkpoint save function. This script does not rely on GPUs or CPU Clusters and can be run directly on your machine. The script runs the `WikiText2` PyTorch Lightining demo code with some modifications.
+This benchmarking script will allow you to run and benchmark the performance of the PyTorch Lightning Checkpoint save function. This script does not rely on GPUs, TPUs or CPU Clusters and can be run directly on your machine. The script runs the `WikiText2` PyTorch Lightning demo code with some modifications.
 
 ### Getting started
 
@@ -16,7 +16,7 @@ export STEPS=5
 You can also optionally change the size of the model. The size variable will be passed into `nn.Transformer` for `num_encoder_layers` and `num_decoder_layers`. The default value for size is 100.
 
 ```shell
-export CHECKPOINT_SIZE=`1000`
+export CHECKPOINT_SIZE=1000
 ```
 
 ### Dataflux Lightning Checkpoint
