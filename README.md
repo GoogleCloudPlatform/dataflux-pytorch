@@ -353,9 +353,10 @@ Many machine learning efforts opt for a highly distributed training model levera
 #### Egress Throughput Limits
 429 errors acompanied with messages indicating `This workload is drawing too much egress bandwidth from Google Cloud Storage` or `triggered the Cloud Storage Egress Bandwidth Cap` indicate that the data throughput rate of your workload is exceeding the maximum capacity of your Google Cloud Project. To address these issues, you can take the following steps:
 
-1. Check that other workloads executing within your project are not drawing excess bandwidth.
-2. Lower the scale of the workload in question to reduce its egress bandwidth (e.g. fewer running pods).
-3. Contact your Technical Account Manager or Google representative to file a Cloud Capacity Advisor request on your behalf. This request should specify that you wish to increase the bandwidth caps on your project.
+1. Ensure that object composition is [disabled](#composite-objects) for dataflux download operations.  
+2. Check that other workloads executing within your project are not drawing excess bandwidth.
+3. Lower the scale of the workload in question to reduce its egress bandwidth (e.g. fewer running pods).
+4. Contact your Technical Account Manager or Google representative to file a Cloud Capacity Advisor request on your behalf. This request should specify that you wish to increase the bandwidth caps on your project.
 
 #### QPS Limits
 QPS limits can trigger 429 errors, but more commonly manifest in slower than expected execution times. QPS bottlenecks are more common when operating on high volumes of small files. Note that bucket QPS limits will naturally scale overtime, so allowing a grace period for warmup can often lead to faster performance. To get more detail on the performance of a target bucket, look at the `Observability` tab when viewing your bucket from the Cloud Console.
