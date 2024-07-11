@@ -354,9 +354,8 @@ Many machine learning efforts opt for a highly distributed training model levera
 429 errors acompanied with messages indicating `This workload is drawing too much egress bandwidth from Google Cloud Storage` or `triggered the Cloud Storage Egress Bandwidth Cap` indicate that the data throughput rate of your workload is exceeding the maximum capacity of your Google Cloud Project. To address these issues, you can take the following steps:
 
 1. Check that other workloads executing within your project are not drawing excess bandwidth. Bandwidth usage can be viewed by following steps [here](https://cloud.google.com/storage/docs/bandwidth-usage#bandwidth-monitoring).
-2. Follow [these instructions](https://cloud.google.com/storage/docs/bandwidth-usage#increase) to apply for a quota increae of up to 1tbps.
-3. If more than 1Tpbs is required, contact your Technical Account Manager or Google representative to file a request on your behalf. This request should specify that you wish to increase the bandwidth caps on your project.
-4. Try [disabling](#composite-objects) object composition for Dataflux download operations. While object composition increases performance on small files, it also increases the egress bandwidth load when compared to standard download. If you are consistently hitting the bandwidth limit, disabling this feature can improve the performance of retry-backoff operations.
+2. Follow [these instructions](https://cloud.google.com/storage/docs/bandwidth-usage#increase) to apply for a quota increae of up to 1 Tbps.
+3. If more than 1 Tpbs is required, contact your Technical Account Manager or Google representative to file a request on your behalf. This request should specify that you wish to increase the GCS bandwidth caps on your project.
 
 #### QPS Limits
 QPS limits can trigger 429 errors with a body message indicating `Too many Requests`, but more commonly manifest in slower than expected execution times. QPS bottlenecks are more common when operating on high volumes of small files. Note that bucket QPS limits will [naturally scale over time](https://cloud.google.com/storage/docs/request-rate#best-practices), so allowing a grace period for warmup can often lead to faster performance. To get more detail on the performance of a target bucket, look at the `Observability` tab when viewing your bucket from the Cloud Console.
