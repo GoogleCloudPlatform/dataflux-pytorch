@@ -353,13 +353,15 @@ Many machine learning efforts opt for a highly distributed training model levera
 #### Egress Throughput Limits
 429 errors acompanied with messages indicating `This workload is drawing too much egress bandwidth from Google Cloud Storage` or `triggered the Cloud Storage Egress Bandwidth Cap` indicate that the data throughput rate of your workload is exceeding the maximum capacity of your Google Cloud Project. To address these issues, you can take the following steps:
 
-1. Ensure that object composition is [disabled](#composite-objects) for dataflux download operations.  
-2. Check that other workloads executing within your project are not drawing excess bandwidth.
-3. Lower the scale of the workload in question to reduce its egress bandwidth (e.g. fewer running pods).
-4. Contact your Technical Account Manager or Google representative to file a Cloud Capacity Advisor request on your behalf. This request should specify that you wish to increase the bandwidth caps on your project.
+1. Check that other workloads executing within your project are not drawing excess bandwidth. Bandwidth usage can be viewed by following steps [here](https://cloud.google.com/storage/docs/bandwidth-usage#bandwidth-monitoring).
+2. Follow [these instructions](https://cloud.google.com/storage/docs/bandwidth-usage#increase) to apply for a quota increae of up to 1tbps.
+3. If more than 1Tpbs is required, contact your Technical Account Manager or Google representative to file a request on your behalf. This request should specify that you wish to increase the bandwidth caps on your project.
+4. Try [disabling](#composite-objects) object composition for Dataflux download operations. While object composition increases performance on small files, it also increases the egress bandwidth load when compared to standard download. If you are consistently hitting the bandwidth limit, disabling this feature can improve the performance of retry-backoff operations.
 
 #### QPS Limits
-QPS limits can trigger 429 errors, but more commonly manifest in slower than expected execution times. QPS bottlenecks are more common when operating on high volumes of small files. Note that bucket QPS limits will naturally scale overtime, so allowing a grace period for warmup can often lead to faster performance. To get more detail on the performance of a target bucket, look at the `Observability` tab when viewing your bucket from the Cloud Console.
+QPS limits can trigger 429 errors with a body message indicating `Too many Requests`, but more commonly manifest in slower than expected execution times. QPS bottlenecks are more common when operating on high volumes of small files. Note that bucket QPS limits will [naturally scale over time](https://cloud.google.com/storage/docs/request-rate#best-practices), so allowing a grace period for warmup can often lead to faster performance. To get more detail on the performance of a target bucket, look at the `Observability` tab when viewing your bucket from the Cloud Console.
+
+If your workload is failing with messages similar to `TooManyRequests: 429 GET https://storage.googleapis.com/download/storage/v1/b/<MY-PROJECT>/o/dataflux-composed-objects%2Fa80727ae-7bc9-4ba3-8f9b-13ff001d6418` that contain the "dataflux-composed-objects" keyword, [disabling](#composite-objects) composed objects is the best first troubleshooting step. This can reduce QPS load brought on by the compose API when used at scale.
 
 ## Contributing
 We welcome your feedback, issues, and bug fixes. We have a tight roadmap at this time so if you have a major feature or change in functionality you'd like to contribute, please open a GitHub Issue for discussion prior to sending a pull request. Please see [CONTRIBUTING](docs/contributing.md) for more information on how to report bugs or submit pull requests.
