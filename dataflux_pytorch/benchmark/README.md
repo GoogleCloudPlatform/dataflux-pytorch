@@ -130,9 +130,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">298
    </td>
-   <td style="background-color: #f3f3f3">9.25
+   <td style="background-color: #f3f3f3">7.66
    </td>
-   <td style="background-color: #f3f3f3">32.22
+   <td style="background-color: #f3f3f3">38.90
    </td>
   </tr>
   <tr>

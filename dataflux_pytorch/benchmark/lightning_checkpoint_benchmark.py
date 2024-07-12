@@ -105,7 +105,7 @@ def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, 
 
     start = time.time()
     for i in range(steps):
-        trainer.save_checkpoint(ckpt_dir_path)
+        trainer.save_checkpoint(os.path.join(ckpt_dir_path,f'ckpt_{i}.ckpt'))
     end = time.time()
     print("Average time to save one checkpoint: " + str((end-start)/steps) + " seconds")
 

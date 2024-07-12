@@ -152,7 +152,7 @@ from torch.utils.data import DataLoader
 
 from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 
-CKPT_DIR = "gcs://BUCKET_NAME/checkpoints/"
+CKPT = "gcs://BUCKET_NAME/checkpoints/ckpt.ckpt"
 dataflux_ckpt = DatafluxLightningCheckpoint(project_name=PROJECT_NAME, bucket_name=BUCKET_NAME)
 
 dataset = WikiText2()
@@ -167,7 +167,7 @@ trainer = Trainer(
 )
 
 trainer.fit(model, dataloader)
-trainer.save_checkpoint(CKPT_DIR)
+trainer.save_checkpoint(CKPT)
 ```
 
 ## Performance
