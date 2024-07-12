@@ -27,12 +27,15 @@ class ListingTestCase(unittest.TestCase):
         self.project_name = "foo"
         self.bucket_name = "bar"
         self.config = dataflux_mapstyle_dataset.Config(
-            num_processes=3, max_listing_retries=3, prefix="prefix/"
+            num_processes=3, max_listing_retries=3, prefix="", sort_listing_results=True
         )
         self.data_format_fn = lambda data: data
         client = fake_gcs.Client()
 
         self.want_objects = [("objectA", 1), ("objectB", 2)]
+        for (name, length) in self.want_objects:
+            client.bucket(self.bucket_name)._add_file(
+                self.config.prefix + name, length * '0')
         self.storage_client = client
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
@@ -186,7 +189,7 @@ class ListingTestCase(unittest.TestCase):
         """Tests that the dataset[idx] method returns the correct downloaded object content."""
         # Arrange.
         mock_listing_controller = mock.Mock()
-        mock_listing_controller.run.return_value = self.want_objects
+        mock_listing_controller.run.return_value = sorted(self.want_objects)
         mock_dataflux_core.fast_list.ListingController.return_value = (
             mock_listing_controller
         )
@@ -265,6 +268,24 @@ class ListingTestCase(unittest.TestCase):
             dataflux_download_optimization_params=want_optimization_params,
             threads=1,
         )
+
+    def test_init_sets_user_agent(self):
+        """Tests that the init function sets the storage client's user agent."""
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            data_format_fn=self.data_format_fn,
+            storage_client=self.storage_client,
+        )
+
+        self.assertEqual(
+            ds.objects,
+            self.want_objects,
+            f"got listed objects {ds.objects}, want {self.want_objects}",
+        )
+        self.assertTrue(
+            self.storage_client._connection.user_agent.startswith("dataflux"))
 
 
 if __name__ == "__main__":
