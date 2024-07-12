@@ -21,8 +21,13 @@ import logging
 from torch.utils import data
 from google.cloud import storage
 from google.api_core.client_info import ClientInfo
+from google.cloud.storage.retry import DEFAULT_RETRY
 
 import dataflux_core
+
+MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(300.0).with_delay(
+    initial=1.0, multiplier=1.2, maximum=45.0
+)
 
 
 class Config:
@@ -47,6 +52,12 @@ class Config:
 
         disable_compose: A boolean flag indicating if compose download should be active.
         Compose should be disabled for highly scaled implementations.
+
+        list_retry_config: A google API retry for dataflux fast list operations. This allows
+        for retry backoff configuration.
+
+        download_retry_config: A google API retry for dataflux donwload operations. This allows
+        for retry backoff configuration.
     """
 
     def __init__(
@@ -57,6 +68,8 @@ class Config:
         prefix: str = None,
         max_listing_retries: int = 3,
         disable_compose: bool = False,
+        list_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
+        download_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
     ):
         self.sort_listing_results = sort_listing_results
         self.max_composite_object_size = max_composite_object_size
@@ -65,6 +78,8 @@ class Config:
         self.max_listing_retries = max_listing_retries
         if disable_compose:
             self.max_composite_object_size = 0
+        self.list_retry_config = list_retry_config
+        self.download_retry_config = download_retry_config
 
 
 class DataFluxIterableDataset(data.IterableDataset):
@@ -125,6 +140,7 @@ class DataFluxIterableDataset(data.IterableDataset):
                     objects=self.objects,
                     storage_client=self.storage_client,
                     dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+                    retry_config=self.config.download_retry_config,
                 )
             )
         else:
@@ -144,6 +160,7 @@ class DataFluxIterableDataset(data.IterableDataset):
                     objects=self.objects[start:end],
                     storage_client=self.storage_client,
                     dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+                    retry_config=self.config.download_retry_config,
                 )
             )
 
@@ -159,6 +176,7 @@ class DataFluxIterableDataset(data.IterableDataset):
                     bucket=self.bucket_name,
                     sort_results=self.config.sort_listing_results,
                     prefix=self.config.prefix,
+                    retry_config=self.config.download_retry_config,
                 ).run()
             except Exception as e:
                 logging.error(
