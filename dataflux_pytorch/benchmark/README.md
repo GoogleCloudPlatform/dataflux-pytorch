@@ -82,7 +82,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d2e9"><strong>Checkpoint Size (MB) per step</strong>
    </td>
-   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Save Time (s)</strong>
+   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Save Time</strong>
    </td>
    <td style="background-color: #d9d2e9"><strong>Write Throughput (MB/s)</strong>
    </td>
