@@ -103,8 +103,8 @@ class DataFluxMapStyleDataset(data.Dataset):
         if not storage_client:
             self.storage_client = storage.Client(
                 project=project_name,
-                client_info=ClientInfo(user_agent="dataflux/0.0"),
             )
+        dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
@@ -148,13 +148,15 @@ class DataFluxMapStyleDataset(data.Dataset):
         listed_objects = []
         for _ in range(self.config.max_listing_retries):
             try:
-                listed_objects = dataflux_core.fast_list.ListingController(
+                lister = dataflux_core.fast_list.ListingController(
                     max_parallelism=self.config.num_processes,
                     project=self.project_name,
                     bucket=self.bucket_name,
                     sort_results=self.config.sort_listing_results,
                     prefix=self.config.prefix,
-                ).run()
+                )
+                lister.client = self.storage_client
+                listed_objects = lister.run()
             except Exception as e:
                 logging.error(
                     f"exception {str(e)} caught running Dataflux fast listing."

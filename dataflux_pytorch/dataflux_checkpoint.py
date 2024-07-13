@@ -16,7 +16,8 @@
 
 from google.cloud import storage
 from google.cloud.storage.fileio import BlobReader, BlobWriter
-from google.api_core.client_info import ClientInfo
+
+from dataflux_core import user_agent
 
 from typing import Optional
 
@@ -50,8 +51,8 @@ class DatafluxCheckpoint:
         if not storage_client:
             self.storage_client = storage.Client(
                 project=self.project_name,
-                client_info=ClientInfo(user_agent="dataflux/0.0"),
             )
+        user_agent.add_dataflux_user_agent(self.storage_client)
         self.bucket = self.storage_client.bucket(self.bucket_name)
 
     def reader(self, object_name: str) -> BlobReader:

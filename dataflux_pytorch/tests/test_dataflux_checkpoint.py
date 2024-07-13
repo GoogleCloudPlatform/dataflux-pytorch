@@ -38,10 +38,14 @@ class CheckpointTestCase(unittest.TestCase):
     def test_reader(self):
         got_reader = self.ckpt.reader(self.object_name)
         self.assertIsInstance(got_reader, io.BytesIO)
+        self.assertTrue(
+            self.ckpt.storage_client._connection.user_agent.startswith("dataflux"))
 
     def test_writer(self):
         got_writer = self.ckpt.writer(self.object_name)
         self.assertIsInstance(got_writer, fake_gcs.FakeBlobWriter)
+        self.assertTrue(
+            self.ckpt.storage_client._connection.user_agent.startswith("dataflux"))
 
 
 if __name__ == "__main__":
