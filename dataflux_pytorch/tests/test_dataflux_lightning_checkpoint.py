@@ -1,12 +1,15 @@
-import torch
 import unittest
+from typing import Any, Dict
 
-from typing import Dict, Any
+import torch
+
 from dataflux_client_python.dataflux_core.tests import fake_gcs
-from dataflux_pytorch.lightning.dataflux_lightning_checkpoint import DatafluxLightningCheckpoint
+from dataflux_pytorch.lightning.dataflux_lightning_checkpoint import \
+    DatafluxLightningCheckpoint
 
 
 class LightningCheckpointTestCase(unittest.TestCase):
+
     def setUp(self):
         super().setUp()
         self.project_name = "foo"
@@ -58,11 +61,13 @@ class LightningCheckpointTestCase(unittest.TestCase):
         except:
             return
         self.fail(
-            "Attempted to save to a path with an unexpect bucket, expects this to fail")
+            "Attempted to save to a path with an unexpect bucket, expects this to fail"
+        )
 
     def test_valid_path(self):
-        paths = {f'gs://{self.bucket_name}/path',
-                 f'gcs://{self.bucket_name}/path'}
+        paths = {
+            f'gs://{self.bucket_name}/path', f'gcs://{self.bucket_name}/path'
+        }
         for p in paths:
             try:
                 self.ckpt._parse_gcs_path(p)
@@ -76,7 +81,8 @@ class LightningCheckpointTestCase(unittest.TestCase):
         loaded_checkpoint = self.ckpt.load_checkpoint(ckpt_path)
         assert torch.equal(tensor, loaded_checkpoint)
         self.assertTrue(
-            self.ckpt.storage_client._connection.user_agent.startswith("dataflux"))
+            self.ckpt.storage_client._connection.user_agent.startswith(
+                "dataflux"))
 
     def test_delete_checkpoint(self):
         tensor = torch.rand(3, 10, 10)

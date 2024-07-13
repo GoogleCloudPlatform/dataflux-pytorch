@@ -22,13 +22,16 @@ from dataflux_pytorch import dataflux_mapstyle_dataset
 
 
 class ListingTestCase(unittest.TestCase):
+
     def setUp(self):
         super().setUp()
         self.project_name = "foo"
         self.bucket_name = "bar"
         self.config = dataflux_mapstyle_dataset.Config(
-            num_processes=3, max_listing_retries=3, prefix="", sort_listing_results=True
-        )
+            num_processes=3,
+            max_listing_retries=3,
+            prefix="",
+            sort_listing_results=True)
         self.data_format_fn = lambda data: data
         client = fake_gcs.Client()
 
@@ -45,8 +48,7 @@ class ListingTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -71,8 +73,7 @@ class ListingTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -104,8 +105,7 @@ class ListingTestCase(unittest.TestCase):
             Exception(),
         ]
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -124,7 +124,8 @@ class ListingTestCase(unittest.TestCase):
         )
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
-    def test_init_raises_exception_when_retries_exhaust(self, mock_dataflux_core):
+    def test_init_raises_exception_when_retries_exhaust(
+            self, mock_dataflux_core):
         """Tests that the initialization raises exception upon exhaustive retries."""
         # Arrange.
         mock_listing_controller = mock.Mock()
@@ -135,8 +136,7 @@ class ListingTestCase(unittest.TestCase):
             want_exception for _ in range(self.config.max_listing_retries)
         ]
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act & Assert.
         with self.assertRaises(RuntimeError) as re:
@@ -165,8 +165,7 @@ class ListingTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -191,8 +190,7 @@ class ListingTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = sorted(self.want_objects)
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
         want_downloaded = bytes("content", "utf-8")
         mock_dataflux_core.download.download_single.return_value = want_downloaded
         want_idx = 0
@@ -225,20 +223,20 @@ class ListingTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
         want_optimization_params = object()
         mock_dataflux_core.download.DataFluxDownloadOptimizationParams.return_value = (
-            want_optimization_params
-        )
+            want_optimization_params)
         dataflux_download_return_val = [
             bytes("contentA", "utf-8"),
             bytes("contentBB", "utf-8"),
         ]
         mock_dataflux_core.download.dataflux_download_threaded.return_value = (
-            dataflux_download_return_val
-        )
-        def data_format_fn(content): return len(content)
+            dataflux_download_return_val)
+
+        def data_format_fn(content):
+            return len(content)
+
         want_downloaded = [
             data_format_fn(bytes_content)
             for bytes_content in dataflux_download_return_val
