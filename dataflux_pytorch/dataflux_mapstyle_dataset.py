@@ -17,16 +17,15 @@
 import logging
 import os
 
-
 import dataflux_core
 from google.api_core.client_info import ClientInfo
 from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
 from torch.utils import data
 
-MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(300.0).with_delay(
-    initial=1.0, multiplier=1.2, maximum=45.0
-)
+MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(300.0).with_delay(initial=1.0,
+                                                               multiplier=1.2,
+                                                               maximum=45.0)
 
 
 class Config:
@@ -52,10 +51,10 @@ class Config:
         disable_compose: A boolean flag indicating if compose download should be active.
         Compose should be disabled for highly scaled implementations.
 
-        list_retry_config: A google API retry for dataflux fast list operations. This allows
+        list_retry_config: A google API retry for Dataflux fast list operations. This allows
         for retry backoff configuration.
 
-        download_retry_config: A google API retry for dataflux donwload operations. This allows
+        download_retry_config: A google API retry for Dataflux download operations. This allows
         for retry backoff configuration.
     """
 
@@ -68,8 +67,10 @@ class Config:
         max_listing_retries: int = 3,
         threads_per_process: int = 1,
         disable_compose: bool = False,
-        list_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
-        download_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
+        list_retry_config:
+        "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
+        download_retry_config:
+        "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
     ):
         self.sort_listing_results = sort_listing_results
         self.max_composite_object_size = max_composite_object_size
@@ -140,8 +141,7 @@ class DataFluxMapStyleDataset(data.Dataset):
                 bucket_name=self.bucket_name,
                 object_name=self.objects[idx][0],
                 retry_config=self.config.download_retry_config,
-            )
-        )
+            ))
 
     def __getitems__(self, indices):
         return [

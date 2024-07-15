@@ -362,18 +362,18 @@ Many machine learning efforts opt for a highly distributed training model levera
     from google.cloud.storage.retry import DEFAULT_RETRY
 
     dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-      project_name=PROJECT_NAME,
-      bucket_name=BUCKET_NAME,
-      config=dataflux_mapstyle_dataset.Config(
-        prefix=PREFIX,
-        max_composite_object_size=0,
-        list_retry_config=DEFAULT_RETRY.with_deadline(300.0).with_delay(
-          initial=1.0, multiplier=1.2, maximum=45.0
+        project_name=PROJECT_NAME,
+        bucket_name=BUCKET_NAME,
+        config=dataflux_mapstyle_dataset.Config(
+            prefix=PREFIX,
+            max_composite_object_size=0,
+            list_retry_config=DEFAULT_RETRY.with_deadline(300.0).with_delay(
+                initial=1.0, multiplier=1.2, maximum=45.0
+            ),
+            download_retry_config=DEFAULT_RETRY.with_deadline(600.0).with_delay(
+                initial=1.0, multiplier=1.5, maximum=90.0
+            ),
         ),
-        download_retry_config=DEFAULT_RETRY.with_deadline(600.0).with_delay(
-          initial=1.0, multiplier=1.5, maximum=90.0
-        ),
-      ),
     )
     ```
 

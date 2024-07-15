@@ -24,9 +24,9 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud import storage
 from torch.utils import data
 
-MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(300.0).with_delay(
-    initial=1.0, multiplier=1.2, maximum=45.0
-)
+MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(300.0).with_delay(initial=1.0,
+                                                               multiplier=1.2,
+                                                               maximum=45.0)
 
 
 class Config:
@@ -52,10 +52,10 @@ class Config:
         disable_compose: A boolean flag indicating if compose download should be active.
         Compose should be disabled for highly scaled implementations.
 
-        list_retry_config: A google API retry for dataflux fast list operations. This allows
+        list_retry_config: A google API retry for Dataflux fast list operations. This allows
         for retry backoff configuration.
 
-        download_retry_config: A google API retry for dataflux donwload operations. This allows
+        download_retry_config: A google API retry for Dataflux download operations. This allows
         for retry backoff configuration.
     """
 
@@ -67,8 +67,10 @@ class Config:
         prefix: str = None,
         max_listing_retries: int = 3,
         disable_compose: bool = False,
-        list_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
-        download_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
+        list_retry_config:
+        "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
+        download_retry_config:
+        "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
     ):
         self.sort_listing_results = sort_listing_results
         self.max_composite_object_size = max_composite_object_size
@@ -129,17 +131,16 @@ class DataFluxIterableDataset(data.IterableDataset):
         worker_info = data.get_worker_info()
         if worker_info is None:
             # Single-process data loading.
-            yield from (
-                self.data_format_fn(bytes_content)
-                for bytes_content in dataflux_core.download.dataflux_download_lazy(
-                    project_name=self.project_name,
-                    bucket_name=self.bucket_name,
-                    objects=self.objects,
-                    storage_client=self.storage_client,
-                    dataflux_download_optimization_params=self.dataflux_download_optimization_params,
-                    retry_config=self.config.download_retry_config,
-                )
-            )
+            yield from (self.data_format_fn(bytes_content) for bytes_content in
+                        dataflux_core.download.dataflux_download_lazy(
+                            project_name=self.project_name,
+                            bucket_name=self.bucket_name,
+                            objects=self.objects,
+                            storage_client=self.storage_client,
+                            dataflux_download_optimization_params=self.
+                            dataflux_download_optimization_params,
+                            retry_config=self.config.download_retry_config,
+                        ))
         else:
             # Multi-process data loading. Split the workload among workers.
             # Ref: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset.
@@ -148,17 +149,16 @@ class DataFluxIterableDataset(data.IterableDataset):
             worker_id = worker_info.id
             start = worker_id * per_worker
             end = min(start + per_worker, len(self.objects))
-            yield from (
-                self.data_format_fn(bytes_content)
-                for bytes_content in dataflux_core.download.dataflux_download_lazy(
-                    project_name=self.project_name,
-                    bucket_name=self.bucket_name,
-                    objects=self.objects[start:end],
-                    storage_client=self.storage_client,
-                    dataflux_download_optimization_params=self.dataflux_download_optimization_params,
-                    retry_config=self.config.download_retry_config,
-                )
-            )
+            yield from (self.data_format_fn(bytes_content) for bytes_content in
+                        dataflux_core.download.dataflux_download_lazy(
+                            project_name=self.project_name,
+                            bucket_name=self.bucket_name,
+                            objects=self.objects[start:end],
+                            storage_client=self.storage_client,
+                            dataflux_download_optimization_params=self.
+                            dataflux_download_optimization_params,
+                            retry_config=self.config.download_retry_config,
+                        ))
 
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
