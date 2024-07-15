@@ -14,14 +14,15 @@
  limitations under the License.
  """
 
-import unittest
 import io
+import unittest
 
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch import dataflux_checkpoint
 
 
 class CheckpointTestCase(unittest.TestCase):
+
     def setUp(self):
         super().setUp()
         self.project_name = "foo"
@@ -39,13 +40,15 @@ class CheckpointTestCase(unittest.TestCase):
         got_reader = self.ckpt.reader(self.object_name)
         self.assertIsInstance(got_reader, io.BytesIO)
         self.assertTrue(
-            self.ckpt.storage_client._connection.user_agent.startswith("dataflux"))
+            self.ckpt.storage_client._connection.user_agent.startswith(
+                "dataflux"))
 
     def test_writer(self):
         got_writer = self.ckpt.writer(self.object_name)
         self.assertIsInstance(got_writer, fake_gcs.FakeBlobWriter)
         self.assertTrue(
-            self.ckpt.storage_client._connection.user_agent.startswith("dataflux"))
+            self.ckpt.storage_client._connection.user_agent.startswith(
+                "dataflux"))
 
 
 if __name__ == "__main__":
