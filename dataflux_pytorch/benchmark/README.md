@@ -14,7 +14,7 @@ pip install gcs-torch-dataflux gcsfs
 
 First ensure you are running within a virtual python enviroment, then set the enviroment variables.
 
-`CKPT_DIR_PATH` is the location of where to save the checkpoints. `STEPS` is the number of steps the model will take (the number of checkpoints created will be the same). The default value for `STEPS` is 5.
+`CKPT_DIR_PATH` is the location of where to save the checkpoints. `STEPS` is the number of steps the model will take (the number of checkpoints created will be the same). The default value for `STEPS` is 5. The benchmark will run `save_checkpoint` repeatedly and produce the average at the end.
 
 ```shell
 export CKPT_DIR_PATH=`gs://path/to/directory/`
@@ -52,26 +52,25 @@ $ python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py
 GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 HPU available: False, using: 0 HPUs
-/usr/local/google/home/divyarawal/dataflux_dev/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/connectors/logger_connector/logger_connector.py:75: Starting from v1.9.0, `tensorboardX` has been removed as a dependency of the `lightning.pytorch` package, due to potential conflicts with other packages in the ML ecosystem. For this reason, `logger=True` will use `CSVLogger` as the default logger, unless the `tensorboard` or `tensorboardX` packages are found. Please `pip install lightning[extra]` or one of them to enable TensorBoard support by default
+.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/connectors/logger_connector/logger_connector.py:75: Starting from v1.9.0, `tensorboardX` has been removed as a dependency of the `lightning.pytorch` package, due to potential conflicts with other packages in the ML ecosystem. For this reason, `logger=True` will use `CSVLogger` as the default logger, unless the `tensorboard` or `tensorboardX` packages are found. Please `pip install lightning[extra]` or one of them to enable TensorBoard support by default
 
   | Name  | Type        | Params | Mode
 ----------------------------------------------
-0 | model | Transformer | 19.8 M | train
+0 | model | Transformer | 658 M  | train
 ----------------------------------------------
-19.8 M    Trainable params
+658 M     Trainable params
 0         Non-trainable params
-19.8 M    Total params
-79.189    Total estimated model params size (MB)
-/usr/local/google/home/divyarawal/dataflux_dev/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:424: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=47` in the `DataLoader` to improve performance.
-Epoch 0:   0%|                                                                                                               | 5/59674 [00:11<39:37:59,  0.42it/s, v_num=2]`Trainer.fit` stopped: `max_steps=5` reached.
-Epoch 0:   0%|                                                                                                               | 5/59674 [00:11<39:38:05,  0.42it/s, v_num=2]
-Time to train over 5 steps: 14.197517395019531 seconds
-Time to save one checkpoint: 2.075364589691162 seconds
+658 M     Total params
+2,634.181 Total estimated model params size (MB)
+.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:424: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=47` in the `DataLoader` to improve performance.
+Epoch 0:   0%|                                                                                                            | 10/59674 [12:17<1221:29:06,  0.01it/s, v_num=5]`Trainer.fit` stopped: `max_steps=10` reached.
+Epoch 0:   0%|                                                                                                            | 10/59674 [12:17<1221:29:09,  0.01it/s, v_num=5]
+Average time to save one checkpoint: 58.68560411930084 seconds
 ```
 
 ## Results
 
-The table below contains benchmarking times writing checkpoints to GCS.
+The table below contains benchmarking times writing checkpoints to GCS, the average save time is taken over 10 called to save_checkpoint.
 
 Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to fsspec.
 
@@ -83,11 +82,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d2e9"><strong>Checkpoint Size (MB) per step</strong>
    </td>
-   <td style="background-color: #d9d2e9"><strong>Steps</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Train Time (s)</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Single Checkpoint Save Time (s)</strong>
+   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Save Time</strong>
    </td>
    <td style="background-color: #d9d2e9"><strong>Write Throughput (MB/s)</strong>
    </td>
@@ -99,13 +94,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d9d9">75.6
    </td>
-   <td style="background-color: #d9d9d9">5
+   <td style="background-color: #d9d9d9">2.03
    </td>
-   <td style="background-color: #d9d9d9">13.25
-   </td>
-   <td style="background-color: #d9d9d9">1.64
-   </td>
-   <td style="background-color: #d9d9d9">46.09
+   <td style="background-color: #d9d9d9">37.24
    </td>
   </tr>
   <tr>
@@ -115,13 +106,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">75.6
    </td>
-   <td style="background-color: #f3f3f3">5
+   <td style="background-color: #f3f3f3">2.04
    </td>
-   <td style="background-color: #f3f3f3">14.08
-   </td>
-   <td style="background-color: #f3f3f3">2.07
-   </td>
-   <td style="background-color: #f3f3f3">36.52
+   <td style="background-color: #f3f3f3">37.05
    </td>
   </tr>
   <tr>
@@ -131,13 +118,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d9d9">298
    </td>
-   <td style="background-color: #d9d9d9">5
+   <td style="background-color: #d9d9d9">5.70
    </td>
-   <td style="background-color: #d9d9d9">36.55
-   </td>
-   <td style="background-color: #d9d9d9">5.21
-   </td>
-   <td style="background-color: #d9d9d9">57.20
+   <td style="background-color: #d9d9d9">52.28
    </td>
   </tr>
   <tr>
@@ -147,13 +130,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">298
    </td>
-   <td style="background-color: #f3f3f3">5
+   <td style="background-color: #f3f3f3">7.66
    </td>
-   <td style="background-color: #f3f3f3">44.07
-   </td>
-   <td style="background-color: #f3f3f3">7.04
-   </td>
-   <td style="background-color: #f3f3f3">42.32
+   <td style="background-color: #f3f3f3">38.90
    </td>
   </tr>
   <tr>
@@ -163,13 +142,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d9d9">2500
    </td>
-   <td style="background-color: #d9d9d9">5
+   <td style="background-color: #d9d9d9">42.82
    </td>
-   <td style="background-color: #d9d9d9">266.16
-   </td>
-   <td style="background-color: #d9d9d9">39.14
-   </td>
-   <td style="background-color: #d9d9d9">63.87
+   <td style="background-color: #d9d9d9">58.39
    </td>
   </tr>
   <tr>
@@ -179,13 +154,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">2500
    </td>
-   <td style="background-color: #f3f3f3">5
+   <td style="background-color: #f3f3f3">58.86
    </td>
-   <td style="background-color: #f3f3f3">349.19
-   </td>
-   <td style="background-color: #f3f3f3">53.71
-   </td>
-   <td style="background-color: #f3f3f3">46.55
+   <td style="background-color: #f3f3f3">42.47
    </td>
   </tr>
 </table>
