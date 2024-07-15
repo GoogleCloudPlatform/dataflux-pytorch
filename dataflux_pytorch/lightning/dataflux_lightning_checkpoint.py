@@ -1,9 +1,10 @@
-import torch
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from lightning.pytorch.plugins.io import CheckpointIO
+import torch
+from dataflux_core import user_agent
 from google.cloud import storage
-from google.api_core.client_info import ClientInfo
+from lightning.pytorch.plugins.io import CheckpointIO
+
 
 class DatafluxLightningCheckpoint(CheckpointIO):
     """A checkpoint manager for GCS using the :class:'CheckpointIO' interface"""
@@ -18,16 +19,15 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self.bucket_name = bucket_name
         self.storage_client = storage_client
         if not storage_client:
-            self.storage_client = storage.Client(
-                project=self.project_name,
-                client_info=ClientInfo(user_agent="dataflux/0.0"),
-            )
+            self.storage_client = storage.Client(project=self.project_name, )
+        user_agent.add_dataflux_user_agent(self.storage_client)
         self.bucket = self.storage_client.bucket(self.bucket_name)
 
     def _parse_gcs_path(self, path: str) -> str:
-        if not path or not (path.startswith("gcs://") or path.startswith("gs://")):
+        if not path or not (path.startswith("gcs://")
+                            or path.startswith("gs://")):
             raise ValueError("Path needs to begin with gcs:// or gs://")
-        path =  path.split("//", maxsplit=1)
+        path = path.split("//", maxsplit=1)
         if not path or len(path) < 2:
             raise ValueError("Bucket name must be non-empty")
         split = path[1].split("/", maxsplit=1)
@@ -39,7 +39,9 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         if not bucket:
             raise ValueError("Bucket name must be non-empty")
         if bucket != self.bucket_name:
-            raise ValueError(f'Unexpected bucket name, expected {self.bucket_name} got {bucket}')
+            raise ValueError(
+                f'Unexpected bucket name, expected {self.bucket_name} got {bucket}'
+            )
         return prefix
 
     def save_checkpoint(
@@ -51,7 +53,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         key = self._parse_gcs_path(path)
         blob = self.bucket.blob(key)
         with blob.open("wb", ignore_flush=True) as blobwriter:
-          torch.save(checkpoint, blobwriter)
+            torch.save(checkpoint, blobwriter)
 
     def load_checkpoint(
         self,
@@ -66,11 +68,9 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self,
         path: str,
     ) -> None:
-       key = self._parse_gcs_path(path)
-       blob = self.bucket.blob(key)
-       blob.delete()
+        key = self._parse_gcs_path(path)
+        blob = self.bucket.blob(key)
+        blob.delete()
 
-    def teardown(
-        self,
-    ) -> None:
+    def teardown(self, ) -> None:
         pass

@@ -14,26 +14,32 @@
  limitations under the License.
  """
 
+import math
 import unittest
 from unittest import mock
-import math
 
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch import dataflux_iterable_dataset
 
 
 class IterableDatasetTestCase(unittest.TestCase):
+
     def setUp(self):
         super().setUp()
         self.project_name = "foo"
         self.bucket_name = "bar"
         self.config = dataflux_iterable_dataset.Config(
-            num_processes=3, max_listing_retries=3, prefix="prefix/"
+            num_processes=3,
+            max_listing_retries=3,
+            prefix="",
+            sort_listing_results=True,
         )
         self.data_format_fn = lambda data: data
         client = fake_gcs.Client()
 
         self.want_objects = [("objectA", 1), ("objectB", 2)]
+        for (name, length) in self.want_objects:
+            client.bucket(self.bucket_name)._add_file(name, length * '0')
         self.storage_client = client
 
     @mock.patch("dataflux_pytorch.dataflux_iterable_dataset.dataflux_core")
@@ -43,8 +49,7 @@ class IterableDatasetTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_iterable_dataset.DataFluxIterableDataset(
@@ -69,8 +74,7 @@ class IterableDatasetTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_iterable_dataset.DataFluxIterableDataset(
@@ -102,8 +106,7 @@ class IterableDatasetTestCase(unittest.TestCase):
             Exception(),
         ]
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_iterable_dataset.DataFluxIterableDataset(
@@ -122,7 +125,8 @@ class IterableDatasetTestCase(unittest.TestCase):
         )
 
     @mock.patch("dataflux_pytorch.dataflux_iterable_dataset.dataflux_core")
-    def test_init_raises_exception_when_retries_exhaust(self, mock_dataflux_core):
+    def test_init_raises_exception_when_retries_exhaust(
+            self, mock_dataflux_core):
         """Tests that the initialization raises exception upon exhaustive retries."""
         # Arrange.
         mock_listing_controller = mock.Mock()
@@ -133,8 +137,7 @@ class IterableDatasetTestCase(unittest.TestCase):
             want_exception for _ in range(self.config.max_listing_retries)
         ]
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act & Assert.
         with self.assertRaises(RuntimeError) as re:
@@ -164,23 +167,22 @@ class IterableDatasetTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
         want_optimization_params = object()
         mock_dataflux_core.download.DataFluxDownloadOptimizationParams.return_value = (
-            want_optimization_params
-        )
+            want_optimization_params)
         dataflux_download_return_val = [
             bytes("contentA", "utf-8"),
             bytes("contentBB", "utf-8"),
         ]
 
         mock_dataflux_core.download.dataflux_download_lazy.return_value = iter(
-            dataflux_download_return_val
-        )
+            dataflux_download_return_val)
         mock_worker_info.return_value = None
 
-        data_format_fn = lambda content: len(content)
+        def data_format_fn(content):
+            return len(content)
+
         want_downloaded = [
             data_format_fn(bytes_content)
             for bytes_content in dataflux_download_return_val
@@ -216,30 +218,29 @@ class IterableDatasetTestCase(unittest.TestCase):
 
     @mock.patch("dataflux_pytorch.dataflux_iterable_dataset.dataflux_core")
     @mock.patch("torch.utils.data.get_worker_info")
-    def test_iter_multiple_processes(self, mock_worker_info, mock_dataflux_core):
+    def test_iter_multiple_processes(self, mock_worker_info,
+                                     mock_dataflux_core):
         """
         Tests that the using the iterator of the dataset downloads the list of the correct objects with a multi-process setup.
         Specifically, each worker should be assigned to download a different batch of the dataset.
         """
         # Arrange.
-        want_objects = [("objectA", 1), ("objectB", 2), ("objectC", 3), ("objectD", 4)]
+        want_objects = [("objectA", 1), ("objectB", 2), ("objectC", 3),
+                        ("objectD", 4)]
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
         want_optimization_params = object()
         mock_dataflux_core.download.DataFluxDownloadOptimizationParams.return_value = (
-            want_optimization_params
-        )
+            want_optimization_params)
         dataflux_download_return_val = [
             bytes("contentA", "utf-8"),
             bytes("contentBB", "utf-8"),
         ]
 
         mock_dataflux_core.download.dataflux_download_lazy.return_value = iter(
-            dataflux_download_return_val
-        )
+            dataflux_download_return_val)
 
         class _WorkerInfo:
             """A fake WorkerInfo class for testing purpose."""
@@ -256,7 +257,9 @@ class IterableDatasetTestCase(unittest.TestCase):
         worker_info = _WorkerInfo(num_workers=num_workers, id=id)
         mock_worker_info.return_value = worker_info
 
-        data_format_fn = lambda content: len(content)
+        def data_format_fn(content):
+            return len(content)
+
         want_downloaded = [
             data_format_fn(bytes_content)
             for bytes_content in dataflux_download_return_val
@@ -289,6 +292,24 @@ class IterableDatasetTestCase(unittest.TestCase):
             dataflux_download_optimization_params=want_optimization_params,
             retry_config=dataflux_iterable_dataset.MODIFIED_RETRY,
         )
+
+    def test_init_sets_user_agent(self):
+        """Tests that the init function sets the storage client's user agent."""
+        ds = dataflux_iterable_dataset.DataFluxIterableDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            data_format_fn=self.data_format_fn,
+            storage_client=self.storage_client,
+        )
+
+        self.assertEqual(
+            ds.objects,
+            self.want_objects,
+            f"got listed objects {ds.objects}, want {self.want_objects}",
+        )
+        self.assertTrue(
+            self.storage_client._connection.user_agent.startswith("dataflux"))
 
 
 if __name__ == "__main__":

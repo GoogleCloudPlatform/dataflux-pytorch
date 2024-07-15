@@ -14,16 +14,15 @@
  limitations under the License.
  """
 
-import os
-import math
 import logging
-
-from torch.utils import data
-from google.cloud import storage
-from google.api_core.client_info import ClientInfo
-from google.cloud.storage.retry import DEFAULT_RETRY
+import math
+import os
 
 import dataflux_core
+from google.api_core.client_info import ClientInfo
+from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud import storage
+from torch.utils import data
 
 MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(300.0).with_delay(
     initial=1.0, multiplier=1.2, maximum=45.0
@@ -83,6 +82,7 @@ class Config:
 
 
 class DataFluxIterableDataset(data.IterableDataset):
+
     def __init__(
         self,
         project_name,
@@ -112,10 +112,8 @@ class DataFluxIterableDataset(data.IterableDataset):
         super().__init__()
         self.storage_client = storage_client
         if not storage_client:
-            self.storage_client = storage.Client(
-                project=project_name,
-                client_info=ClientInfo(user_agent="dataflux/0.0"),
-            )
+            self.storage_client = storage.Client(project=project_name, )
+        dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
@@ -123,8 +121,7 @@ class DataFluxIterableDataset(data.IterableDataset):
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size
-            )
-        )
+            ))
 
         self.objects = self._list_GCS_blobs_with_retry()
 
@@ -147,8 +144,7 @@ class DataFluxIterableDataset(data.IterableDataset):
             # Multi-process data loading. Split the workload among workers.
             # Ref: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset.
             per_worker = int(
-                math.ceil(len(self.objects) / float(worker_info.num_workers))
-            )
+                math.ceil(len(self.objects) / float(worker_info.num_workers)))
             worker_id = worker_info.id
             start = worker_id * per_worker
             end = min(start + per_worker, len(self.objects))
@@ -170,14 +166,16 @@ class DataFluxIterableDataset(data.IterableDataset):
         listed_objects = []
         for _ in range(self.config.max_listing_retries):
             try:
-                listed_objects = dataflux_core.fast_list.ListingController(
+                lister = dataflux_core.fast_list.ListingController(
                     max_parallelism=self.config.num_processes,
                     project=self.project_name,
                     bucket=self.bucket_name,
                     sort_results=self.config.sort_listing_results,
                     prefix=self.config.prefix,
                     retry_config=self.config.download_retry_config,
-                ).run()
+                )
+                lister.client = self.storage_client
+                listed_objects = lister.run()
             except Exception as e:
                 logging.error(
                     f"exception {str(e)} caught running Dataflux fast listing."

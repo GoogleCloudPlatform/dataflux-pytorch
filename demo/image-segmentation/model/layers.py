@@ -76,7 +76,9 @@ def conv_block_factory(
 
 
 class DownsampleBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, normalization, activation, index):
+
+    def __init__(self, in_channels, out_channels, normalization, activation,
+                 index):
         super(DownsampleBlock, self).__init__()
         self.conv1 = conv_block_factory(
             in_channels,
@@ -101,7 +103,9 @@ class DownsampleBlock(nn.Module):
 
 
 class UpsampleBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, normalization, activation, index):
+
+    def __init__(self, in_channels, out_channels, normalization, activation,
+                 index):
         super(UpsampleBlock, self).__init__()
 
         self.in_channels = in_channels
@@ -141,6 +145,7 @@ class UpsampleBlock(nn.Module):
 
 
 class InputBlock(nn.Module):
+
     def __init__(self, in_channels, out_channels, normalization, activation):
         super(InputBlock, self).__init__()
         self.conv1 = conv_block_factory(
@@ -165,11 +170,15 @@ class InputBlock(nn.Module):
 
 
 class OutputLayer(nn.Module):
+
     def __init__(self, in_channels, n_class):
         super(OutputLayer, self).__init__()
-        self.conv = nn.Conv3d(
-            in_channels, n_class, kernel_size=1, stride=1, padding=0, bias=True
-        )
+        self.conv = nn.Conv3d(in_channels,
+                              n_class,
+                              kernel_size=1,
+                              stride=1,
+                              padding=0,
+                              bias=True)
 
     def forward(self, x):
         return self.conv(x)

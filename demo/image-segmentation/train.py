@@ -15,40 +15,34 @@
  """
 
 import os
-from filelock import FileLock
+from math import ceil
 from typing import Dict
 
 import numpy as np
-
-import torch
-from torch import nn
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
-from torchvision.transforms import ToTensor, Normalize
-from tqdm import tqdm
-
 import ray
 import ray.train
-from ray.air import ScalingConfig
-from ray.air import session
-from ray.train.torch import TorchTrainer, get_device
-
-from math import ceil
-
-from model.unet3d import Unet3D
-from model.losses import DiceCELoss, DiceScore
-
-from data_loader import get_data_loaders
-
-from torch.optim import Adam, SGD
-from torch.cuda.amp import autocast, GradScaler
-
+import torch
 from arguments import PARSER
+from data_loader import get_data_loaders
+from filelock import FileLock
+from model.losses import DiceCELoss, DiceScore
+from model.unet3d import Unet3D
+from ray.air import ScalingConfig, session
+from ray.train.torch import TorchTrainer, get_device
+from torch import nn
+from torch.cuda.amp import GradScaler, autocast
+from torch.optim import SGD, Adam
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+from torchvision.transforms import Normalize, ToTensor
+from tqdm import tqdm
 
 
 def get_optimizer(params, flags):
     if flags.optimizer == "adam":
-        optim = Adam(params, lr=flags.learning_rate, weight_decay=flags.weight_decay)
+        optim = Adam(params,
+                     lr=flags.learning_rate,
+                     weight_decay=flags.weight_decay)
     elif flags.optimizer == "sgd":
         optim = SGD(
             params,
@@ -85,14 +79,17 @@ def train_func_per_worker(config: Dict):
     num_workers = config["num_workers"]
 
     # Get dataloaders inside worker training function.
-    train_dataloader = get_data_loaders(
-        flags, num_shards=num_workers, global_rank=session.get_world_rank()
-    )
+    train_dataloader = get_data_loaders(flags,
+                                        num_shards=num_workers,
+                                        global_rank=session.get_world_rank())
 
     # Each worker is assigned one GPU so get_device will return one device.
     device = get_device()
 
-    model = Unet3D(1, 3, normalization=flags.normalization, activation=flags.activation)
+    model = Unet3D(1,
+                   3,
+                   normalization=flags.normalization,
+                   activation=flags.activation)
 
     # Prepare model for distributed training.
     model = ray.train.torch.prepare_model(model)
@@ -100,8 +97,9 @@ def train_func_per_worker(config: Dict):
     optimizer = get_optimizer(model.parameters(), flags)
     if flags.lr_decay_epochs:
         scheduler = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer, milestones=flags.lr_decay_epochs, gamma=flags.lr_decay_factor
-        )
+            optimizer,
+            milestones=flags.lr_decay_epochs,
+            gamma=flags.lr_decay_factor)
     scaler = GradScaler()
     loss_fn = DiceCELoss(
         to_onehot_y=True,
@@ -129,7 +127,8 @@ def train_func_per_worker(config: Dict):
             )
         train_dataloader.sampler.set_epoch(epoch)
 
-        for image, label in tqdm(train_dataloader, desc=f"Train Epoch {epoch}"):
+        for image, label in tqdm(train_dataloader,
+                                 desc=f"Train Epoch {epoch}"):
             image = image.to(device)
             label = label.to(device)
             pred = model(image)  # .to(device)
@@ -156,7 +155,10 @@ def train_unet(flags, num_workers=2, use_gpu=True):
         num_workers=num_workers,
         use_gpu=True,
         # We have 32 CPUs and 4 GPUs per worker VM, so we can create a total of 8 individual workers each with 1 GPU for training.
-        resources_per_worker={"CPU": 8, "GPU": 1},
+        resources_per_worker={
+            "CPU": 8,
+            "GPU": 1
+        },
     )
 
     # Initialize a Ray TorchTrainer.

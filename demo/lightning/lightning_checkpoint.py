@@ -1,18 +1,21 @@
 import os
 
 from lightning import Trainer
-from lightning.pytorch.demos import WikiText2, LightningTransformer
 from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos import LightningTransformer, WikiText2
 from torch.utils.data import DataLoader
 
 from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 
-def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool):
+
+def main(project: str, bucket: str, ckpt_dir_path: str,
+         save_only_latest: bool):
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
 
     model = LightningTransformer(vocab_size=dataset.vocab_size)
-    dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project, bucket_name=bucket)
+    dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project,
+                                                bucket_name=bucket)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
