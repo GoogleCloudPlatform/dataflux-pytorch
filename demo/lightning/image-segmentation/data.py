@@ -1,16 +1,15 @@
 import torch
+import os
 import lightning.pytorch as pl
 
 from dataflux_pytorch import dataflux_mapstyle_dataset
 
 
 class Unet3DDataModule(pl.LighitningDataModule):
-    def __init__(self, gcs_bucket):
-        self.data_dir = gcs_bucket + "/images"
-        self.transform = 1
+    def __init__(self, gcs_bucket, prefix):
+        self.data_dir = os.path.join(gcs_bucket, prefix)
     
     def prepare_data(self):
-        
         pass
 
     def setup(self, state="train"):
