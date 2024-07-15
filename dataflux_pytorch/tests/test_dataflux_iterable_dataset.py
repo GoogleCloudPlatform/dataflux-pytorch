@@ -211,6 +211,7 @@ class IterableDatasetTestCase(unittest.TestCase):
             objects=self.want_objects,
             storage_client=self.storage_client,
             dataflux_download_optimization_params=want_optimization_params,
+            retry_config=dataflux_iterable_dataset.MODIFIED_RETRY,
         )
 
     @mock.patch("dataflux_pytorch.dataflux_iterable_dataset.dataflux_core")
@@ -286,6 +287,7 @@ class IterableDatasetTestCase(unittest.TestCase):
             objects=want_objects[want_start:want_end],
             storage_client=self.storage_client,
             dataflux_download_optimization_params=want_optimization_params,
+            retry_config=dataflux_iterable_dataset.MODIFIED_RETRY,
         )
 
 
