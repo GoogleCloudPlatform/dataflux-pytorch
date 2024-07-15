@@ -14,7 +14,7 @@ pip install gcs-torch-dataflux gcsfs
 
 First ensure you are running within a virtual python enviroment, then set the enviroment variables.
 
-`CKPT_DIR_PATH` is the location of where to save the checkpoints. `STEPS` is the number of steps the model will take (the number of checkpoints created will be the same). The default value for `STEPS` is 5. The benchmark will run `save_checkpoint` repeatively and produce the average at the end.
+`CKPT_DIR_PATH` is the location of where to save the checkpoints. `STEPS` is the number of steps the model will take (the number of checkpoints created will be the same). The default value for `STEPS` is 5. The benchmark will run `save_checkpoint` repeatedly and produce the average at the end.
 
 ```shell
 export CKPT_DIR_PATH=`gs://path/to/directory/`
@@ -70,7 +70,7 @@ Average time to save one checkpoint: 58.68560411930084 seconds
 
 ## Results
 
-The table below contains benchmarking times writing checkpoints to GCS, the average save time is taken over 10 steps.
+The table below contains benchmarking times writing checkpoints to GCS, the average save time is taken over 10 called to save_checkpoint.
 
 Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to fsspec.
 
