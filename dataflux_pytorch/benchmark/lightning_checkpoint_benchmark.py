@@ -40,51 +40,45 @@ class LightningTransformer(LightningModule):
         dataset = WikiText2()
         return DataLoader(dataset)
 
+def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, layers: int = 100, steps: int = 5):
+    """Checkpoints a PyTorch Ligthning demo model to GCS using gcsfs or DatafluxLightningCheckpoint.
 
-"""Checkpoints a PyTorch Ligthning demo model to GCS using gcsfs or DatafluxLightningCheckpoint.
+    This function utilizes PyTorch Lightning to checkpoint the WikiText2 dataset. It
+    takes in information regarding the gcs location to save the checkpoints, the type of
+    checkpoint, and other configuration variables. Default this function runs on
+    gcsfs to write PyTorch Ligthtning checkpoints, TorchCheckpointIO. If dataflux_ckpt
+    is enabled the Trainer will be passed a DatafluxLightningCheckpoint, which is an
+    implementation of the CheckpointIO interface, as a plugin.
 
-This function utilizes PyTorch Lightning to checkpoint the WikiText2 dataset. It
-takes in information regarding the gcs location to save the checkpoints, the type of
-checkpoint, and other configuration variables. Default this function runs on
-gcsfs to write PyTorch Ligthtning checkpoints, TorchCheckpointIO. If dataflux_ckpt
-is enabled the Trainer will be passed a DatafluxLightningCheckpoint, which is an
-implementation of the CheckpointIO interface, as a plugin.
+    Typical usage example:
 
-Typical usage example:
+      Run DatafluxLightningCheckpoint over 10 steps:
 
-  Run DatafluxLightningCheckpoint over 10 steps:
+      project = 'test-project'
+      bucket = 'test-bucket'
+      ckpt_dir_path = 'gs://path/to/dir/'
+      save_only_latest = False
+      dataflux_ckpt = True
+      layers = 1000
+      steps = 10
 
-  project = 'test-project'
-  bucket = 'test-bucket'
-  ckpt_dir_path = 'gs://path/to/dir/'
-  save_only_latest = False
-  dataflux_ckpt = True
-  layers = 1000
-  steps = 10
+      main(project=project, bucket=bucket, save_only_latest=save_onlylatest,
+      dataflux_ckpt=dataflux_ckpt, layers=layers, steps=steps)
 
-  main(project=project, bucket=bucket, save_only_latest=save_onlylatest,
-  dataflux_ckpt=dataflux_ckpt, layers=layers, steps=steps)
+      Run gcsfs over 10 steps:
 
-  Run gcsfs over 10 steps:
+      ckpt_dir_path = 'gs://path/to/dir/'
+      save_only_latest = False
+      dataflux_ckpt = False
+      layers = 1000
+      steps = 10
 
-  ckpt_dir_path = 'gs://path/to/dir/'
-  save_only_latest = False
-  dataflux_ckpt = False
-  layers = 1000
-  steps = 10
+      main(project=project, bucket=bucket, save_only_latest=save_onlylatest,
+      dataflux_ckpt=dataflux_ckpt, layers=layers, steps=steps)
+    """
+    if steps < 1:
+        raise ValueError("Steps need to greater than 0.")
 
-  main(project=project, bucket=bucket, save_only_latest=save_onlylatest,
-  dataflux_ckpt=dataflux_ckpt, layers=layers, steps=steps)
-"""
-
-
-def main(project: str,
-         bucket: str,
-         ckpt_dir_path: str,
-         save_only_latest: bool,
-         dataflux_ckpt: bool,
-         layers: int = 100,
-         steps: int = 5):
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
     model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=layers)
@@ -107,20 +101,16 @@ def main(project: str,
         callbacks=[checkpoint_callback],
         min_epochs=4,
         max_epochs=5,
-        max_steps=steps,
+        max_steps=1,
         accelerator="cpu",
     )
-    start = time.time()
     trainer.fit(model, dataloader)
-    end = time.time()
-    print(f"Time to train over {steps} steps: " + str(end - start) +
-          " seconds")
 
     start = time.time()
-    trainer.save_checkpoint(ckpt_dir_path)
+    for i in range(steps):
+        trainer.save_checkpoint(os.path.join(ckpt_dir_path,f'ckpt_{i}.ckpt'))
     end = time.time()
-    print("Time to save one checkpoint: " + str(end - start) + " seconds")
-
+    print("Average time to save one checkpoint: " + str((end-start)/steps) + " seconds")
 
 if __name__ == "__main__":
 
