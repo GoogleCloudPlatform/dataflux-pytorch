@@ -1,20 +1,21 @@
 import os
 import time
-import torch
-
 from typing import Tuple
-from torch.utils.data import DataLoader
+
+import torch
+from lightning import Trainer
+from lightning.pytorch import LightningModule
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos import Transformer, WikiText2
+from lightning.pytorch.plugins.io import TorchCheckpointIO
 from torch import Tensor
 from torch.utils.data import DataLoader
-from lightning import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos import WikiText2, Transformer
-from lightning.pytorch import LightningModule
-from lightning.pytorch.plugins.io import TorchCheckpointIO
 
 from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 
+
 class LightningTransformer(LightningModule):
+
     def __init__(self, vocab_size: int = 33278, nlayers: int = 100) -> None:
         super().__init__()
         self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
@@ -22,7 +23,8 @@ class LightningTransformer(LightningModule):
     def forward(self, inputs: Tensor, target: Tensor) -> Tensor:
         return self.model(inputs, target)
 
-    def training_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+    def training_step(self, batch: Tuple[Tensor, Tensor],
+                      batch_idx: int) -> Tensor:
         inputs, target = batch
         output = self(inputs, target)
         loss = torch.nn.functional.nll_loss(output, target.view(-1))
@@ -37,7 +39,6 @@ class LightningTransformer(LightningModule):
     def train_dataloader(self) -> DataLoader:
         dataset = WikiText2()
         return DataLoader(dataset)
-
 
 def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, layers: int = 100, steps: int = 5):
     """Checkpoints a PyTorch Ligthning demo model to GCS using gcsfs or DatafluxLightningCheckpoint.
@@ -77,12 +78,14 @@ def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, 
     """
     if steps < 1:
         raise ValueError("Steps need to greater than 0.")
+
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
     model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=layers)
     ckpt = TorchCheckpointIO()
     if dataflux_ckpt:
-      ckpt = DatafluxLightningCheckpoint(project_name=project,bucket_name=bucket)
+        ckpt = DatafluxLightningCheckpoint(project_name=project,
+                                           bucket_name=bucket)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
@@ -113,8 +116,8 @@ if __name__ == "__main__":
 
     DEFAULT_LAYERS = 100
     DEFAULT_STEPS = 5
-    layers = int(os.getenv("LAYERS",DEFAULT_LAYERS))
-    steps = int(os.getenv("STEPS",DEFAULT_STEPS))
+    layers = int(os.getenv("LAYERS", DEFAULT_LAYERS))
+    steps = int(os.getenv("STEPS", DEFAULT_STEPS))
 
     main(
         os.getenv("PROJECT"),

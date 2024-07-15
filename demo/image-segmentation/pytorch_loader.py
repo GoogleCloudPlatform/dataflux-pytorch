@@ -14,18 +14,18 @@
  limitations under the License.
  """
 
+import io
 import random
+
+import dataflux_core
 import numpy as np
 import scipy.ndimage
-import io
-
+from google.api_core.client_info import ClientInfo
+from google.cloud import storage
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-import dataflux_core
 from dataflux_pytorch import dataflux_mapstyle_dataset
-from google.cloud import storage
-from google.api_core.client_info import ClientInfo
 
 
 def get_train_transforms():
@@ -33,11 +33,13 @@ def get_train_transforms():
     cast = Cast(types=(np.float32, np.uint8))
     rand_scale = RandomBrightnessAugmentation(factor=0.3, prob=0.1)
     rand_noise = GaussianNoise(mean=0.0, std=0.1, prob=0.1)
-    train_transforms = transforms.Compose([rand_flip, cast, rand_scale, rand_noise])
+    train_transforms = transforms.Compose(
+        [rand_flip, cast, rand_scale, rand_noise])
     return train_transforms
 
 
 class RandBalancedCrop:
+
     def __init__(self, patch_size, oversampling):
         self.patch_size = patch_size
         self.oversampling = oversampling
@@ -69,10 +71,10 @@ class RandBalancedCrop:
         return image, label, [low_x, high_x, low_y, high_y, low_z, high_z]
 
     def rand_foreg_cropd(self, image, label):
+
         def adjust(foreg_slice, patch_size, label, idx):
-            diff = patch_size[idx - 1] - (
-                foreg_slice[idx].stop - foreg_slice[idx].start
-            )
+            diff = patch_size[idx - 1] - (foreg_slice[idx].stop -
+                                          foreg_slice[idx].start)
             sign = -1 if diff < 0 else 1
             diff = abs(diff)
             ladj = self.randrange(diff)
@@ -88,10 +90,11 @@ class RandBalancedCrop:
 
         cl = np.random.choice(np.unique(label[label > 0]))
         foreg_slices = scipy.ndimage.find_objects(
-            scipy.ndimage.measurements.label(label == cl)[0]
-        )
+            scipy.ndimage.measurements.label(label == cl)[0])
         foreg_slices = [x for x in foreg_slices if x is not None]
-        slice_volumes = [np.prod([s.stop - s.start for s in sl]) for sl in foreg_slices]
+        slice_volumes = [
+            np.prod([s.stop - s.start for s in sl]) for sl in foreg_slices
+        ]
         slice_idx = np.argsort(slice_volumes)[-2:]
         foreg_slices = [foreg_slices[i] for i in slice_idx]
         if not foreg_slices:
@@ -106,6 +109,7 @@ class RandBalancedCrop:
 
 
 class RandFlip:
+
     def __init__(self):
         self.axis = [1, 2, 3]
         self.prob = 1 / len(self.axis)
@@ -123,6 +127,7 @@ class RandFlip:
 
 
 class Cast:
+
     def __init__(self, types):
         self.types = types
 
@@ -133,6 +138,7 @@ class Cast:
 
 
 class RandomBrightnessAugmentation:
+
     def __init__(self, factor, prob):
         self.prob = prob
         self.factor = factor
@@ -140,15 +146,16 @@ class RandomBrightnessAugmentation:
     def __call__(self, data):
         image = data["image"]
         if random.random() < self.prob:
-            factor = np.random.uniform(
-                low=1.0 - self.factor, high=1.0 + self.factor, size=1
-            )
+            factor = np.random.uniform(low=1.0 - self.factor,
+                                       high=1.0 + self.factor,
+                                       size=1)
             image = (image * (1 + factor)).astype(image.dtype)
             data.update({"image": image})
         return data
 
 
 class GaussianNoise:
+
     def __init__(self, mean, std, prob):
         self.mean = mean
         self.std = std
@@ -158,34 +165,38 @@ class GaussianNoise:
         image = data["image"]
         if random.random() < self.prob:
             scale = np.random.uniform(low=0.0, high=self.std)
-            noise = np.random.normal(
-                loc=self.mean, scale=scale, size=image.shape
-            ).astype(image.dtype)
+            noise = np.random.normal(loc=self.mean,
+                                     scale=scale,
+                                     size=image.shape).astype(image.dtype)
             data.update({"image": image + noise})
         return data
 
 
 class PytTrain(Dataset):
+
     def __init__(self, images, labels, **kwargs):
         self.images, self.labels = images, labels
         self.train_transforms = get_train_transforms()
         patch_size, oversampling = kwargs["patch_size"], kwargs["oversampling"]
         self.patch_size = patch_size
-        self.rand_crop = RandBalancedCrop(
-            patch_size=patch_size, oversampling=oversampling
-        )
+        self.rand_crop = RandBalancedCrop(patch_size=patch_size,
+                                          oversampling=oversampling)
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
-        data = {"image": np.load(self.images[idx]), "label": np.load(self.labels[idx])}
+        data = {
+            "image": np.load(self.images[idx]),
+            "label": np.load(self.labels[idx])
+        }
         data = self.rand_crop(data)
         data = self.train_transforms(data)
         return data["image"], data["label"]
 
 
 class DatafluxPytTrain(Dataset):
+
     def __init__(
         self,
         project_name,
@@ -197,11 +208,11 @@ class DatafluxPytTrain(Dataset):
         # Data transformation setup.
         self.train_transforms = get_train_transforms()
         patch_size, oversampling = kwargs["patch_size"], kwargs["oversampling"]
-        images_prefix, labels_prefix = kwargs["images_prefix"], kwargs["labels_prefix"]
+        images_prefix, labels_prefix = kwargs["images_prefix"], kwargs[
+            "labels_prefix"]
         self.patch_size = patch_size
-        self.rand_crop = RandBalancedCrop(
-            patch_size=patch_size, oversampling=oversampling
-        )
+        self.rand_crop = RandBalancedCrop(patch_size=patch_size,
+                                          oversampling=oversampling)
 
         # Dataflux-specific setup.
         self.project_name = project_name
@@ -210,8 +221,7 @@ class DatafluxPytTrain(Dataset):
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size
-            )
-        )
+            ))
         if not storage_client:
             self.storage_client = storage.Client(
                 project=project_name,
@@ -223,14 +233,16 @@ class DatafluxPytTrain(Dataset):
             max_parallelism=self.config.num_processes,
             project=self.project_name,
             bucket=self.bucket_name,
-            sort_results=self.config.sort_listing_results,  # This needs to be True to map images with labels.
+            sort_results=self.config.
+            sort_listing_results,  # This needs to be True to map images with labels.
             prefix=images_prefix,
         ).run()
         self.labels = dataflux_core.fast_list.ListingController(
             max_parallelism=self.config.num_processes,
             project=self.project_name,
             bucket=self.bucket_name,
-            sort_results=self.config.sort_listing_results,  # This needs to be True to map images with labels.
+            sort_results=self.config.
+            sort_listing_results,  # This needs to be True to map images with labels.
             prefix=labels_prefix,
         ).run()
 
@@ -244,9 +256,7 @@ class DatafluxPytTrain(Dataset):
                     storage_client=self.storage_client,
                     bucket_name=self.bucket_name,
                     object_name=self.images[idx][0],
-                )
-            ),
-        )
+                )), )
 
         label = np.load(
             io.BytesIO(
@@ -254,9 +264,7 @@ class DatafluxPytTrain(Dataset):
                     storage_client=self.storage_client,
                     bucket_name=self.bucket_name,
                     object_name=self.labels[idx][0],
-                )
-            ),
-        )
+                )), )
 
         data = {"image": image, "label": label}
         data = self.rand_crop(data)
@@ -269,7 +277,8 @@ class DatafluxPytTrain(Dataset):
             bucket_name=self.bucket_name,
             objects=[self.images[idx] for idx in indices],
             storage_client=self.storage_client,
-            dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+            dataflux_download_optimization_params=self.
+            dataflux_download_optimization_params,
         )
 
         labels_in_bytes = dataflux_core.download.dataflux_download(
@@ -277,7 +286,8 @@ class DatafluxPytTrain(Dataset):
             bucket_name=self.bucket_name,
             objects=[self.labels[idx] for idx in indices],
             storage_client=self.storage_client,
-            dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+            dataflux_download_optimization_params=self.
+            dataflux_download_optimization_params,
         )
 
         res = []
@@ -293,6 +303,7 @@ class DatafluxPytTrain(Dataset):
 
 
 class PytVal(Dataset):
+
     def __init__(self, images, labels):
         self.images, self.labels = images, labels
 
