@@ -14,16 +14,16 @@
  limitations under the License.
  """
 
-import os
 import glob
+import os
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+from pytorch_loader import DatafluxPytTrain
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 
 from dataflux_pytorch import dataflux_mapstyle_dataset
-from pytorch_loader import DatafluxPytTrain
 
 
 def list_files_with_pattern(path, files_pattern):
@@ -54,8 +54,7 @@ def get_data_split(path: str, num_shards: int, shard_id: int):
     imgs = load_data(os.path.join(path, "images"), "*_x.npy")
     lbls = load_data(os.path.join(path, "labels"), "*_y.npy")
     assert len(imgs) == len(
-        lbls
-    ), f"Found {len(imgs)} volumes but {len(lbls)} corresponding masks"
+        lbls), f"Found {len(imgs)} volumes but {len(lbls)} corresponding masks"
     images, labels = [], []
     for case_img, case_lbl in zip(imgs, lbls):
         images.append(case_img)
@@ -64,22 +63,23 @@ def get_data_split(path: str, num_shards: int, shard_id: int):
 
 
 class SyntheticDataset(Dataset):
+
     def __init__(
-        self,
-        channels_in=1,
-        channels_out=3,
-        shape=(128, 128, 128),
-        device="cpu",
-        layout="NCDHW",
-        scalar=False,
+            self,
+            channels_in=1,
+            channels_out=3,
+            shape=(128, 128, 128),
+            device="cpu",
+            layout="NCDHW",
+            scalar=False,
     ):
         shape = tuple(shape)
-        x_shape = (
-            (channels_in,) + shape if layout == "NCDHW" else shape + (channels_in,)
-        )
-        self.x = torch.rand(
-            (32, *x_shape), dtype=torch.float32, device=device, requires_grad=False
-        )
+        x_shape = ((channels_in, ) + shape if layout == "NCDHW" else shape +
+                   (channels_in, ))
+        self.x = torch.rand((32, *x_shape),
+                            dtype=torch.float32,
+                            device=device,
+                            requires_grad=False)
         if scalar:
             self.y = torch.randint(
                 low=0,
@@ -89,16 +89,16 @@ class SyntheticDataset(Dataset):
                 device=device,
                 requires_grad=False,
             )
-            self.y = torch.unsqueeze(self.y, dim=1 if layout == "NCDHW" else -1)
+            self.y = torch.unsqueeze(self.y,
+                                     dim=1 if layout == "NCDHW" else -1)
         else:
-            y_shape = (
-                (channels_out,) + shape
-                if layout == "NCDHW"
-                else shape + (channels_out,)
-            )
-            self.y = torch.rand(
-                (32, *y_shape), dtype=torch.float32, device=device, requires_grad=False
-            )
+            y_shape = ((channels_out, ) +
+                       shape if layout == "NCDHW" else shape +
+                       (channels_out, ))
+            self.y = torch.rand((32, *y_shape),
+                                dtype=torch.float32,
+                                device=device,
+                                requires_grad=False)
 
     def __len__(self):
         return 64
@@ -109,12 +109,12 @@ class SyntheticDataset(Dataset):
 
 def get_data_loaders(flags, num_shards, global_rank):
     if flags.loader == "synthetic":
-        train_dataset = SyntheticDataset(
-            scalar=True, shape=flags.input_shape, layout=flags.layout
-        )
-        val_dataset = SyntheticDataset(
-            scalar=True, shape=flags.val_input_shape, layout=flags.layout
-        )
+        train_dataset = SyntheticDataset(scalar=True,
+                                         shape=flags.input_shape,
+                                         layout=flags.layout)
+        val_dataset = SyntheticDataset(scalar=True,
+                                       shape=flags.val_input_shape,
+                                       layout=flags.layout)
 
     elif flags.loader == "pytorch":
         train_data_kwargs = {
@@ -137,11 +137,9 @@ def get_data_loaders(flags, num_shards, global_rank):
         )
 
     # The DistributedSampler seed should be the same for all workers.
-    train_sampler = (
-        DistributedSampler(train_dataset, seed=flags.seed, drop_last=True)
-        if num_shards > 1
-        else None
-    )
+    train_sampler = (DistributedSampler(
+        train_dataset, seed=flags.seed, drop_last=True)
+                     if num_shards > 1 else None)
     val_sampler = None
 
     train_dataloader = DataLoader(

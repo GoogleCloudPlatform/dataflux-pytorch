@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gcs-torch-dataflux"
-version = "1.0.0"
+version = "1.1.0"
 description = "A GCS data loading integration for PyTorch"
 requires-python = ">=3.8,<3.13"
 readme = "README.md"
@@ -24,7 +24,13 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
-dependencies = ["torch >= 2.0.1", "numpy", "google-cloud-storage", "absl-py"]
+dependencies = [
+    "torch >= 2.0.1",
+    "numpy",
+    "google-cloud-storage",
+    "absl-py",
+    "lightning >= 2.0",
+]
 
 [project.optional-dependencies]
 test = ["pytest"]

@@ -14,14 +14,13 @@
  limitations under the License.
  """
 
-import os
 import logging
-
-from torch.utils import data
-from google.cloud import storage
-from google.api_core.client_info import ClientInfo
+import os
 
 import dataflux_core
+from google.api_core.client_info import ClientInfo
+from google.cloud import storage
+from torch.utils import data
 
 
 class Config:
@@ -43,6 +42,9 @@ class Config:
         max_listing_retries: An integer indicating the maximum number of retries
         to attempt in case of any Python multiprocessing errors during
         GCS objects listing. Default to 3.
+
+        disable_compose: A boolean flag indicating if compose download should be active.
+        Compose should be disabled for highly scaled implementations.
     """
 
     def __init__(
@@ -52,15 +54,21 @@ class Config:
         num_processes: int = os.cpu_count(),
         prefix: str = None,
         max_listing_retries: int = 3,
+        threads_per_process: int = 1,
+        disable_compose: bool = False,
     ):
         self.sort_listing_results = sort_listing_results
         self.max_composite_object_size = max_composite_object_size
         self.num_processes = num_processes
         self.prefix = prefix
         self.max_listing_retries = max_listing_retries
+        self.threads_per_process = threads_per_process
+        if disable_compose:
+            self.max_composite_object_size = 0
 
 
 class DataFluxMapStyleDataset(data.Dataset):
+
     def __init__(
         self,
         project_name,
@@ -93,10 +101,8 @@ class DataFluxMapStyleDataset(data.Dataset):
         super().__init__()
         self.storage_client = storage_client
         if not storage_client:
-            self.storage_client = storage.Client(
-                project=project_name,
-                client_info=ClientInfo(user_agent="dataflux/0.0"),
-            )
+            self.storage_client = storage.Client(project=project_name, )
+        dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
@@ -104,8 +110,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size
-            )
-        )
+            ))
 
         self.objects = self._list_GCS_blobs_with_retry()
 
@@ -118,18 +123,19 @@ class DataFluxMapStyleDataset(data.Dataset):
                 storage_client=self.storage_client,
                 bucket_name=self.bucket_name,
                 object_name=self.objects[idx][0],
-            )
-        )
+            ))
 
     def __getitems__(self, indices):
         return [
-            self.data_format_fn(bytes_content)
-            for bytes_content in dataflux_core.download.dataflux_download(
+            self.data_format_fn(bytes_content) for bytes_content in
+            dataflux_core.download.dataflux_download_threaded(
                 project_name=self.project_name,
                 bucket_name=self.bucket_name,
                 objects=[self.objects[idx] for idx in indices],
                 storage_client=self.storage_client,
-                dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+                dataflux_download_optimization_params=self.
+                dataflux_download_optimization_params,
+                threads=self.config.threads_per_process,
             )
         ]
 
@@ -139,13 +145,15 @@ class DataFluxMapStyleDataset(data.Dataset):
         listed_objects = []
         for _ in range(self.config.max_listing_retries):
             try:
-                listed_objects = dataflux_core.fast_list.ListingController(
+                lister = dataflux_core.fast_list.ListingController(
                     max_parallelism=self.config.num_processes,
                     project=self.project_name,
                     bucket=self.bucket_name,
                     sort_results=self.config.sort_listing_results,
                     prefix=self.config.prefix,
-                ).run()
+                )
+                lister.client = self.storage_client
+                listed_objects = lister.run()
             except Exception as e:
                 logging.error(
                     f"exception {str(e)} caught running Dataflux fast listing."

@@ -15,11 +15,12 @@
  """
 
 import argparse
-import time
-import numpy
 import io
+import time
 
+import numpy
 from torch.utils import data
+
 from dataflux_pytorch import dataflux_mapstyle_dataset
 
 
@@ -32,13 +33,14 @@ def parse_args():
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--no-dataflux", type=bool, default=False)
     parser.add_argument("--batch-size", type=int, default=100)
-    parser.add_argument("--sleep_per_step", type=float, default=1.3604)
+    parser.add_argument("--sleep-per-step", type=float, default=1.3604)
     parser.add_argument("--prefetch-factor", type=int, default=2)
+    parser.add_argument("--threads-per-worker", type=int, default=2)
     return parser.parse_args()
 
 
 """
-Sample training loop that utilizes the Dataflux Map-style Dataset, iterates over the given bucket and 
+Sample training loop that utilizes the Dataflux Map-style Dataset, iterates over the given bucket and
 counts the number of objects/bytes. For example:
 
 $ python3 -m demo.simple_map_style_dataset --project=<YOUR_PROJECT> --bucket=<YOUR_BUCKET> --prefix=<YOUR_PREFIX> --epochs=2 --num-workers=8
@@ -53,7 +55,8 @@ algorithms.
 def main():
     args = parse_args()
     list_start_time = time.time()
-    config = dataflux_mapstyle_dataset.Config()
+    config = dataflux_mapstyle_dataset.Config(
+        threads_per_process=args.threads_per_worker)
     if args.no_dataflux:
         print(
             "Overriding parallelism and composite object configurations to simulate non-dataflux loop"

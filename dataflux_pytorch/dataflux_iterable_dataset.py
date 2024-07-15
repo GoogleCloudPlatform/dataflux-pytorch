@@ -14,15 +14,14 @@
  limitations under the License.
  """
 
-import os
-import math
 import logging
-
-from torch.utils import data
-from google.cloud import storage
-from google.api_core.client_info import ClientInfo
+import math
+import os
 
 import dataflux_core
+from google.api_core.client_info import ClientInfo
+from google.cloud import storage
+from torch.utils import data
 
 
 class Config:
@@ -44,6 +43,9 @@ class Config:
         max_listing_retries: An integer indicating the maximum number of retries
         to attempt in case of any Python multiprocessing errors during
         GCS objects listing. Default to 3.
+
+        disable_compose: A boolean flag indicating if compose download should be active.
+        Compose should be disabled for highly scaled implementations.
     """
 
     def __init__(
@@ -53,15 +55,19 @@ class Config:
         num_processes: int = os.cpu_count(),
         prefix: str = None,
         max_listing_retries: int = 3,
+        disable_compose: bool = False,
     ):
         self.sort_listing_results = sort_listing_results
         self.max_composite_object_size = max_composite_object_size
         self.num_processes = num_processes
         self.prefix = prefix
         self.max_listing_retries = max_listing_retries
+        if disable_compose:
+            self.max_composite_object_size = 0
 
 
 class DataFluxIterableDataset(data.IterableDataset):
+
     def __init__(
         self,
         project_name,
@@ -91,10 +97,8 @@ class DataFluxIterableDataset(data.IterableDataset):
         super().__init__()
         self.storage_client = storage_client
         if not storage_client:
-            self.storage_client = storage.Client(
-                project=project_name,
-                client_info=ClientInfo(user_agent="dataflux/0.0"),
-            )
+            self.storage_client = storage.Client(project=project_name, )
+        dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
@@ -102,8 +106,7 @@ class DataFluxIterableDataset(data.IterableDataset):
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size
-            )
-        )
+            ))
 
         self.objects = self._list_GCS_blobs_with_retry()
 
@@ -111,35 +114,32 @@ class DataFluxIterableDataset(data.IterableDataset):
         worker_info = data.get_worker_info()
         if worker_info is None:
             # Single-process data loading.
-            yield from (
-                self.data_format_fn(bytes_content)
-                for bytes_content in dataflux_core.download.dataflux_download_lazy(
-                    project_name=self.project_name,
-                    bucket_name=self.bucket_name,
-                    objects=self.objects,
-                    storage_client=self.storage_client,
-                    dataflux_download_optimization_params=self.dataflux_download_optimization_params,
-                )
-            )
+            yield from (self.data_format_fn(bytes_content) for bytes_content in
+                        dataflux_core.download.dataflux_download_lazy(
+                            project_name=self.project_name,
+                            bucket_name=self.bucket_name,
+                            objects=self.objects,
+                            storage_client=self.storage_client,
+                            dataflux_download_optimization_params=self.
+                            dataflux_download_optimization_params,
+                        ))
         else:
             # Multi-process data loading. Split the workload among workers.
             # Ref: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset.
             per_worker = int(
-                math.ceil(len(self.objects) / float(worker_info.num_workers))
-            )
+                math.ceil(len(self.objects) / float(worker_info.num_workers)))
             worker_id = worker_info.id
             start = worker_id * per_worker
             end = min(start + per_worker, len(self.objects))
-            yield from (
-                self.data_format_fn(bytes_content)
-                for bytes_content in dataflux_core.download.dataflux_download_lazy(
-                    project_name=self.project_name,
-                    bucket_name=self.bucket_name,
-                    objects=self.objects[start:end],
-                    storage_client=self.storage_client,
-                    dataflux_download_optimization_params=self.dataflux_download_optimization_params,
-                )
-            )
+            yield from (self.data_format_fn(bytes_content) for bytes_content in
+                        dataflux_core.download.dataflux_download_lazy(
+                            project_name=self.project_name,
+                            bucket_name=self.bucket_name,
+                            objects=self.objects[start:end],
+                            storage_client=self.storage_client,
+                            dataflux_download_optimization_params=self.
+                            dataflux_download_optimization_params,
+                        ))
 
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
@@ -147,13 +147,15 @@ class DataFluxIterableDataset(data.IterableDataset):
         listed_objects = []
         for _ in range(self.config.max_listing_retries):
             try:
-                listed_objects = dataflux_core.fast_list.ListingController(
+                lister = dataflux_core.fast_list.ListingController(
                     max_parallelism=self.config.num_processes,
                     project=self.project_name,
                     bucket=self.bucket_name,
                     sort_results=self.config.sort_listing_results,
                     prefix=self.config.prefix,
-                ).run()
+                )
+                lister.client = self.storage_client
+                listed_objects = lister.run()
             except Exception as e:
                 logging.error(
                     f"exception {str(e)} caught running Dataflux fast listing."

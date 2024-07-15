@@ -14,11 +14,11 @@
  limitations under the License.
  """
 
+from typing import Optional
+
+from dataflux_core import user_agent
 from google.cloud import storage
 from google.cloud.storage.fileio import BlobReader, BlobWriter
-from google.api_core.client_info import ClientInfo
-
-from typing import Optional
 
 
 class DatafluxCheckpoint:
@@ -48,10 +48,8 @@ class DatafluxCheckpoint:
         self.bucket_name = bucket_name
         self.storage_client = storage_client
         if not storage_client:
-            self.storage_client = storage.Client(
-                project=self.project_name,
-                client_info=ClientInfo(user_agent="dataflux/0.0"),
-            )
+            self.storage_client = storage.Client(project=self.project_name, )
+        user_agent.add_dataflux_user_agent(self.storage_client)
         self.bucket = self.storage_client.bucket(self.bucket_name)
 
     def reader(self, object_name: str) -> BlobReader:
