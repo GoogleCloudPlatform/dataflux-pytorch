@@ -356,6 +356,26 @@ Many machine learning efforts opt for a highly distributed training model levera
 1. Check that other workloads executing within your project are not drawing excess bandwidth. Bandwidth usage can be viewed by following steps [here](https://cloud.google.com/storage/docs/bandwidth-usage#bandwidth-monitoring).
 2. Follow [these instructions](https://cloud.google.com/storage/docs/bandwidth-usage#increase) to apply for a quota increae of up to 1 Tbps.
 3. If more than 1 Tpbs is required, contact your Technical Account Manager or Google representative to file a request on your behalf. This request should specify that you wish to increase the GCS bandwidth caps on your project.
+4. Adjust the `listing_retry_config` and `download_retry_config` options to tune your retry backoff and maximize performance.
+
+    ```python
+    from google.cloud.storage.retry import DEFAULT_RETRY
+
+    dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+        project_name=PROJECT_NAME,
+        bucket_name=BUCKET_NAME,
+        config=dataflux_mapstyle_dataset.Config(
+            prefix=PREFIX,
+            max_composite_object_size=0,
+            list_retry_config=DEFAULT_RETRY.with_deadline(300.0).with_delay(
+                initial=1.0, multiplier=1.2, maximum=45.0
+            ),
+            download_retry_config=DEFAULT_RETRY.with_deadline(600.0).with_delay(
+                initial=1.0, multiplier=1.5, maximum=90.0
+            ),
+        ),
+    )
+    ```
 
 #### QPS Limits
 QPS limits can trigger 429 errors with a body message indicating `Too many Requests`, but more commonly manifest in slower than expected execution times. QPS bottlenecks are more common when operating on high volumes of small files. Note that bucket QPS limits will [naturally scale over time](https://cloud.google.com/storage/docs/request-rate#best-practices), so allowing a grace period for warmup can often lead to faster performance. To get more detail on the performance of a target bucket, look at the `Observability` tab when viewing your bucket from the Cloud Console.
