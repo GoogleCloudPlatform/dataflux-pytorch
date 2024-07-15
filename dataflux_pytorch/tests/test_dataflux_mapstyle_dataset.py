@@ -214,6 +214,7 @@ class ListingTestCase(unittest.TestCase):
             storage_client=self.storage_client,
             bucket_name=self.bucket_name,
             object_name=self.want_objects[want_idx][0],
+            retry_config=dataflux_mapstyle_dataset.MODIFIED_RETRY,
         )
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
@@ -265,6 +266,7 @@ class ListingTestCase(unittest.TestCase):
             storage_client=self.storage_client,
             dataflux_download_optimization_params=want_optimization_params,
             threads=1,
+            retry_config=dataflux_mapstyle_dataset.MODIFIED_RETRY,
         )
 
     def test_init_sets_user_agent(self):
