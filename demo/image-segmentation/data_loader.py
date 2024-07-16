@@ -148,7 +148,7 @@ def get_data_loaders(flags, num_shards, global_rank):
 
     train_dataloader = DataLoader(
         train_dataset,
-        collate_fn=collate_fn
+        collate_fn=collate_fn,
         batch_size=flags.batch_size,
         shuffle=not flags.benchmark and train_sampler is None,
         sampler=train_sampler,
