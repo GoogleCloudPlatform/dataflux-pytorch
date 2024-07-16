@@ -30,7 +30,6 @@ class Unet3DDataModule(pl.LighitningDataModule):
 
     def __init__(self, args):
         super().__init__()
-        self.data_dir = os.path.join(args.gcs_bucket, args.images_prefix)
         self.args = args
     
     def prepare_data(self):
