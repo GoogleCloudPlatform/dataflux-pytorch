@@ -181,10 +181,18 @@ class PytTrain(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        data = {"image": np.load(
-            self.images[idx]), "label": np.load(self.labels[idx])}
-        data = self.rand_crop(data)
-        data = self.train_transforms(data)
+        try:
+            image = np.load(self.images[idx])
+        except:
+            image = None
+        try:
+            label = np.load(self.labels[idx])
+        except:
+            label = None
+        data = {"image": image, "label": label}
+        if data["image"] is not None and data["label"] != None:
+            data = self.rand_crop(data)
+            data = self.train_transforms(data)
         return data["image"], data["label"]
 
 
@@ -272,8 +280,9 @@ class DatafluxPytTrain(Dataset):
             label = None
 
         data = {"image": image, "label": label}
-        data = self.rand_crop(data)
-        data = self.train_transforms(data)
+        if data["image"] is not None and data["label"] is not None:
+            data = self.rand_crop(data)
+            data = self.train_transforms(data)
         return data["image"], data["label"]
 
     def __getitems__(self, indices):
@@ -311,8 +320,9 @@ class DatafluxPytTrain(Dataset):
                 "image": img,
                 "label": lab,
             }
-            data = self.rand_crop(data)
-            data = self.train_transforms(data)
+            if data["image"] is not None and data["label"] is not None:
+                data = self.rand_crop(data)
+                data = self.train_transforms(data)
             res.append((data["image"], data["label"]))
         return res
 
@@ -325,4 +335,12 @@ class PytVal(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        return np.load(self.images[idx]), np.load(self.labels[idx])
+        try:
+            image = np.load(self.images[idx])
+        except:
+            image = None
+        try:
+            label = np.load(self.labels[idx])
+        except:
+            label = None
+        return image, label

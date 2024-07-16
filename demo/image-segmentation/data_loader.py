@@ -20,6 +20,7 @@ import glob
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.dataloader import default_collate
 from torch.utils.data.distributed import DistributedSampler
 
 from dataflux_pytorch import dataflux_mapstyle_dataset
@@ -89,7 +90,8 @@ class SyntheticDataset(Dataset):
                 device=device,
                 requires_grad=False,
             )
-            self.y = torch.unsqueeze(self.y, dim=1 if layout == "NCDHW" else -1)
+            self.y = torch.unsqueeze(
+                self.y, dim=1 if layout == "NCDHW" else -1)
         else:
             y_shape = (
                 (channels_out,) + shape
@@ -146,6 +148,7 @@ def get_data_loaders(flags, num_shards, global_rank):
 
     train_dataloader = DataLoader(
         train_dataset,
+        collate_fn=collate_fn
         batch_size=flags.batch_size,
         shuffle=not flags.benchmark and train_sampler is None,
         sampler=train_sampler,
@@ -155,3 +158,9 @@ def get_data_loaders(flags, num_shards, global_rank):
     )
 
     return train_dataloader
+
+
+def collate_fn(batch):
+    batch = list(
+        filter(lambda x: x["image"] is not None and x["label"] is not None, batch))
+    return default_collate(batch)
