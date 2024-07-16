@@ -6,8 +6,9 @@ from dataflux_pytorch import dataflux_mapstyle_dataset
 
 
 class Unet3DDataModule(pl.LighitningDataModule):
-    def __init__(self, gcs_bucket, prefix):
-        self.data_dir = os.path.join(gcs_bucket, prefix)
+    def __init__(self, gcs_bucket, images_prefix, labels_prefix):
+        super().__init__()
+        self.data_dir = os.path.join(gcs_bucket, images_prefix)
     
     def prepare_data(self):
         pass
