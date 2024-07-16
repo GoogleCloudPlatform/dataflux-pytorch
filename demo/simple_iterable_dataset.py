@@ -14,12 +14,13 @@
  limitations under the License.
  """
 
-import numpy
-import io
 import argparse
+import io
 import time
 
+import numpy
 from torch.utils import data
+
 from dataflux_pytorch import dataflux_iterable_dataset
 
 
@@ -38,7 +39,7 @@ def parse_args():
 
 
 """
-Sample training loop that utilizes the Dataflux Iterable Dataset, iterates over the given bucket and 
+Sample training loop that utilizes the Dataflux Iterable Dataset, iterates over the given bucket and
 counts the number of objects/bytes. For example:
 
 $ python3 -m demo.simple_iterable_dataset --project=<YOUR_PROJECT> --bucket=<YOUR_BUCKET> --prefix=<YOUR_PREFIX> --epochs=2 --num-workers=8

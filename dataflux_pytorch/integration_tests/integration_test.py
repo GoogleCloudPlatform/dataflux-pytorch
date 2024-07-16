@@ -14,16 +14,18 @@
  limitations under the License.
  """
 
-import unittest
-import time
-import os
-import numpy
-import io
 import argparse
-
+import io
+import os
+import time
+import unittest
 from math import ceil
+
+import numpy
 from torch.utils import data
-from dataflux_pytorch import dataflux_iterable_dataset, dataflux_mapstyle_dataset
+
+from dataflux_pytorch import (dataflux_iterable_dataset,
+                              dataflux_mapstyle_dataset)
 
 
 # Define the data_format_fn to transform the data samples.
@@ -33,6 +35,7 @@ def read_image_modified(content_in_bytes):
 
 
 class IntegrationTest(unittest.TestCase):
+
     def get_config(self):
         config = {}
         # Gather env vars into dictionary.
@@ -46,6 +49,7 @@ class IntegrationTest(unittest.TestCase):
         config["list_timeout"] = os.getenv("LIST_TIMEOUT")
         config["download_timeout"] = os.getenv("DOWNLOAD_TIMEOUT")
         config["parallelization"] = os.getenv("PARALLELIZATION")
+        config["threads_per_process"] = os.getenv("THREADS_PER_PROCESS")
 
         # Type convert env vars.
         if config["num_workers"]:
@@ -54,18 +58,17 @@ class IntegrationTest(unittest.TestCase):
             config["expected_file_count"] = int(config["expected_file_count"])
         if config["expected_total_size"]:
             config["expected_total_size"] = int(config["expected_total_size"])
-        config["max_compose_bytes"] = (
-            int(config["max_compose_bytes"])
-            if config["max_compose_bytes"]
-            else 100000000
-        )
+        config["max_compose_bytes"] = (int(config["max_compose_bytes"])
+                                       if config["max_compose_bytes"] else
+                                       100000000)
         if config["list_timeout"]:
             config["list_timeout"] = float(config["list_timeout"])
         if config["download_timeout"]:
             config["download_timeout"] = float(config["download_timeout"])
-        config["parallelization"] = (
-            int(config["parallelization"]) if config["parallelization"] else 1
-        )
+        config["parallelization"] = (int(config["parallelization"])
+                                     if config["parallelization"] else 1)
+        config["threads_per_process"] = (int(config["threads_per_process"]) if
+                                         config["threads_per_process"] else 1)
 
         return config
 
@@ -81,10 +84,8 @@ class IntegrationTest(unittest.TestCase):
                     total_bytes += len(object_bytes)
         training_end_time = time.time()
         training_time = training_end_time - training_start_time
-        if (
-            test_config["download_timeout"]
-            and training_time > test_config["download_timeout"]
-        ):
+        if (test_config["download_timeout"]
+                and training_time > test_config["download_timeout"]):
             raise AssertionError(
                 f"Expected download operation to complete in under {test_config['download_timeout']} seconds, but took {training_time} seconds."
             )
@@ -104,14 +105,13 @@ class IntegrationTest(unittest.TestCase):
         )
         list_end_time = time.time()
         listing_time = list_end_time - list_start_time
-        if (
-            test_config["expected_file_count"]
-            and len(dataset.objects) != test_config["expected_file_count"]
-        ):
+        if (test_config["expected_file_count"] and len(dataset.objects)
+                != test_config["expected_file_count"]):
             raise AssertionError(
                 f"Expected {test_config['expected_file_count']} files, but got {len(dataset.objects)}"
             )
-        if test_config["list_timeout"] and listing_time > test_config["list_timeout"]:
+        if test_config["list_timeout"] and listing_time > test_config[
+                "list_timeout"]:
             raise AssertionError(
                 f"Expected list operation to complete in under {test_config['list_timeout']} seconds, but took {listing_time} seconds."
             )
@@ -127,7 +127,7 @@ class IntegrationTest(unittest.TestCase):
 
     def test_list_and_load_map(self):
         test_config = self.get_config()
-        config = dataflux_iterable_dataset.Config()
+        config = dataflux_mapstyle_dataset.Config()
         if test_config["prefix"]:
             config.prefix = test_config["prefix"]
 
@@ -140,14 +140,13 @@ class IntegrationTest(unittest.TestCase):
         )
         list_end_time = time.time()
         listing_time = list_end_time - list_start_time
-        if (
-            test_config["expected_file_count"]
-            and len(dataset) != test_config["expected_file_count"]
-        ):
+        if (test_config["expected_file_count"]
+                and len(dataset) != test_config["expected_file_count"]):
             raise AssertionError(
                 f"Expected {test_config['expected_file_count']} files, but got {len(dataset)}"
             )
-        if test_config["list_timeout"] and listing_time > test_config["list_timeout"]:
+        if test_config["list_timeout"] and listing_time > test_config[
+                "list_timeout"]:
             raise AssertionError(
                 f"Expected list operation to complete in under {test_config['list_timeout']} seconds, but took {listing_time} seconds."
             )

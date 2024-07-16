@@ -26,7 +26,7 @@ gcloud auth application-default login
 ```
 
 ### Examples
-Please checkout the `demo` directory for a complete set of examples, which includes a [simple starter Jupyter Notebook (hosted by Google Colab)](demo/simple-walkthrough/Getting%20Started%20with%20Dataflux%20Dataset%20for%20PyTorch%20with%20Google%20Cloud%20Storage.ipynb) and an [end-to-end image segmentation training workload walkthrough](demo/image-segmentation/README.md). Those examples will help you understand how the Accelerated Dataloader for PyTorch works and how you can integrate it into your own workload. 
+Please checkout the `demo` directory for a complete set of examples, which includes a [simple starter Jupyter Notebook (hosted by Google Colab)](demo/simple-walkthrough/Getting%20Started%20with%20Dataflux%20Dataset%20for%20PyTorch%20with%20Google%20Cloud%20Storage.ipynb) and an [end-to-end image segmentation training workload walkthrough](demo/image-segmentation/README.md). Those examples will help you understand how the Accelerated Dataloader for PyTorch works and how you can integrate it into your own workload.
 
 #### Sample Examples
 Before getting started, please make sure you have installed the library and configured authentication following the instructions above.
@@ -136,6 +136,38 @@ with ckpt.reader(CKPT_PATH) as reader:
   read_state_dict = torch.load(reader)
 
 model.load_state_dict(read_state_dict)
+```
+
+##### Lightning Checkpointing
+
+The Accelerated Dataloader for PyTorch also provides an integration for PyTorch Lightning, featuring a DatafluxLightningCheckpoint, an implementation of PyTorch Lightning's CheckpointIO.
+
+End to end example and the notebook for the PyTorch Lightning integration can be found in the [demo/lightning](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning) directory.
+
+```python
+from lightning import Trainer
+from lightning.pytorch.demos import WikiText2, LightningTransformer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from torch.utils.data import DataLoader
+
+from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+
+CKPT = "gcs://BUCKET_NAME/checkpoints/ckpt.ckpt"
+dataflux_ckpt = DatafluxLightningCheckpoint(project_name=PROJECT_NAME, bucket_name=BUCKET_NAME)
+
+dataset = WikiText2()
+dataloader = DataLoader(dataset, num_workers=1)
+model = LightningTransformer(vocab_size=dataset.vocab_size)
+trainer = Trainer(
+    plugins=[dataflux_ckpt],
+    min_epochs=4,
+    max_epochs=5,
+    max_steps=10,
+    accelerator="cpu",
+)
+
+trainer.fit(model, dataloader)
+trainer.save_checkpoint(CKPT)
 ```
 
 ## Performance
@@ -293,8 +325,7 @@ To optimize the download performance of small files, the Accelerated Dataloader 
 gcloud storage rm --recursive gs://<my-bucket>/dataflux-composed-objects/
 ```
 
-You can also turn off this behavior by setting the “max_composite_object_size” parameter to 0 when constructing the dataset. Example:
-
+You can turn of this behavior by setting the "disable_compose" parameter to true, or by setting the “max_composite_object_size” parameter to 0 when constructing the dataset. Example:
 ```python
 dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   project_name=PROJECT_NAME,
@@ -302,17 +333,54 @@ dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
   config=dataflux_mapstyle_dataset.Config(
     prefix=PREFIX,
     max_composite_object_size=0,
+    disable_compose=True,
   ),
 )
 ```
 
-Note that turning off this behavior will cause the training loop to take significantly longer to complete when working with small files.
+Note that turning off this behavior may cause the training loop to take significantly longer to complete when working with small files. However, composed download will hit QPS and throughput limits at a lower scale than downloading files directly, so you should disable this behavior when running at high multi-node scales where you are able to hit project QPS or throughput limits without composed download.
+
 
 ### Soft Delete
 To avoid storage charges for retaining the temporary composite objects, consider disabling the [Soft Delete](https://cloud.google.com/storage/docs/soft-delete) retention duration on the bucket.
 
 ### Google Cloud Storage Class
 Due to the quick creation and deletion of composite objects, we recommend that only the [Standard storage class](https://cloud.google.com/storage/docs/storage-classes) is applied to your bucket to minimize cost and maximize performance.
+
+### Throughput and QPS Limits
+Many machine learning efforts opt for a highly distributed training model leveraging tools such as Pytorch Lightning and Ray. These models are compatible with Dataflux, but can often trigger the rate limits of Google Cloud Storage. This typically manifest in a 429 error, or slower than expected speeds while running distributed operations. Details on specific quotas and limits can be found [here](https://cloud.google.com/storage/quotas).
+
+#### Egress Throughput Limits
+429 errors acompanied with messages indicating `This workload is drawing too much egress bandwidth from Google Cloud Storage` or `triggered the Cloud Storage Egress Bandwidth Cap` indicate that the data throughput rate of your workload is exceeding the maximum capacity of your Google Cloud Project. To address these issues, you can take the following steps:
+
+1. Check that other workloads executing within your project are not drawing excess bandwidth. Bandwidth usage can be viewed by following steps [here](https://cloud.google.com/storage/docs/bandwidth-usage#bandwidth-monitoring).
+2. Follow [these instructions](https://cloud.google.com/storage/docs/bandwidth-usage#increase) to apply for a quota increae of up to 1 Tbps.
+3. If more than 1 Tpbs is required, contact your Technical Account Manager or Google representative to file a request on your behalf. This request should specify that you wish to increase the GCS bandwidth caps on your project.
+4. Adjust the `listing_retry_config` and `download_retry_config` options to tune your retry backoff and maximize performance.
+
+    ```python
+    from google.cloud.storage.retry import DEFAULT_RETRY
+
+    dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+        project_name=PROJECT_NAME,
+        bucket_name=BUCKET_NAME,
+        config=dataflux_mapstyle_dataset.Config(
+            prefix=PREFIX,
+            max_composite_object_size=0,
+            list_retry_config=DEFAULT_RETRY.with_deadline(300.0).with_delay(
+                initial=1.0, multiplier=1.2, maximum=45.0
+            ),
+            download_retry_config=DEFAULT_RETRY.with_deadline(600.0).with_delay(
+                initial=1.0, multiplier=1.5, maximum=90.0
+            ),
+        ),
+    )
+    ```
+
+#### QPS Limits
+QPS limits can trigger 429 errors with a body message indicating `Too many Requests`, but more commonly manifest in slower than expected execution times. QPS bottlenecks are more common when operating on high volumes of small files. Note that bucket QPS limits will [naturally scale over time](https://cloud.google.com/storage/docs/request-rate#best-practices), so allowing a grace period for warmup can often lead to faster performance. To get more detail on the performance of a target bucket, look at the `Observability` tab when viewing your bucket from the Cloud Console.
+
+If your workload is failing with messages similar to `TooManyRequests: 429 GET https://storage.googleapis.com/download/storage/v1/b/<MY-BUCKET>/o/dataflux-composed-objects%2Fa80727ae-7bc9-4ba3-8f9b-13ff001d6418` that contain the "dataflux-composed-objects" keyword, [disabling](#composite-objects) composed objects is the best first troubleshooting step. This can reduce QPS load brought on by the compose API when used at scale.
 
 ## Contributing
 We welcome your feedback, issues, and bug fixes. We have a tight roadmap at this time so if you have a major feature or change in functionality you'd like to contribute, please open a GitHub Issue for discussion prior to sending a pull request. Please see [CONTRIBUTING](docs/contributing.md) for more information on how to report bugs or submit pull requests.

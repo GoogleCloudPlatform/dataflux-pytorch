@@ -10,8 +10,7 @@ job_id = client.submit_job(
         "pip": ["torch", "torchvision", "tqdm", "scipy", "numpy", "nibabel"],
     },
 )
-print(
-    f"""
+print(f"""
     -------------------------------------------------------
     Job '{job_id}' submitted successfully
     -------------------------------------------------------
@@ -23,5 +22,4 @@ print(
         ray job status {job_id}
       Request the job to be stopped:
         ray job stop {job_id}
-    """
-)
+    """)

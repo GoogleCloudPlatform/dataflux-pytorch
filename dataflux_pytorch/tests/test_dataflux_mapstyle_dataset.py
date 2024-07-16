@@ -22,17 +22,23 @@ from dataflux_pytorch import dataflux_mapstyle_dataset
 
 
 class ListingTestCase(unittest.TestCase):
+
     def setUp(self):
         super().setUp()
         self.project_name = "foo"
         self.bucket_name = "bar"
         self.config = dataflux_mapstyle_dataset.Config(
-            num_processes=3, max_listing_retries=3, prefix="prefix/"
-        )
+            num_processes=3,
+            max_listing_retries=3,
+            prefix="",
+            sort_listing_results=True)
         self.data_format_fn = lambda data: data
         client = fake_gcs.Client()
 
         self.want_objects = [("objectA", 1), ("objectB", 2)]
+        for (name, length) in self.want_objects:
+            client.bucket(self.bucket_name)._add_file(
+                self.config.prefix + name, length * '0')
         self.storage_client = client
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
@@ -42,8 +48,7 @@ class ListingTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -68,8 +73,7 @@ class ListingTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -101,8 +105,7 @@ class ListingTestCase(unittest.TestCase):
             Exception(),
         ]
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -121,7 +124,8 @@ class ListingTestCase(unittest.TestCase):
         )
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
-    def test_init_raises_exception_when_retries_exhaust(self, mock_dataflux_core):
+    def test_init_raises_exception_when_retries_exhaust(
+            self, mock_dataflux_core):
         """Tests that the initialization raises exception upon exhaustive retries."""
         # Arrange.
         mock_listing_controller = mock.Mock()
@@ -132,8 +136,7 @@ class ListingTestCase(unittest.TestCase):
             want_exception for _ in range(self.config.max_listing_retries)
         ]
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act & Assert.
         with self.assertRaises(RuntimeError) as re:
@@ -162,8 +165,7 @@ class ListingTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -186,10 +188,9 @@ class ListingTestCase(unittest.TestCase):
         """Tests that the dataset[idx] method returns the correct downloaded object content."""
         # Arrange.
         mock_listing_controller = mock.Mock()
-        mock_listing_controller.run.return_value = self.want_objects
+        mock_listing_controller.run.return_value = sorted(self.want_objects)
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
         want_downloaded = bytes("content", "utf-8")
         mock_dataflux_core.download.download_single.return_value = want_downloaded
         want_idx = 0
@@ -213,6 +214,7 @@ class ListingTestCase(unittest.TestCase):
             storage_client=self.storage_client,
             bucket_name=self.bucket_name,
             object_name=self.want_objects[want_idx][0],
+            retry_config=dataflux_mapstyle_dataset.MODIFIED_RETRY,
         )
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
@@ -222,20 +224,20 @@ class ListingTestCase(unittest.TestCase):
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller
-        )
+            mock_listing_controller)
         want_optimization_params = object()
         mock_dataflux_core.download.DataFluxDownloadOptimizationParams.return_value = (
-            want_optimization_params
-        )
+            want_optimization_params)
         dataflux_download_return_val = [
             bytes("contentA", "utf-8"),
             bytes("contentBB", "utf-8"),
         ]
-        mock_dataflux_core.download.dataflux_download.return_value = (
-            dataflux_download_return_val
-        )
-        data_format_fn = lambda content: len(content)
+        mock_dataflux_core.download.dataflux_download_threaded.return_value = (
+            dataflux_download_return_val)
+
+        def data_format_fn(content):
+            return len(content)
+
         want_downloaded = [
             data_format_fn(bytes_content)
             for bytes_content in dataflux_download_return_val
@@ -257,13 +259,33 @@ class ListingTestCase(unittest.TestCase):
             got_downloaded,
             want_downloaded,
         )
-        mock_dataflux_core.download.dataflux_download.assert_called_with(
+        mock_dataflux_core.download.dataflux_download_threaded.assert_called_with(
             project_name=self.project_name,
             bucket_name=self.bucket_name,
             objects=self.want_objects,
             storage_client=self.storage_client,
             dataflux_download_optimization_params=want_optimization_params,
+            threads=1,
+            retry_config=dataflux_mapstyle_dataset.MODIFIED_RETRY,
         )
+
+    def test_init_sets_user_agent(self):
+        """Tests that the init function sets the storage client's user agent."""
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            data_format_fn=self.data_format_fn,
+            storage_client=self.storage_client,
+        )
+
+        self.assertEqual(
+            ds.objects,
+            self.want_objects,
+            f"got listed objects {ds.objects}, want {self.want_objects}",
+        )
+        self.assertTrue(
+            self.storage_client._connection.user_agent.startswith("dataflux"))
 
 
 if __name__ == "__main__":

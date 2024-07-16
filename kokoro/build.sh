@@ -20,6 +20,15 @@ set -e
 # Code under repo is checked out to this directory.
 cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
 
+function setup_virtual_envs() {
+    sudo apt-get -y update
+
+    echo Setting up Python virtual environment.
+    sudo apt install -y python3.8-venv
+    python3 -m venv venv
+    source venv/bin/activate
+}
+
 function run_git_commands() {
     echo Setting git permissions.
     git config --global --add safe.directory "*" 
@@ -33,6 +42,7 @@ function run_git_commands() {
 
 function install_requirements() {
     echo Installing requirements.
+    pip install -r requirements.txt
 
     echo Installing python3-pip.
     sudo apt-get -y install python3-pip
@@ -43,9 +53,10 @@ function install_requirements() {
 
 function run_unit_tests() {
     echo Running unit tests.
-    python -m pytest dataflux_pytorch/tests -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/unit_tests/sponge_log.xml" --log-cli-level=DEBUG
+    python3 -m pytest dataflux_pytorch/tests -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/unit_tests/sponge_log.xml" --log-cli-level=DEBUG
 }
 
+setup_virtual_envs
 run_git_commands
 install_requirements
 run_unit_tests

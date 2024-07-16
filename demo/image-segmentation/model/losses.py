@@ -20,6 +20,7 @@ import torch.nn.functional as F
 
 
 class Dice:
+
     def __init__(
         self,
         to_onehot_y: bool = True,
@@ -78,8 +79,7 @@ class Dice:
         prediction_sum = torch.sum(prediction, dim=reduce_axis)
 
         return (2.0 * intersection + self.smooth_nr) / (
-            target_sum + prediction_sum + self.smooth_dr
-        )
+            target_sum + prediction_sum + self.smooth_dr)
 
 
 def to_one_hot(array, layout, channel_axis):
@@ -92,6 +92,7 @@ def to_one_hot(array, layout, channel_axis):
 
 
 class DiceCELoss(nn.Module):
+
     def __init__(self, to_onehot_y, use_softmax, layout, include_background):
         super(DiceCELoss, self).__init__()
         self.dice = Dice(
@@ -103,12 +104,14 @@ class DiceCELoss(nn.Module):
         self.cross_entropy = nn.CrossEntropyLoss()
 
     def forward(self, y_pred, y_true):
-        cross_entropy = self.cross_entropy(y_pred, torch.squeeze(y_true, dim=1).long())
+        cross_entropy = self.cross_entropy(y_pred,
+                                           torch.squeeze(y_true, dim=1).long())
         dice = torch.mean(1.0 - self.dice(y_pred, y_true))
         return (dice + cross_entropy) / 2
 
 
 class DiceScore:
+
     def __init__(
         self,
         to_onehot_y: bool = True,

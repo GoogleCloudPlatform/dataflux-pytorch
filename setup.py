@@ -6,6 +6,7 @@ dependencies = [
     "absl-py",
     "numpy",
     "pytest",
+    "lightning",
 ]
 setup(
     name="dataflux-pytorch",
