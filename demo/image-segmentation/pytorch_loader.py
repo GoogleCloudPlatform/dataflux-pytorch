@@ -292,19 +292,9 @@ class DatafluxPytTrain(Dataset):
 
         res = []
         for i in range(len(images_in_bytes)):
-            try:
-              img = np.load(io.BytesIO(images_in_bytes[i]), allow_pickle=True)
-            except Exception as err:
-              print(f"Error trying to access {self.images[i][0]}: {err}")
-              continue
-            try:
-              lab = np.load(io.BytesIO(labels_in_bytes[i]), allow_pickle=True)
-            except Exception as err:
-              print(f"Error trying to access {self.labels[i][0]}: {err}")
-              continue
             data = {
-                "image": img,
-                "label": lab,
+                "image": np.load(io.BytesIO(images_in_bytes[i])),
+                "label": np.load(io.BytesIO(labels_in_bytes[i])),
             }
             data = self.rand_crop(data)
             data = self.train_transforms(data)

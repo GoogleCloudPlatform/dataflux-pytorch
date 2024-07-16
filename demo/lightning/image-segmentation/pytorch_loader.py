@@ -172,29 +172,6 @@ class GaussianNoise:
         return data
 
 
-class PytTrain(Dataset):
-
-    def __init__(self, images, labels, **kwargs):
-        self.images, self.labels = images, labels
-        self.train_transforms = get_train_transforms()
-        patch_size, oversampling = kwargs["patch_size"], kwargs["oversampling"]
-        self.patch_size = patch_size
-        self.rand_crop = RandBalancedCrop(patch_size=patch_size,
-                                          oversampling=oversampling)
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, idx):
-        data = {
-            "image": np.load(self.images[idx]),
-            "label": np.load(self.labels[idx])
-        }
-        data = self.rand_crop(data)
-        data = self.train_transforms(data)
-        return data["image"], data["label"]
-
-
 class DatafluxPytTrain(Dataset):
 
     def __init__(
@@ -292,33 +269,11 @@ class DatafluxPytTrain(Dataset):
 
         res = []
         for i in range(len(images_in_bytes)):
-            try:
-              img = np.load(io.BytesIO(images_in_bytes[i]), allow_pickle=True)
-            except Exception as err:
-              print(f"Error trying to access {self.images[i][0]}: {err}")
-              continue
-            try:
-              lab = np.load(io.BytesIO(labels_in_bytes[i]), allow_pickle=True)
-            except Exception as err:
-              print(f"Error trying to access {self.labels[i][0]}: {err}")
-              continue
             data = {
-                "image": img,
-                "label": lab,
+                "image": np.load(io.BytesIO(images_in_bytes[i])),
+                "label": np.load(io.BytesIO(labels_in_bytes[i])),
             }
             data = self.rand_crop(data)
             data = self.train_transforms(data)
             res.append((data["image"], data["label"]))
         return res
-
-
-class PytVal(Dataset):
-
-    def __init__(self, images, labels):
-        self.images, self.labels = images, labels
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, idx):
-        return np.load(self.images[idx]), np.load(self.labels[idx])
