@@ -28,9 +28,10 @@ from pytorch_loader import DatafluxPytTrain
 
 class Unet3DDataModule(pl.LighitningDataModule):
 
-    def __init__(self, gcs_bucket, images_prefix, labels_prefix):
+    def __init__(self, args):
         super().__init__()
-        self.data_dir = os.path.join(gcs_bucket, images_prefix)
+        self.data_dir = os.path.join(args.gcs_bucket, args.images_prefix)
+        self.args = args
     
     def prepare_data(self):
         pass
@@ -38,33 +39,33 @@ class Unet3DDataModule(pl.LighitningDataModule):
     def setup(self, stage="fit"):
         if stage == "fit":
             train_data_kwargs = {
-                "patch_size": flags.input_shape,
-                "oversampling": flags.oversampling,
-                "seed": flags.seed,
-                "images_prefix": flags.images_prefix,
-                "labels_prefix": flags.labels_prefix,
+                "patch_size": self.args.input_shape,
+                "oversampling": self.args.oversampling,
+                "seed": self.args.seed,
+                "images_prefix": self.args.images_prefix,
+                "labels_prefix": self.args.labels_prefix,
                 "transforms": get_train_transforms(),
                 }
             self.train_dataset = DatafluxPytTrain(
-                project_name=flags.gcp_project,
-                bucket_name=flags.gcs_bucket,
+                project_name=self.args.gcp_project,
+                bucket_name=self.args.gcs_bucket,
                 config=dataflux_mapstyle_dataset.Config(sort_listing_results=True),
                 **train_data_kwargs,
                 )
             self.train_sampler = None
-            if num_shards > 1:
+            if self.args.num_workers > 1:
                 self.train_sampler = DistributedSampler(
                     self.train_dataset, 
-                    seed=flags.seed, 
+                    seed=self.args.seed, 
                     drop_last=True)
 
     def train_dataloader(self):
         return  DataLoader(
             self.train_dataset,
-            batch_size=flags.batch_size,
-            shuffle=not flags.benchmark and train_sampler is None,
+            batch_size=self.args.batch_size,
+            shuffle=not self.args.benchmark and self.train_sampler is None,
             sampler=self.train_sampler,
-            num_workers=flags.num_dataloader_threads,
+            num_workers=self.args.num_dataloader_threads,
             pin_memory=True,
             drop_last=True,
         )
