@@ -18,6 +18,7 @@ import argparse
 import logging
 import time
 
+from google.cloud.storage import retry
 from torch.utils import data
 
 from dataflux_pytorch import dataflux_mapstyle_dataset
@@ -39,6 +40,10 @@ def parse_args():
                         type=int,
                         default=100000000)
     parser.add_argument("--log-level", type=str, default="ERROR")
+    parser.add_argument("--retry-timeout", type=float, default=300.0)
+    parser.add_argument("--retry-initial", type=float, default=1.0)
+    parser.add_argument("--retry-multiplier", type=float, default=1.2)
+    parser.add_argument("--retry-maximum", type=float, default=45.0)
     return parser.parse_args()
 
 
@@ -59,9 +64,15 @@ def main():
     args = parse_args()
     logging.basicConfig(level=args.log_level)
     list_start_time = time.time()
+    retry_config = retry.DEFAULT_RETRY.with_timeout(
+        args.retry_timeout).with_delay(initial=args.retry_initial,
+                                       maximum=args.retry_maximum,
+                                       multiplier=args.retry_multiplier)
     config = dataflux_mapstyle_dataset.Config(
         threads_per_process=args.threads_per_worker,
-        max_composite_object_size=args.max_composite_object_size)
+        max_composite_object_size=args.max_composite_object_size,
+        list_retry_config=retry_config,
+        download_retry_config=retry_config)
     if args.no_dataflux:
         print(
             "Overriding parallelism and composite object configurations to simulate non-dataflux loop"

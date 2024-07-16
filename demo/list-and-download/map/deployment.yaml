@@ -37,7 +37,7 @@ spec:
 
               echo "running the training code";
               cd /app ;
-              python3 -u -m demo.list-and-download.map.simple_map_style_dataset --project=gcs-tess --bucket=tessellations-datasets --prefix=UNet3D/medium/3MB-150GB --sleep-per-step=0 --num-workers=32  --prefetch-factor=5 --epochs=2 --batch-size=128
+              python3 -u -m demo.list-and-download.map.simple_map_style_dataset --project=gcs-tess --bucket=tessellations-datasets --prefix=UNet3D/medium/3MB-150GB --sleep-per-step=0 --num-workers=32  --prefetch-factor=5 --epochs=2 --batch-size=128 --retry-timeout=100000 --retry-multiplier="1.5" --retry-maximum="30"
               ex=$?
               sleep 60
               exit ${ex}
