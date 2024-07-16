@@ -15,10 +15,10 @@
  """
 
 import argparse
-import io
+import logging
 import time
 
-import numpy
+from google.cloud.storage import retry
 from torch.utils import data
 
 from dataflux_pytorch import dataflux_iterable_dataset
@@ -33,8 +33,16 @@ def parse_args():
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--no-dataflux", type=bool, default=False)
     parser.add_argument("--batch-size", type=int, default=100)
-    parser.add_argument("--sleep_per_step", type=float, default=1.3604)
+    parser.add_argument("--sleep-per-step", type=float, default=1.3604)
     parser.add_argument("--prefetch-factor", type=int, default=2)
+    parser.add_argument("--max-composite-object-size",
+                        type=int,
+                        default=100000000)
+    parser.add_argument("--log-level", type=str, default="ERROR")
+    parser.add_argument("--retry-timeout", type=float, default=300.0)
+    parser.add_argument("--retry-initial", type=float, default=1.0)
+    parser.add_argument("--retry-multiplier", type=float, default=1.2)
+    parser.add_argument("--retry-maximum", type=float, default=45.0)
     return parser.parse_args()
 
 
@@ -53,8 +61,16 @@ algorithms.
 
 def main():
     args = parse_args()
+    logging.basicConfig(level=args.log_level)
     list_start_time = time.time()
-    config = dataflux_iterable_dataset.Config()
+    retry_config = retry.DEFAULT_RETRY.with_timeout(
+        args.retry_timeout).with_delay(initial=args.retry_initial,
+                                       maximum=args.retry_maximum,
+                                       multiplier=args.retry_multiplier)
+    config = dataflux_iterable_dataset.Config(
+        max_composite_object_size=args.max_composite_object_size,
+        list_retry_config=retry_config,
+        download_retry_config=retry_config)
     if args.no_dataflux:
         print(
             "Overriding parallelism and composite object configurations to simulate non-dataflux loop"
@@ -66,7 +82,7 @@ def main():
     # Define the data_format_fn to transform the data samples.
     # NOTE: Make sure to modify this to fit your data format.
     def read_image_modified(content_in_bytes):
-        return numpy.load(io.BytesIO(content_in_bytes), allow_pickle=True)["x"]
+        return content_in_bytes
 
     if args.prefix:
         config.prefix = args.prefix

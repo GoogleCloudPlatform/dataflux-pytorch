@@ -1,0 +1,55 @@
+# GKE deployment script for the Dataflux container.
+# If you push a new version of the container, you need to update the image.
+# You can set the environment variables from main.go to control the flags.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mirvine-dataflux
+  namespace: default
+spec:
+  backoffLimit: 6
+  completionMode: NonIndexed
+  completions: 100
+  manualSelector: false
+  parallelism: 100
+  podReplacementPolicy: TerminatingOrFailed
+  selector:
+  suspend: false
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        batch.kubernetes.io/job-name: mirvine-dataflux
+        job-name: mirvine-dataflux
+    spec:
+      containers:
+      - image: gcr.io/gcs-tess/dataflux-list-and-download:latest
+        imagePullPolicy: Always
+        name: dataflux-list-and-download-sha256-1
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: FallbackToLogsOnError
+        command:
+            - "/bin/bash"
+            - "-c"
+            - |
+              set -x;
+
+              echo "running the training code";
+              cd /app ;
+              python3 -u -m demo.list-and-download.iterable.simple_iterable_dataset --project=gcs-tess --bucket=tessellations-datasets --prefix=UNet3D/medium/3MB-150GB --sleep-per-step=0 --num-workers=32  --prefetch-factor=5 --epochs=2 --batch-size=128 --retry-timeout=100000 --retry-multiplier="1.5" --retry-maximum="30"
+              ex=$?
+              sleep 60
+              exit ${ex}
+      dnsPolicy: ClusterFirst
+      restartPolicy: OnFailure
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            job-name: mirvine-dataflux
