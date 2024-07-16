@@ -33,7 +33,8 @@ def get_train_transforms():
     cast = Cast(types=(np.float32, np.uint8))
     rand_scale = RandomBrightnessAugmentation(factor=0.3, prob=0.1)
     rand_noise = GaussianNoise(mean=0.0, std=0.1, prob=0.1)
-    train_transforms = transforms.Compose([rand_flip, cast, rand_scale, rand_noise])
+    train_transforms = transforms.Compose(
+        [rand_flip, cast, rand_scale, rand_noise])
     return train_transforms
 
 
@@ -91,7 +92,8 @@ class RandBalancedCrop:
             scipy.ndimage.measurements.label(label == cl)[0]
         )
         foreg_slices = [x for x in foreg_slices if x is not None]
-        slice_volumes = [np.prod([s.stop - s.start for s in sl]) for sl in foreg_slices]
+        slice_volumes = [np.prod([s.stop - s.start for s in sl])
+                         for sl in foreg_slices]
         slice_idx = np.argsort(slice_volumes)[-2:]
         foreg_slices = [foreg_slices[i] for i in slice_idx]
         if not foreg_slices:
@@ -179,7 +181,8 @@ class PytTrain(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        data = {"image": np.load(self.images[idx]), "label": np.load(self.labels[idx])}
+        data = {"image": np.load(
+            self.images[idx]), "label": np.load(self.labels[idx])}
         data = self.rand_crop(data)
         data = self.train_transforms(data)
         return data["image"], data["label"]
@@ -223,14 +226,16 @@ class DatafluxPytTrain(Dataset):
             max_parallelism=self.config.num_processes,
             project=self.project_name,
             bucket=self.bucket_name,
-            sort_results=self.config.sort_listing_results,  # This needs to be True to map images with labels.
+            # This needs to be True to map images with labels.
+            sort_results=self.config.sort_listing_results,
             prefix=images_prefix,
         ).run()
         self.labels = dataflux_core.fast_list.ListingController(
             max_parallelism=self.config.num_processes,
             project=self.project_name,
             bucket=self.bucket_name,
-            sort_results=self.config.sort_listing_results,  # This needs to be True to map images with labels.
+            # This needs to be True to map images with labels.
+            sort_results=self.config.sort_listing_results,
             prefix=labels_prefix,
         ).run()
 
@@ -238,25 +243,33 @@ class DatafluxPytTrain(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        image = np.load(
-            io.BytesIO(
-                dataflux_core.download.download_single(
-                    storage_client=self.storage_client,
-                    bucket_name=self.bucket_name,
-                    object_name=self.images[idx][0],
-                )
-            ),
-        )
+        try:
+            image = np.load(
+                io.BytesIO(
+                    dataflux_core.download.download_single(
+                        storage_client=self.storage_client,
+                        bucket_name=self.bucket_name,
+                        object_name=self.images[idx][0],
+                    )
+                ),
+            )
+        except Exception as err:
+            print(f"Error trying to access {self.images[i][0]}: {err}")
+            image = None
 
-        label = np.load(
-            io.BytesIO(
-                dataflux_core.download.download_single(
-                    storage_client=self.storage_client,
-                    bucket_name=self.bucket_name,
-                    object_name=self.labels[idx][0],
-                )
-            ),
-        )
+        try:
+            label = np.load(
+                io.BytesIO(
+                    dataflux_core.download.download_single(
+                        storage_client=self.storage_client,
+                        bucket_name=self.bucket_name,
+                        object_name=self.labels[idx][0],
+                    )
+                ),
+            )
+        except Exception as err:
+            print(f"Error trying to access {self.labels[i][0]}: {err}")
+            label = None
 
         data = {"image": image, "label": label}
         data = self.rand_crop(data)
@@ -283,15 +296,17 @@ class DatafluxPytTrain(Dataset):
         res = []
         for i in range(len(images_in_bytes)):
             try:
-              img = np.load(io.BytesIO(images_in_bytes[i]), allow_pickle=True)
+                img = np.load(io.BytesIO(
+                    images_in_bytes[i]), allow_pickle=True)
             except Exception as err:
-              print(f"Error trying to access {self.images[i][0]}: {err}")
-              continue
+                print(f"Error trying to access {self.images[i][0]}: {err}")
+                img = None
             try:
-              lab = np.load(io.BytesIO(labels_in_bytes[i]), allow_pickle=True)
+                lab = np.load(io.BytesIO(
+                    labels_in_bytes[i]), allow_pickle=True)
             except Exception as err:
-              print(f"Error trying to access {self.labels[i][0]}: {err}")
-              continue
+                print(f"Error trying to access {self.labels[i][0]}: {err}")
+                lab = None
             data = {
                 "image": img,
                 "label": lab,
