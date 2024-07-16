@@ -42,7 +42,7 @@ def parse_args():
 Sample training loop that utilizes the Dataflux Iterable Dataset, iterates over the given bucket and
 counts the number of objects/bytes. For example:
 
-$ python3 -m demo.simple_iterable_dataset --project=<YOUR_PROJECT> --bucket=<YOUR_BUCKET> --prefix=<YOUR_PREFIX> --epochs=2 --num-workers=8
+$ python3 -m demo.list-and-download.iterable.simple_iterable_dataset --project=<YOUR_PROJECT> --bucket=<YOUR_BUCKET> --prefix=<YOUR_PREFIX> --epochs=2 --num-workers=8
 
 You can also use the --no-dataflux flag to override the configuration so that listing
 is done sequentially and objects are downloaded individually, allowing you to compare

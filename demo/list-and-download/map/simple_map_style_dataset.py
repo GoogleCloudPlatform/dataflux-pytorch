@@ -15,10 +15,9 @@
  """
 
 import argparse
-import io
+import logging
 import time
 
-import numpy
 from torch.utils import data
 
 from dataflux_pytorch import dataflux_mapstyle_dataset
@@ -36,6 +35,10 @@ def parse_args():
     parser.add_argument("--sleep-per-step", type=float, default=1.3604)
     parser.add_argument("--prefetch-factor", type=int, default=2)
     parser.add_argument("--threads-per-worker", type=int, default=2)
+    parser.add_argument("--max-composite-object-size",
+                        type=int,
+                        default=100000000)
+    parser.add_argument("--log-level", type=str, default="ERROR")
     return parser.parse_args()
 
 
@@ -43,7 +46,7 @@ def parse_args():
 Sample training loop that utilizes the Dataflux Map-style Dataset, iterates over the given bucket and
 counts the number of objects/bytes. For example:
 
-$ python3 -m demo.simple_map_style_dataset --project=<YOUR_PROJECT> --bucket=<YOUR_BUCKET> --prefix=<YOUR_PREFIX> --epochs=2 --num-workers=8
+$ python3 -m demo.list-and-download.map.simple_map_style_dataset --project=<YOUR_PROJECT> --bucket=<YOUR_BUCKET> --prefix=<YOUR_PREFIX> --epochs=2 --num-workers=8
 
 You can also use the --no-dataflux flag to override the configuration so that listing
 is done sequentially and objects are downloaded individually, allowing you to compare
@@ -54,9 +57,11 @@ algorithms.
 
 def main():
     args = parse_args()
+    logging.basicConfig(level=args.log_level)
     list_start_time = time.time()
     config = dataflux_mapstyle_dataset.Config(
-        threads_per_process=args.threads_per_worker)
+        threads_per_process=args.threads_per_worker,
+        max_composite_object_size=args.max_composite_object_size)
     if args.no_dataflux:
         print(
             "Overriding parallelism and composite object configurations to simulate non-dataflux loop"
@@ -68,7 +73,7 @@ def main():
     # Define the data_format_fn to transform the data samples.
     # NOTE: Make sure to modify this to fit your data format.
     def read_image_modified(content_in_bytes):
-        return numpy.load(io.BytesIO(content_in_bytes), allow_pickle=True)["x"]
+        return content_in_bytes
 
     if args.prefix:
         config.prefix = args.prefix
