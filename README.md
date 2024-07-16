@@ -243,7 +243,7 @@ We tested the Map-style Dataset's early performance using [DLIO benchmark](https
 </table>
 
 ### Iterable-style Dataset
-Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn’t easily support an implementation of a PyTorch iterable dataset, we implemented a [simple training loop](demo/simple_iterable_dataset.py) that has similar IO behaviors as the DLIO benchmark and used that loop to benchmark the Iterable Datasets.
+Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn’t easily support an implementation of a PyTorch iterable dataset, we implemented a [simple training loop](demo/list-and-download/iterable/simple_iterable_dataset.py) that has similar IO behaviors as the DLIO benchmark and used that loop to benchmark the Iterable Datasets.
 
 <table>
   <tr>
