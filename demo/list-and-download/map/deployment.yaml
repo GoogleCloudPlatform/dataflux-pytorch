@@ -1,6 +1,4 @@
-# GKE deployment script for the Dataflux container.
-# If you push a new version of the container, you need to update the image.
-# You can set the environment variables from main.go to control the flags.
+# GKE deployment script for the Dataflux map-style demo loop.
 apiVersion: batch/v1
 kind: Job
 metadata:
