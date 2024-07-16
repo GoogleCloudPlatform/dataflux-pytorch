@@ -7,9 +7,9 @@ metadata:
 spec:
   backoffLimit: 6
   completionMode: NonIndexed
-  completions: 100
+  completions: 1000
   manualSelector: false
-  parallelism: 100
+  parallelism: 1000
   podReplacementPolicy: TerminatingOrFailed
   selector:
   suspend: false
