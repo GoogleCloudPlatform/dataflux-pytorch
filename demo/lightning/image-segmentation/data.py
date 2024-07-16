@@ -31,7 +31,7 @@ class Unet3DDataModule(pl.LighitningDataModule):
     def __init__(self, args):
         super().__init__()
         self.args = args
-    
+
     def prepare_data(self):
         pass
 
@@ -54,13 +54,13 @@ class Unet3DDataModule(pl.LighitningDataModule):
             self.train_sampler = None
             if self.args.num_workers > 1:
                 self.train_sampler = DistributedSampler(
-                    self.train_dataset, 
-                    seed=self.args.seed, 
+                    self.train_dataset,
+                    seed=self.args.seed,
                     drop_last=True)
 
     def train_dataloader(self):
-        return  DataLoader(
-            self.train_dataset,
+        return DataLoader(
+        self.train_dataset,
             batch_size=self.args.batch_size,
             shuffle=not self.args.benchmark and self.train_sampler is None,
             sampler=self.train_sampler,
