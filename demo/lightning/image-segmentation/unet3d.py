@@ -15,8 +15,8 @@
  """
 
 import torch.nn as nn
-from model.layers import (DownsampleBlock, InputBlock, OutputLayer,
-                          UpsampleBlock)
+from layers import (DownsampleBlock, InputBlock, OutputLayer,
+                    UpsampleBlock)
 
 
 class Unet3D(nn.Module):

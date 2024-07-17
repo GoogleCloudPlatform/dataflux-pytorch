@@ -108,25 +108,3 @@ class DiceCELoss(nn.Module):
                                            torch.squeeze(y_true, dim=1).long())
         dice = torch.mean(1.0 - self.dice(y_pred, y_true))
         return (dice + cross_entropy) / 2
-
-
-class DiceScore:
-
-    def __init__(
-        self,
-        to_onehot_y: bool = True,
-        use_argmax: bool = True,
-        layout: str = "NCDHW",
-        include_background: bool = False,
-    ):
-        self.dice = Dice(
-            to_onehot_y=to_onehot_y,
-            to_onehot_x=True,
-            use_softmax=False,
-            use_argmax=use_argmax,
-            layout=layout,
-            include_background=include_background,
-        )
-
-    def __call__(self, y_pred, y_true):
-        return torch.mean(self.dice(y_pred, y_true), dim=0)
