@@ -23,6 +23,7 @@ from losses import DiceCELoss
 class Unet3DLightning(pl.LightningModule):
 
     def __init__(self, flags):
+        super().__init__()
         self.flags = flags
         # Init instance of Unet3D
         self.model = Unet3D(1,
