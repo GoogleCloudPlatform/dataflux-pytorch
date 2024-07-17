@@ -94,9 +94,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d9d9">75.6
    </td>
-   <td style="background-color: #d9d9d9">2.03
+   <td style="background-color: #d9d9d9">0.81
    </td>
-   <td style="background-color: #d9d9d9">37.24
+   <td style="background-color: #d9d9d9">93.33
    </td>
   </tr>
   <tr>
@@ -106,9 +106,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">75.6
    </td>
-   <td style="background-color: #f3f3f3">2.04
+   <td style="background-color: #f3f3f3">0.74
    </td>
-   <td style="background-color: #f3f3f3">37.05
+   <td style="background-color: #f3f3f3">102.16
    </td>
   </tr>
   <tr>
@@ -118,9 +118,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d9d9">298
    </td>
-   <td style="background-color: #d9d9d9">5.70
+   <td style="background-color: #d9d9d9">2.87
    </td>
-   <td style="background-color: #d9d9d9">52.28
+   <td style="background-color: #d9d9d9">103.98
    </td>
   </tr>
   <tr>
@@ -130,9 +130,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">298
    </td>
-   <td style="background-color: #f3f3f3">7.66
+   <td style="background-color: #f3f3f3">2.97
    </td>
-   <td style="background-color: #f3f3f3">38.90
+   <td style="background-color: #f3f3f3">100.33
    </td>
   </tr>
   <tr>
@@ -142,9 +142,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d9d9">2500
    </td>
-   <td style="background-color: #d9d9d9">42.82
+   <td style="background-color: #d9d9d9">25.61
    </td>
-   <td style="background-color: #d9d9d9">58.39
+   <td style="background-color: #d9d9d9">97.61
    </td>
   </tr>
   <tr>
@@ -154,9 +154,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">2500
    </td>
-   <td style="background-color: #f3f3f3">58.86
+   <td style="background-color: #f3f3f3">24.17
    </td>
-   <td style="background-color: #f3f3f3">42.47
+   <td style="background-color: #f3f3f3">103.43
    </td>
   </tr>
 </table>
