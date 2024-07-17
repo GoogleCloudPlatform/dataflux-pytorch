@@ -187,11 +187,9 @@ class PytTrain(Dataset):
     def __getitem__(self, idx):
         try:
             image = np.load(self.images[idx])
-        except:
-            image = None
-        try:
             label = np.load(self.labels[idx])
         except:
+            image = None
             label = None
         data = {"image": image, "label": label}
         if data["image"] is not None and data["label"] != None:
@@ -265,11 +263,7 @@ class DatafluxPytTrain(Dataset):
                     )
                 ),
             )
-        except Exception as err:
-            print(f"Error trying to access {self.images[i][0]}: {err}")
-            image = None
 
-        try:
             label = np.load(
                 io.BytesIO(
                     dataflux_core.download.download_single(
@@ -280,7 +274,7 @@ class DatafluxPytTrain(Dataset):
                 ),
             )
         except Exception as err:
-            print(f"Error trying to access {self.labels[i][0]}: {err}")
+            image = None
             label = None
 
         data = {"image": image, "label": label}
@@ -313,14 +307,10 @@ class DatafluxPytTrain(Dataset):
             try:
                 img = np.load(io.BytesIO(
                     images_in_bytes[i]), allow_pickle=True)
-            except Exception as err:
-                print(f"Error trying to access {self.images[i][0]}: {err}")
-                img = None
-            try:
                 lab = np.load(io.BytesIO(
                     labels_in_bytes[i]), allow_pickle=True)
             except Exception as err:
-                print(f"Error trying to access {self.labels[i][0]}: {err}")
+                img = None
                 lab = None
             data = {
                 "image": img,
@@ -344,10 +334,8 @@ class PytVal(Dataset):
     def __getitem__(self, idx):
         try:
             image = np.load(self.images[idx])
-        except:
-            image = None
-        try:
             label = np.load(self.labels[idx])
         except:
+            image = None
             label = None
         return image, label
