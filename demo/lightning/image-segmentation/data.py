@@ -65,6 +65,7 @@ class Unet3DDataModule(pl.LighitningDataModule):
             shuffle=not self.args.benchmark and self.train_sampler is None,
             sampler=self.train_sampler,
             num_workers=self.args.num_dataloader_threads,
+            persistent_workers=True,
             pin_memory=True,
             drop_last=True,
         )
