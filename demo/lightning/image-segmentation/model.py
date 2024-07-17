@@ -19,21 +19,31 @@ import lightning.pytorch as pl
 
 
 class Unet3D(pl.LightningModule):
-    
-    def __init__(self):
-        pass
-    
+
+    def __init__(self, flags):
+        self.flags = flags
+        # Init instance of Unet3D
+        
+
+
     def forward(self, x):
         pass
-    
+
     def configure_optimizers(self):
-        pass
+        optimizer = torch.optim.SGD(
+            self.parameters,
+            lr=self.flags.learning_rate,
+            momentum=self.flags.momentum,
+            nesterov=True,
+            weight_decay=self.flags.weight_decay,
+        )
+        return optimizer
 
     def training_step(self, train_batch, batch_idx):
         pass
 
     def backward(self, trainer, loss, optimizer, optimizer_idx):
-        pass
+        loss.backward()
 
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx):
-        pass
+        optimizer.step()

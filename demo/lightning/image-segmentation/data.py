@@ -14,7 +14,6 @@
  limitations under the License.
  """
 
-import os
 import lightning.pytorch as pl
 import random
 import numpy as np
