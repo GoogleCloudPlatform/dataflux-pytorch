@@ -93,8 +93,8 @@ class SyntheticDataset(Dataset):
                 device=device,
                 requires_grad=False,
             )
-            self.y = torch.unsqueeze(
-                self.y, dim=1 if layout == "NCDHW" else -1)
+            self.y = torch.unsqueeze(self.y,
+                                     dim=1 if layout == "NCDHW" else -1)
         else:
             y_shape = ((channels_out, ) +
                        shape if layout == "NCDHW" else shape +
@@ -168,5 +168,6 @@ def collate_fn(batch):
     to the DataLoader constructor above.
     """
     batch = list(
-        filter(lambda x: x["image"] is not None and x["label"] is not None, batch))
+        filter(lambda x: x["image"] is not None and x["label"] is not None,
+               batch))
     return default_collate(batch)
