@@ -70,7 +70,8 @@ Average time to save one checkpoint: 58.68560411930084 seconds
 
 ## Results
 
-The table below contains benchmarking times writing checkpoints to GCS, the average save time is taken over 10 called to save_checkpoint.
+The table below contains benchmarking times writing checkpoints to GCS, the average save time is taken over 10 called to save_checkpoint. The tests were done from a VM with 48vCPU, 192 GB RAM, 512 GB SSD located in `us-west1-a` zone. The GCS bucket was located in the same region, `us-west1`.
+
 
 Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to fsspec.
 
