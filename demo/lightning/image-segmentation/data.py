@@ -25,7 +25,7 @@ from dataflux_pytorch import dataflux_mapstyle_dataset
 from pytorch_loader import DatafluxPytTrain
 
 
-class Unet3DDataModule(pl.LighitningDataModule):
+class Unet3DDataModule(pl.LightningDataModule):
 
     def __init__(self, args):
         super().__init__()
@@ -43,23 +43,23 @@ class Unet3DDataModule(pl.LighitningDataModule):
                 "images_prefix": self.args.images_prefix,
                 "labels_prefix": self.args.labels_prefix,
                 "transforms": get_train_transforms(),
-                }
+            }
             self.train_dataset = DatafluxPytTrain(
                 project_name=self.args.gcp_project,
                 bucket_name=self.args.gcs_bucket,
-                config=dataflux_mapstyle_dataset.Config(sort_listing_results=True),
+                config=dataflux_mapstyle_dataset.Config(
+                    sort_listing_results=True),
                 **train_data_kwargs,
-                )
+            )
             self.train_sampler = None
             if self.args.num_workers > 1:
-                self.train_sampler = DistributedSampler(
-                    self.train_dataset,
-                    seed=self.args.seed,
-                    drop_last=True)
+                self.train_sampler = DistributedSampler(self.train_dataset,
+                                                        seed=self.args.seed,
+                                                        drop_last=True)
 
     def train_dataloader(self):
         return DataLoader(
-        self.train_dataset,
+            self.train_dataset,
             batch_size=self.args.batch_size,
             shuffle=not self.args.benchmark and self.train_sampler is None,
             sampler=self.train_sampler,
