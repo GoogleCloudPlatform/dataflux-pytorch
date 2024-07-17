@@ -273,7 +273,7 @@ class DatafluxPytTrain(Dataset):
                     )
                 ),
             )
-        except Exception as err:
+        except:
             image = None
             label = None
 
@@ -309,7 +309,7 @@ class DatafluxPytTrain(Dataset):
                     images_in_bytes[i]), allow_pickle=True)
                 lab = np.load(io.BytesIO(
                     labels_in_bytes[i]), allow_pickle=True)
-            except Exception as err:
+            except:
                 img = None
                 lab = None
             data = {
