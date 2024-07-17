@@ -19,7 +19,6 @@ import random
 import dataflux_core
 import numpy as np
 import scipy.ndimage
-from google.api_core.client_info import ClientInfo
 from google.cloud import storage
 from torch.utils.data import Dataset
 

@@ -20,7 +20,6 @@ import random
 import dataflux_core
 import numpy as np
 import scipy.ndimage
-from google.api_core.client_info import ClientInfo
 from google.cloud import storage
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -228,7 +227,6 @@ class DatafluxPytTrain(Dataset):
         if not storage_client:
             self.storage_client = storage.Client(
                 project=project_name,
-                client_info=ClientInfo(user_agent="dataflux/0.0"),
             )
 
         # Data listing.
