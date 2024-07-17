@@ -161,6 +161,12 @@ def get_data_loaders(flags, num_shards, global_rank):
 
 
 def collate_fn(batch):
+    """
+    Drop corrupt images that were previously
+    set to None during data loading step.
+    collate_fn is passed as an argument
+    to the DataLoader constructor above.
+    """
     batch = list(
         filter(lambda x: x["image"] is not None and x["label"] is not None, batch))
     return default_collate(batch)
