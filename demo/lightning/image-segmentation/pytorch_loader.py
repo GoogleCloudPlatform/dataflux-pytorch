@@ -56,7 +56,6 @@ class DatafluxPytTrain(Dataset):
         if not storage_client:
             self.storage_client = storage.Client(
                 project=project_name,
-                client_info=ClientInfo(user_agent="dataflux/0.0"),
             )
 
         # Data listing.
