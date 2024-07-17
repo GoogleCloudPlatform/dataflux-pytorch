@@ -1,0 +1,20 @@
+{
+    "[python]": {
+        "editor.formatOnSaveMode": "file",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "eeyore.yapf",
+        "editor.formatOnType": false,
+        "files.trimTrailingWhitespace": true,
+    },
+    "python.testing.pytestArgs": [
+        "-s",
+        "dataflux_pytorch/tests",
+    ],
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "always"
+    },
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+}
