@@ -8,6 +8,7 @@ from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import Transformer, WikiText2
 from lightning.pytorch.plugins.io import TorchCheckpointIO
+from lightning.pytorch.strategies import ModelParallelStrategy
 from torch import Tensor
 from torch.utils.data import DataLoader
 
@@ -40,7 +41,17 @@ class LightningTransformer(LightningModule):
         dataset = WikiText2()
         return DataLoader(dataset)
 
-def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, layers: int = 100, steps: int = 5):
+    def configure_model(self) -> None:
+        pass
+
+
+def main(project: str,
+         bucket: str,
+         ckpt_dir_path: str,
+         save_only_latest: bool,
+         dataflux_ckpt: bool,
+         layers: int = 100,
+         steps: int = 5):
     """Checkpoints a PyTorch Ligthning demo model to GCS using gcsfs or DatafluxLightningCheckpoint.
 
     This function utilizes PyTorch Lightning to checkpoint the WikiText2 dataset. It
@@ -95,22 +106,28 @@ def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, 
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
     )
+    strategy = ModelParallelStrategy()
+    strategy.checkpoint_io = ckpt
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
-        plugins=[ckpt],
+        # plugins=[ckpt],
         callbacks=[checkpoint_callback],
         min_epochs=4,
         max_epochs=5,
         max_steps=1,
         accelerator="cpu",
+        devices=2,
+        strategy=strategy,
     )
     trainer.fit(model, dataloader)
 
     start = time.time()
     for i in range(steps):
-        trainer.save_checkpoint(os.path.join(ckpt_dir_path,f'ckpt_{i}.ckpt'))
+        trainer.save_checkpoint(os.path.join(ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
-    print("Average time to save one checkpoint: " + str((end-start)/steps) + " seconds")
+    print("Average time to save one checkpoint: " +
+          str((end - start) / steps) + " seconds")
+
 
 if __name__ == "__main__":
 
