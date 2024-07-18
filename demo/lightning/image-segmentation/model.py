@@ -38,11 +38,26 @@ class Unet3DLightning(pl.LightningModule):
         )
 
     def forward(self, x):
-        return self.model(x)
+        # return self.model(x)
+        x = self.model.input_block(x)
+        outputs = [x]
+
+        for downsample in self.model.downsample:
+            x = downsample(x)
+            outputs.append(x)
+
+        x = self.model.bottleneck(x)
+
+        for upsample, skip in zip(self.model.upsample, reversed(outputs)):
+            x = upsample(x, skip)
+
+        x = self.model.output(x)
+
+        return x
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(
-            self.parameters,
+            self.parameters(),
             lr=self.flags.learning_rate,
             momentum=self.flags.momentum,
             nesterov=True,
@@ -55,8 +70,3 @@ class Unet3DLightning(pl.LightningModule):
         predictions = self.model(images)
         loss = self.loss_fn(predictions, labels)
 
-    def backward(self, trainer, loss, optimizer, optimizer_idx):
-        loss.backward()
-
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx):
-        optimizer.step()
