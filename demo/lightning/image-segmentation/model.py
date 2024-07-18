@@ -16,24 +16,42 @@
 
 import torch
 import lightning.pytorch as pl
+from unet3d import Unet3D
+from losses import DiceCELoss
 
 
-class Unet3D(pl.LightningModule):
-    
-    def __init__(self):
-        pass
-    
+class Unet3DLightning(pl.LightningModule):
+
+    def __init__(self, flags):
+        super().__init__()
+        self.flags = flags
+        # Init instance of Unet3D
+        self.model = Unet3D(1,
+                            3,
+                            normalization=flags.normalization,
+                            activation=flags.activation)
+        self.loss_fn = DiceCELoss(
+            to_onehot_y=True,
+            use_softmax=True,
+            layout=flags.layout,
+            include_background=flags.include_background,
+        )
+
     def forward(self, x):
-        pass
-    
+        return self.model.forward(x)
+
     def configure_optimizers(self):
-        pass
+        optimizer = torch.optim.SGD(
+            self.parameters(),
+            lr=self.flags.learning_rate,
+            momentum=self.flags.momentum,
+            nesterov=True,
+            weight_decay=self.flags.weight_decay,
+        )
+        return optimizer
 
     def training_step(self, train_batch, batch_idx):
-        pass
-
-    def backward(self, trainer, loss, optimizer, optimizer_idx):
-        pass
-
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx):
-        pass
+        images, labels = train_batch
+        predictions = self.model(images)
+        loss = self.loss_fn(predictions, labels)
+        return loss
