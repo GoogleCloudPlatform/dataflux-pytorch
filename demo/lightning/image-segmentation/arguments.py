@@ -34,6 +34,10 @@ PARSER.add_argument("--local_rank",
                     type=int)
 
 PARSER.add_argument("--epochs", dest="epochs", type=int, default=1)
+PARSER.add_argument("--accelerator",
+                    dest="accelerator",
+                    type=str,
+                    default="cpu")
 PARSER.add_argument("--quality_threshold",
                     dest="quality_threshold",
                     type=float,
