@@ -70,7 +70,8 @@ Average time to save one checkpoint: 58.68560411930084 seconds
 
 ## Results
 
-The table below contains benchmarking times writing checkpoints to GCS, the average save time is taken over 10 called to save_checkpoint.
+The table below contains benchmarking times on saving checkpoints to GCS, the average save time is taken over 10 calls to save_checkpoint. The tests were done from a VM with 48vCPU, 192 GB RAM, 512 GB SSD located in `us-west1-a` zone. The GCS bucket was located in the same region, `us-west1`.
+
 
 Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to fsspec.
 
@@ -94,9 +95,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d9d9">75.6
    </td>
-   <td style="background-color: #d9d9d9">2.03
+   <td style="background-color: #d9d9d9">0.81
    </td>
-   <td style="background-color: #d9d9d9">37.24
+   <td style="background-color: #d9d9d9">93.33
    </td>
   </tr>
   <tr>
@@ -106,9 +107,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">75.6
    </td>
-   <td style="background-color: #f3f3f3">2.04
+   <td style="background-color: #f3f3f3">0.74
    </td>
-   <td style="background-color: #f3f3f3">37.05
+   <td style="background-color: #f3f3f3">102.16
    </td>
   </tr>
   <tr>
@@ -118,9 +119,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d9d9">298
    </td>
-   <td style="background-color: #d9d9d9">5.70
+   <td style="background-color: #d9d9d9">2.87
    </td>
-   <td style="background-color: #d9d9d9">52.28
+   <td style="background-color: #d9d9d9">103.98
    </td>
   </tr>
   <tr>
@@ -130,9 +131,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">298
    </td>
-   <td style="background-color: #f3f3f3">7.66
+   <td style="background-color: #f3f3f3">2.97
    </td>
-   <td style="background-color: #f3f3f3">38.90
+   <td style="background-color: #f3f3f3">100.33
    </td>
   </tr>
   <tr>
@@ -142,9 +143,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d9d9">2500
    </td>
-   <td style="background-color: #d9d9d9">42.82
+   <td style="background-color: #d9d9d9">25.61
    </td>
-   <td style="background-color: #d9d9d9">58.39
+   <td style="background-color: #d9d9d9">97.61
    </td>
   </tr>
   <tr>
@@ -154,9 +155,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">2500
    </td>
-   <td style="background-color: #f3f3f3">58.86
+   <td style="background-color: #f3f3f3">24.17
    </td>
-   <td style="background-color: #f3f3f3">42.47
+   <td style="background-color: #f3f3f3">103.43
    </td>
   </tr>
 </table>
