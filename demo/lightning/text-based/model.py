@@ -191,7 +191,6 @@ def main():
     args = parse_args()
     logging.basicConfig(level=args.log_level)
     # The prefix passed here determines which parquet files are read from our bucket.
-    # config = df_iter.Config(prefix="fineweb/sample/10BT/014_00000.parquet")
     config = df_iter.Config(prefix=args.prefix)
     my_model = TextDemoModel(encoder, decoder)
     bsize = args.batch_size
