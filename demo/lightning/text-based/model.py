@@ -31,6 +31,7 @@ from transformers import AutoTokenizer
 
 # This demo was built around the huggingface fineweb dataset.
 # Details of the dataset can be found at https://huggingface.co/datasets/HuggingFaceFW/fineweb/tree/main/sample/10BT
+# This model has not been optimized for performance and is only intended as a demonstration.
 
 # Example execution:
 # python3 ./model.py --project=test-project --bucket=my-fineweb-data --batch-size=9 --prefix="fineweb/sample/10BT"
