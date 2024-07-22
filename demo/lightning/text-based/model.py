@@ -52,9 +52,9 @@ def parse_args():
 # despite "squeezing" the data by removing parameters in the training step.
 encoder = nn.Sequential(nn.Linear(512, 256), nn.ReLU(), nn.Linear(256, 128))
 decoder = nn.Sequential(nn.Linear(128, 256), nn.ReLU(), nn.Linear(256, 512))
+
 # This is an example setup based on a huggingface 10BT parquet dataset. These values should
 # be modified to match the format of the parquet files being tested.
-
 cols = [
     'text', 'id', 'dump', 'url', 'date', 'file_path', 'language',
     'language_score', 'token_count'
