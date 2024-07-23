@@ -45,6 +45,7 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--num-workers", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=100)
+    parser.add_argument("--limit-train-batches", type=int, default=None)
     parser.add_argument("--log-level", type=str, default="ERROR")
     return parser.parse_args()
 
@@ -219,7 +220,8 @@ def main():
 
     # Construct the lightning trainer and run the fit with our model and custom dataset.
     # Note that limit_train_batches specifies how much of the dataset to train each epoch.
-    trainer = pl.Trainer(limit_train_batches=1, max_epochs=args.epochs)
+    trainer = pl.Trainer(limit_train_batches=args.limit_train_batches,
+                         max_epochs=args.epochs)
     trainer.fit(model=my_model, train_dataloaders=data_loader)
 
 
