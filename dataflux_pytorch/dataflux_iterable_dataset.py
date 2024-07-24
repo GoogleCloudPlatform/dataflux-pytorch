@@ -17,6 +17,7 @@
 import logging
 import math
 import os
+import platform
 
 import dataflux_core
 from google.api_core.client_info import ClientInfo
@@ -27,6 +28,8 @@ from torch.utils import data
 MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
     initial=1.0, multiplier=1.5, maximum=30.0)
 
+OS = platform.system()
+LINUX = "Linux"
 
 class Config:
     """Customizable configuration to the DataFluxIterableDataset.
@@ -89,7 +92,7 @@ class DataFluxIterableDataset(data.IterableDataset):
         project_name,
         bucket_name,
         config=Config(),
-        data_format_fn=lambda data: data,
+        data_format_fn=None,
         storage_client=None,
     ):
         """Initializes the DataFluxIterableDataset.
@@ -111,13 +114,13 @@ class DataFluxIterableDataset(data.IterableDataset):
                 during initialization.
         """
         super().__init__()
-        self.storage_client = storage_client
-        if not storage_client:
-            self.storage_client = storage.Client(project=project_name, )
-        dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
+        self.storage_client = None
+        if OS == LINUX:
+            self.storage_client = storage_client if storage_client is not None else storage.Client(project=project_name)
+            dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
         self.project_name = project_name
         self.bucket_name = bucket_name
-        self.data_format_fn = data_format_fn
+        self.data_format_fn = data_format_fn if data_format_fn is not None else self.data_format_default
         self.config = config
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
@@ -158,7 +161,8 @@ class DataFluxIterableDataset(data.IterableDataset):
                             dataflux_download_optimization_params,
                             retry_config=self.config.download_retry_config,
                         ))
-
+    def data_format_default(self, data):
+        return data
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
         error = None
