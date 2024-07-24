@@ -19,7 +19,7 @@ SEED=${1:--1}
 
 IMAGES_PREFIX="{IMAGES_PREFIX}"
 LABELS_PREFIX="{LABELS_PREFIX}"
-GCP_PROJECT="amundson-gke-aiml-demo"
+GCP_PROJECT="{YOUR_GCP_PROJECG}"
 GCS_BUCKET="{YOUR_COPIED_GCS_BUCKET}"
 
 # start timing
@@ -31,7 +31,7 @@ python3  train.py \
   --gcp_project=${GCP_PROJECT} \
   --images_prefix=${IMAGES_PREFIX} \
   --labels_prefix=${LABELS_PREFIX} \
-  --gcs_bucket=dlio-compute-time-bucket
+  --gcs_bucket=${GCS_BUCKET}
 
 # end timing
 end=$(date +%s)
