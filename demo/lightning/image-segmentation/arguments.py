@@ -33,11 +33,11 @@ PARSER.add_argument("--local_rank",
                     default=os.environ.get("LOCAL_RANK", 0),
                     type=int)
 
-PARSER.add_argument("--epochs", dest="epochs", type=int, default=1)
+PARSER.add_argument("--epochs", dest="epochs", type=int, default=5)
 PARSER.add_argument("--accelerator",
                     dest="accelerator",
                     type=str,
-                    default="cpu")
+                    default="gpu")
 PARSER.add_argument("--quality_threshold",
                     dest="quality_threshold",
                     type=float,
