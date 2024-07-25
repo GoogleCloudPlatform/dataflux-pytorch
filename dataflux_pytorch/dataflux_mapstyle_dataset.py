@@ -23,9 +23,8 @@ from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
 from torch.utils import data
 
-MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(300.0).with_delay(initial=1.0,
-                                                               multiplier=1.2,
-                                                               maximum=45.0)
+MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
+    initial=1.0, multiplier=1.5, maximum=30.0)
 
 
 class Config:
