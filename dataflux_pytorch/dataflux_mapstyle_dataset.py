@@ -16,6 +16,7 @@
 
 import logging
 import os
+import platform
 
 import dataflux_core
 from google.api_core.client_info import ClientInfo
@@ -24,7 +25,11 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 from torch.utils import data
 
 MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
-    initial=1.0, multiplier=1.5, maximum=30.0)
+    initial=1.0, multiplier=1.5, maximum=30.0
+)
+
+OS = platform.system()
+LINUX = "Linux"
 
 
 class Config:
@@ -66,10 +71,8 @@ class Config:
         max_listing_retries: int = 3,
         threads_per_process: int = 1,
         disable_compose: bool = False,
-        list_retry_config:
-        "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
-        download_retry_config:
-        "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
+        list_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
+        download_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
     ):
         self.sort_listing_results = sort_listing_results
         self.max_composite_object_size = max_composite_object_size
@@ -90,7 +93,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         project_name,
         bucket_name,
         config=Config(),
-        data_format_fn=lambda data: data,
+        data_format_fn=None,
         storage_client=None,
     ):
         """Initializes the DataFluxMapStyleDataset.
@@ -115,18 +118,25 @@ class DataFluxMapStyleDataset(data.Dataset):
             None.
         """
         super().__init__()
-        self.storage_client = storage_client
-        if not storage_client:
-            self.storage_client = storage.Client(project=project_name, )
-        dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
+        self.storage_client = None
+        if OS == LINUX:
+            self.storage_client = (
+                storage_client
+                if storage_client is not None
+                else storage.Client(project=project_name)
+            )
+            dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
         self.project_name = project_name
         self.bucket_name = bucket_name
-        self.data_format_fn = data_format_fn
+        self.data_format_fn = (
+            data_format_fn if data_format_fn is not None else self.data_format_default
+        )
         self.config = config
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size
-            ))
+            )
+        )
 
         self.objects = self._list_GCS_blobs_with_retry()
 
@@ -140,22 +150,25 @@ class DataFluxMapStyleDataset(data.Dataset):
                 bucket_name=self.bucket_name,
                 object_name=self.objects[idx][0],
                 retry_config=self.config.download_retry_config,
-            ))
+            )
+        )
 
     def __getitems__(self, indices):
         return [
-            self.data_format_fn(bytes_content) for bytes_content in
-            dataflux_core.download.dataflux_download_threaded(
+            self.data_format_fn(bytes_content)
+            for bytes_content in dataflux_core.download.dataflux_download_threaded(
                 project_name=self.project_name,
                 bucket_name=self.bucket_name,
                 objects=[self.objects[idx] for idx in indices],
                 storage_client=self.storage_client,
-                dataflux_download_optimization_params=self.
-                dataflux_download_optimization_params,
+                dataflux_download_optimization_params=self.dataflux_download_optimization_params,
                 threads=self.config.threads_per_process,
                 retry_config=self.config.download_retry_config,
             )
         ]
+
+    def data_format_default(self, data):
+        return data
 
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
