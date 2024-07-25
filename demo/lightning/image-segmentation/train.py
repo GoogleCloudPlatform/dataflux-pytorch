@@ -9,15 +9,12 @@ from ray.train.torch import TorchTrainer
 
 
 def train_func(config):
-
     model = Unet3DLightning(config["flags"])
     train_data_loader = Unet3DDataModule(config["flags"])
-    trainer = pl.Trainer(accelerator=config["flags"].accelerator,
-                         max_epochs=config["flags"].epochs)
     trainer = pl.Trainer(
-        max_epochs=config["epochs"],
+        max_epochs=config["flags"].epochs,
         devices="auto",
-        accelerator=config["accelerator"],
+        accelerator=config["flags"].accelerator,
         strategy=ray.train.lightning.RayDDPStrategy(),
         plugins=[ray.train.lightning.RayLightningEnvironment()],
         enable_checkpointing=False,
@@ -35,10 +32,11 @@ if __name__ == "__main__":
     # Configure scaling and resource requirements.
     scaling_config = ray.train.ScalingConfig(num_workers=2, use_gpu=True)
 
-    # Launch distributed training job.  
+    # Launch distributed training job.
     trainer = TorchTrainer(
         train_func,
         scaling_config=scaling_config,
-        trail_loop_config=config,
+        train_loop_config=config,
     )
-    
+    trainer.fit()
+
