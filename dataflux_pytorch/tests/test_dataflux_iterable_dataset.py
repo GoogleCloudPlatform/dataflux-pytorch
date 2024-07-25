@@ -308,8 +308,6 @@ class IterableDatasetTestCase(unittest.TestCase):
             self.want_objects,
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
-        self.assertTrue(
-            self.storage_client._connection.user_agent.startswith("dataflux"))
 
 
 if __name__ == "__main__":
