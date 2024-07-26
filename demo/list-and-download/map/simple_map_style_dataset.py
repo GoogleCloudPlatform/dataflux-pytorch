@@ -16,8 +16,10 @@
 
 import argparse
 import logging
+import multiprocessing
 import time
 
+from google.cloud import storage
 from google.cloud.storage import retry
 from torch.utils import data
 
@@ -44,6 +46,12 @@ def parse_args():
     parser.add_argument("--retry-initial", type=float, default=1.0)
     parser.add_argument("--retry-multiplier", type=float, default=1.2)
     parser.add_argument("--retry-maximum", type=float, default=45.0)
+    parser.add_argument("--multiprocessing-start-method",
+                        type=str,
+                        default=None)
+    parser.add_argument("--initialize-storage-client",
+                        type=bool,
+                        default=False)
     return parser.parse_args()
 
 
@@ -60,9 +68,16 @@ algorithms.
 """
 
 
+# Define the data_format_fn to transform the data samples.
+# NOTE: Make sure to modify this to fit your data format.
+def read_image_modified(content_in_bytes):
+    return content_in_bytes
+
+
 def main():
     args = parse_args()
     logging.basicConfig(level=args.log_level)
+    multiprocessing.set_start_method(args.multiprocessing_start_method)
     list_start_time = time.time()
     retry_config = retry.DEFAULT_RETRY.with_timeout(
         args.retry_timeout).with_delay(initial=args.retry_initial,
@@ -81,11 +96,6 @@ def main():
         config.num_processes = 1
     print(f"Listing started at time {list_start_time}")
 
-    # Define the data_format_fn to transform the data samples.
-    # NOTE: Make sure to modify this to fit your data format.
-    def read_image_modified(content_in_bytes):
-        return content_in_bytes
-
     if args.prefix:
         config.prefix = args.prefix
 
@@ -94,6 +104,8 @@ def main():
         bucket_name=args.bucket,
         config=config,
         data_format_fn=read_image_modified,
+        storage_client=storage.Client(
+            project=args.project) if args.initialize_storage_client else None,
     )
     list_end_time = time.time()
     print(
