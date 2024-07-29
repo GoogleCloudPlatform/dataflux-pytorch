@@ -19,7 +19,7 @@ import multiprocessing
 import unittest
 from unittest import mock
 
-from dataflux_client_python.dataflux_core.tests import fake_gcs
+from dataflux_core.tests import fake_gcs
 from dataflux_pytorch import dataflux_mapstyle_dataset
 from google.cloud import storage
 
@@ -292,14 +292,15 @@ class ListingTestCase(unittest.TestCase):
         """Tests the DataFluxIterableDataset returns pickling error for passing-in client when multiprcessing start method is spawn."""
         # Act.
         client = storage.Client(project=self.project_name)
-        with self.assertRaises(pickle.PicklingError):
-            dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-                project_name=self.project_name,
-                bucket_name=self.bucket_name,
-                config=self.config,
-                data_format_fn=self.data_format_fn,
-                storage_client=client,
-            )
+        if multiprocessing.get_start_method(allow_none=False) != "fork":
+            with self.assertRaises(pickle.PicklingError):
+                dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+                    project_name=self.project_name,
+                    bucket_name=self.bucket_name,
+                    config=self.config,
+                    data_format_fn=self.data_format_fn,
+                    storage_client=client,
+                )
 
 
 if __name__ == "__main__":
