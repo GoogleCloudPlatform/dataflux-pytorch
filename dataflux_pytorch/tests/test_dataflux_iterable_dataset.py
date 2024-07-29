@@ -20,7 +20,7 @@ import pickle
 import unittest
 from unittest import mock
 
-from dataflux_core.tests import fake_gcs
+from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch import dataflux_iterable_dataset
 from google.cloud import storage
 
