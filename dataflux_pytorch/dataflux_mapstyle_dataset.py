@@ -15,7 +15,9 @@
  """
 
 import logging
+import multiprocessing
 import os
+import warnings
 
 import dataflux_core
 from google.api_core.client_info import ClientInfo
@@ -25,6 +27,8 @@ from torch.utils import data
 
 MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
     initial=1.0, multiplier=1.5, maximum=30.0)
+
+FORK = "fork"
 
 
 class Config:
@@ -83,6 +87,10 @@ class Config:
         self.download_retry_config = download_retry_config
 
 
+def data_format_default(data):
+    return data
+
+
 class DataFluxMapStyleDataset(data.Dataset):
 
     def __init__(
@@ -90,7 +98,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         project_name,
         bucket_name,
         config=Config(),
-        data_format_fn=lambda data: data,
+        data_format_fn=data_format_default,
         storage_client=None,
     ):
         """Initializes the DataFluxMapStyleDataset.
@@ -115,10 +123,13 @@ class DataFluxMapStyleDataset(data.Dataset):
             None.
         """
         super().__init__()
+        multiprocessing_start = multiprocessing.get_start_method(
+            allow_none=False)
+        if storage_client is not None and multiprocessing_start != FORK:
+            warnings.warn(
+                "Setting the storage client is not fully supported when multiprocessing starts with spawn or forkserver.",
+                UserWarning)
         self.storage_client = storage_client
-        if not storage_client:
-            self.storage_client = storage.Client(project=project_name, )
-        dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
