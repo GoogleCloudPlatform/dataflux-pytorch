@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gcs-torch-dataflux"
-version = "1.2.0"
+version = "1.3.0"
 description = "A GCS data loading integration for PyTorch"
 requires-python = ">=3.8,<3.13"
 readme = "README.md"
