@@ -312,7 +312,7 @@ class IterableDatasetTestCase(unittest.TestCase):
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
 
-    def test_init_with_spaw_multiprocess(self):
+    def test_init_with_spawn_multiprocess(self):
         """Tests the DataFluxIterableDataset returns pickling error for passing-in client when multiprcessing start method is spawn."""
         # Act.
         client = storage.Client(project=self.project_name)
