@@ -30,6 +30,8 @@ MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
     initial=1.0, multiplier=1.5, maximum=30.0)
 
 FORK = "fork"
+CREATE = "storage.objects.create"
+DELETE = "storage.objects.delete"
 
 
 class Config:
@@ -124,12 +126,15 @@ class DataFluxIterableDataset(data.IterableDataset):
         if storage_client is not None and multiprocessing_start != FORK:
             warnings.warn(
                 "Setting the storage client is not fully supported when multiprocessing starts with spawn or forkserver methods.",
-                UserWarning)
+                UserWarning,
+            )
         self.storage_client = storage_client
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
         self.config = config
+        if not self._has_permissions():
+            self.config.max_composite_object_size = 0
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size
@@ -201,3 +206,20 @@ class DataFluxIterableDataset(data.IterableDataset):
         # raised an exception.
         else:
             raise error
+
+    def _has_permissions(self):
+        """Check if the client has permission to create and delete an object."""
+        storage_client = self.storage_client
+        if not storage_client:
+            storage_client = storage.Client(project=self.project_name, )
+        dataflux_core.user_agent.add_dataflux_user_agent(storage_client)
+
+        required_permission = [CREATE, DELETE]
+        result = []
+        bucket = storage_client.bucket(self.bucket_name)
+
+        try:
+            result = bucket.test_iam_permissions(required_permission)
+        except Exception as e:
+            logging.exception(f"Error testing permissions: {e}")
+        return result == required_permission
