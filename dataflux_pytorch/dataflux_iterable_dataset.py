@@ -126,8 +126,7 @@ class DataFluxIterableDataset(data.IterableDataset):
         if storage_client is not None and multiprocessing_start != FORK:
             warnings.warn(
                 "Setting the storage client is not fully supported when multiprocessing starts with spawn or forkserver methods.",
-                UserWarning,
-            )
+                UserWarning)
         self.storage_client = storage_client
         self.project_name = project_name
         self.bucket_name = bucket_name

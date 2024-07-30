@@ -39,16 +39,12 @@ class ListingTestCase(unittest.TestCase):
         client = fake_gcs.Client()
 
         self.want_objects = [("objectA", 1), ("objectB", 2)]
-        for name, length in self.want_objects:
+        for (name, length) in self.want_objects:
             client.bucket(self.bucket_name)._add_file(
                 self.config.prefix + name, length * "0")
-        client._set_perm(
-            [
-                dataflux_mapstyle_dataset.CREATE,
-                dataflux_mapstyle_dataset.DELETE
-            ],
-            self.bucket_name,
-        )
+        client._set_perm([
+            dataflux_mapstyle_dataset.CREATE, dataflux_mapstyle_dataset.DELETE
+        ], self.bucket_name)
         self.storage_client = client
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")

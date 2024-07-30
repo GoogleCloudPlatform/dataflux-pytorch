@@ -26,8 +26,7 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 from torch.utils import data
 
 MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
-    initial=1.0, multiplier=1.5, maximum=30.0
-)
+    initial=1.0, multiplier=1.5, maximum=30.0)
 
 FORK = "fork"
 CREATE = "storage.objects.create"
@@ -73,8 +72,10 @@ class Config:
         max_listing_retries: int = 3,
         threads_per_process: int = 1,
         disable_compose: bool = False,
-        list_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
-        download_retry_config: "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
+        list_retry_config:
+        "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
+        download_retry_config:
+        "google.api_core.retry.retry_unary.Retry" = MODIFIED_RETRY,
     ):
         self.sort_listing_results = sort_listing_results
         self.max_composite_object_size = max_composite_object_size
@@ -124,7 +125,8 @@ class DataFluxMapStyleDataset(data.Dataset):
             None.
         """
         super().__init__()
-        multiprocessing_start = multiprocessing.get_start_method(allow_none=False)
+        multiprocessing_start = multiprocessing.get_start_method(
+            allow_none=False)
         if storage_client is not None and multiprocessing_start != FORK:
             warnings.warn(
                 "Setting the storage client is not fully supported when multiprocessing starts with spawn or forkserver.",
@@ -140,8 +142,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size
-            )
-        )
+            ))
 
         self.objects = self._list_GCS_blobs_with_retry()
 
@@ -155,18 +156,18 @@ class DataFluxMapStyleDataset(data.Dataset):
                 bucket_name=self.bucket_name,
                 object_name=self.objects[idx][0],
                 retry_config=self.config.download_retry_config,
-            )
-        )
+            ))
 
     def __getitems__(self, indices):
         return [
-            self.data_format_fn(bytes_content)
-            for bytes_content in dataflux_core.download.dataflux_download_threaded(
+            self.data_format_fn(bytes_content) for bytes_content in
+            dataflux_core.download.dataflux_download_threaded(
                 project_name=self.project_name,
                 bucket_name=self.bucket_name,
                 objects=[self.objects[idx] for idx in indices],
                 storage_client=self.storage_client,
-                dataflux_download_optimization_params=self.dataflux_download_optimization_params,
+                dataflux_download_optimization_params=self.
+                dataflux_download_optimization_params,
                 threads=self.config.threads_per_process,
                 retry_config=self.config.download_retry_config,
             )
@@ -209,9 +210,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         """Check if the client has permission to create and delete an object."""
         storage_client = self.storage_client
         if not storage_client:
-            storage_client = storage.Client(
-                project=self.project_name,
-            )
+            storage_client = storage.Client(project=self.project_name, )
         dataflux_core.user_agent.add_dataflux_user_agent(storage_client)
 
         required_permission = [CREATE, DELETE]
