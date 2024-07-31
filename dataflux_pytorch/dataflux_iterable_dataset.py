@@ -92,6 +92,22 @@ def data_format_default(data):
     return data
 
 
+def _get_missing_permissions(storage_client: any, bucket_name: str,
+                             project_name: str, required_perm: any):
+    """Returns a list of missing permissions of the client from the required permissions list."""
+    if not storage_client:
+        storage_client = storage.Client(project=project_name)
+    dataflux_core.user_agent.add_dataflux_user_agent(storage_client)
+    bucket = storage_client.bucket(bucket_name)
+
+    try:
+        perm = bucket.test_iam_permissions(required_perm)
+    except Exception as e:
+        logging.exception(f"Error testing permissions: {e}")
+
+    return [p for p in perm if p not in required_perm]
+
+
 class DataFluxIterableDataset(data.IterableDataset):
 
     def __init__(
@@ -132,11 +148,20 @@ class DataFluxIterableDataset(data.IterableDataset):
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
         self.config = config
-        if not self._has_permissions():
-            logging.warning(
-                f"Composed download disabled as permissions to create or delete objects is missing."
-            )
-            self.config.max_composite_object_size = 0
+
+        # If composed download is enabled, check if the client has permissions to create and delete the composed object.
+        if self.config.max_composite_object_size != 0:
+            missing_perm = _get_missing_permissions(
+                storage_client=self.storage_client,
+                bucket_name=self.bucket_name,
+                project_name=self.project_name,
+                required_perm=[CREATE, DELETE])
+            if len(missing_perm) > 0:
+                logging.warning(
+                    f"Composed download disabled as {missing_perm} permissions are missing."
+                )
+                self.config.max_composite_object_size = 0
+
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size
@@ -208,20 +233,3 @@ class DataFluxIterableDataset(data.IterableDataset):
         # raised an exception.
         else:
             raise error
-
-    def _has_permissions(self):
-        """Check if the client has permission to create and delete an object."""
-        storage_client = self.storage_client
-        if not storage_client:
-            storage_client = storage.Client(project=self.project_name, )
-        dataflux_core.user_agent.add_dataflux_user_agent(storage_client)
-
-        required_permission = [CREATE, DELETE]
-        result = []
-        bucket = storage_client.bucket(self.bucket_name)
-
-        try:
-            result = bucket.test_iam_permissions(required_permission)
-        except Exception as e:
-            logging.exception(f"Error testing permissions: {e}")
-        return result == required_permission

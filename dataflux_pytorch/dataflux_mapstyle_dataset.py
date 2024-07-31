@@ -20,6 +20,7 @@ import os
 import warnings
 
 import dataflux_core
+from dataflux_pytorch import dataflux_iterable_dataset
 from google.api_core.client_info import ClientInfo
 from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -137,11 +138,19 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
         self.config = config
-        if not self._has_permissions():
-            logging.warning(
-                f"Composed download disabled as permissions to create or delete objects is missing."
-            )
-            self.config.max_composite_object_size = 0
+        # If composed download is enabled, check if the client has permissions to create and delete the composed object.
+        if self.config.max_composite_object_size != 0:
+            missing_perm = dataflux_iterable_dataset._get_missing_permissions(
+                storage_client=self.storage_client,
+                bucket_name=self.bucket_name,
+                project_name=self.project_name,
+                required_perm=[CREATE, DELETE])
+            if len(missing_perm) > 0:
+                logging.warning(
+                    f"Composed download disabled as {missing_perm} permissions are missing."
+                )
+                self.config.max_composite_object_size = 0
+
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size
@@ -208,20 +217,3 @@ class DataFluxMapStyleDataset(data.Dataset):
         # raised an exception.
         else:
             raise error
-
-    def _has_permissions(self):
-        """Check if the client has permission to create and delete an object."""
-        storage_client = self.storage_client
-        if not storage_client:
-            storage_client = storage.Client(project=self.project_name, )
-        dataflux_core.user_agent.add_dataflux_user_agent(storage_client)
-
-        required_permission = [CREATE, DELETE]
-        result = []
-        bucket = storage_client.bucket(self.bucket_name)
-
-        try:
-            result = bucket.test_iam_permissions(required_permission)
-        except Exception as e:
-            logging.exception(f"Error testing permissions: {e}")
-        return result == required_permission
