@@ -10,6 +10,6 @@ dependencies = [
 ]
 setup(
     name="dataflux-pytorch",
-    packages=find_packages(exclude=["*tests*"]),
+    packages=find_packages(exclude=["*tests*", "*dataflux_client_python"]),
     install_requires=dependencies,
 )
