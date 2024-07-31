@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 dependencies = [
     "torch",
@@ -10,7 +10,7 @@ dependencies = [
 ]
 setup(
     name="dataflux-pytorch",
-    packages=find_packages(exclude=["*tests*"]),
-    package_dir={"dataflux_core": "./dataflux_client_python/dataflux_core"},
+    packages=["dataflux_core", "dataflux_pytorch", "dataflux_pytorch.lightning"],
+    package_dir={"dataflux_core": "./dataflux_client_python"},
     install_requires=dependencies,
 )
