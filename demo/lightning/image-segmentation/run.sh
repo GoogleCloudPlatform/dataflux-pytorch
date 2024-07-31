@@ -17,10 +17,10 @@ set -e
 
 SEED=${1:--1}
 
-IMAGES_PREFIX=gs://dataflux-ray/ray/images
-LABELS_PREFIX=gs://dataflux-ray/ray/labels
+IMAGES_PREFIX=ray/images/
+LABELS_PREFIX=ray/labels/
 GCP_PROJECT=amundson-gke-aiml-demo
-GCS_BUCKET=dataflux-ray
+GCS_BUCKET=dataflux-checkpointing
 
 # start timing
 start=$(date +%s)
