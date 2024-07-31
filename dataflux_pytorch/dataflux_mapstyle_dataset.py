@@ -20,7 +20,7 @@ import os
 import warnings
 
 import dataflux_core
-from dataflux_pytorch import dataflux_iterable_dataset
+from dataflux_pytorch._helper import _get_missing_permissions
 from google.api_core.client_info import ClientInfo
 from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -140,7 +140,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.config = config
         # If composed download is enabled, check if the client has permissions to create and delete the composed object.
         if self.config.max_composite_object_size != 0:
-            missing_perm = dataflux_iterable_dataset._get_missing_permissions(
+            missing_perm = _get_missing_permissions(
                 storage_client=self.storage_client,
                 bucket_name=self.bucket_name,
                 project_name=self.project_name,

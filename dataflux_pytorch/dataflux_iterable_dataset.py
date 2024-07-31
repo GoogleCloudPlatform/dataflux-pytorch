@@ -19,6 +19,7 @@ import math
 import multiprocessing
 import os
 import warnings
+from dataflux_pytorch._helper import _get_missing_permissions
 
 import dataflux_core
 from google.api_core.client_info import ClientInfo
@@ -90,22 +91,6 @@ class Config:
 
 def data_format_default(data):
     return data
-
-
-def _get_missing_permissions(storage_client: any, bucket_name: str,
-                             project_name: str, required_perm: any):
-    """Returns a list of missing permissions of the client from the required permissions list."""
-    if not storage_client:
-        storage_client = storage.Client(project=project_name)
-    dataflux_core.user_agent.add_dataflux_user_agent(storage_client)
-    bucket = storage_client.bucket(bucket_name)
-
-    try:
-        perm = bucket.test_iam_permissions(required_perm)
-    except Exception as e:
-        logging.exception(f"Error testing permissions: {e}")
-
-    return [p for p in required_perm if p not in perm]
 
 
 class DataFluxIterableDataset(data.IterableDataset):
