@@ -295,49 +295,38 @@ class ListingTestCase(unittest.TestCase):
         """Tests the DataFluxIterableDataset returns pickling error for passing-in client when multiprcessing start method is spawn."""
         # Act.
         client = storage.Client(project=self.project_name)
+        config = self.config
+        config.max_composite_object_size = 0
         if (multiprocessing.get_start_method(allow_none=False)
                 != dataflux_mapstyle_dataset.FORK):
             with self.assertRaises(pickle.PicklingError):
                 dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
                     project_name=self.project_name,
                     bucket_name=self.bucket_name,
-                    config=self.config,
+                    config=config,
                     data_format_fn=self.data_format_fn,
                     storage_client=client,
                 )
 
-    def test_init_sets_perm_false(self):
-        """Tests that the compose download is disabled when create and delete permissions are missing."""
-
+    def test_init_without_perm(self):
+        """Tests that the DataFluxIterableDataset returns permission error when create and delete permissions are missing."""
         # Arrange.
-        self.storage_client._set_perm([], self.bucket_name)
-
-        # Act.
-        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-            project_name=self.project_name,
-            bucket_name=self.bucket_name,
-            config=self.config,
-            data_format_fn=self.data_format_fn,
-            storage_client=self.storage_client,
-        )
+        client = self.storage_client
+        client._set_perm([], self.bucket_name)
 
         # Since required permission is missing, max_composite_object_size is 0.
-        self.assertEqual(
-            ds.config.max_composite_object_size,
-            0,
-            f"got max_composite_object_size for compose download{ds.config.max_composite_object_size}, want 0",
-        )
+        with self.assertRaises(PermissionError):
+            ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+                project_name=self.project_name,
+                bucket_name=self.bucket_name,
+                config=self.config,
+                data_format_fn=self.data_format_fn,
+                storage_client=client,
+            )
 
-    def test_init_sets_perm_true(self):
+    def test_init_with_perm(self):
         """Tests that the compose download is not disabled when create and delete permissions exists."""
         # Arrange.
-        self.storage_client._set_perm(
-            [
-                dataflux_mapstyle_dataset.CREATE,
-                dataflux_mapstyle_dataset.DELETE
-            ],
-            self.bucket_name,
-        )
         want_size = self.config.max_composite_object_size
 
         # Act.

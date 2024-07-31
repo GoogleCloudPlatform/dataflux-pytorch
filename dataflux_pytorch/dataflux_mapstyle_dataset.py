@@ -145,11 +145,10 @@ class DataFluxMapStyleDataset(data.Dataset):
                 bucket_name=self.bucket_name,
                 project_name=self.project_name,
                 required_perm=[CREATE, DELETE])
-            if len(missing_perm) > 0:
-                logging.warning(
-                    f"Composed download disabled as {missing_perm} permissions are missing."
+            if missing_perm and len(missing_perm) > 0:
+                raise PermissionError(
+                    f"Missing permissions {', '.join(missing_perm)} for composed download. To disable composed download set config.disable_compose=True or to enable composed download, grant missing permissions."
                 )
-                self.config.max_composite_object_size = 0
 
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
