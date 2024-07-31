@@ -1,0 +1,110 @@
+# Use Static provisioning to define a PV for Cloud Storage buckets.
+# https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/cloud-storage-fuse-csi-driver#provision-static.
+apiVersion: jobset.x-k8s.io/v1alpha2
+kind: JobSet
+metadata:
+  name: jd-multinode-6
+  labels:
+    kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
+  annotations:
+    alpha.jobset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-nodepool # 1:1 job replica to node pool assignment
+spec:
+  failurePolicy:
+    maxRestarts: 0
+  replicatedJobs:
+    - name: slice-job
+      replicas: 1
+      template:
+        spec:
+          parallelism: 2    # Equal to the number of VMs per slice
+          completions: 2    # Same as the above.
+          backoffLimit: 0   # When any pod fails, the job is failed
+          template:
+            spec:
+              # initContainers:
+              # # Metadata Prefetch native sidecar.
+              # - name: metadata-prefetch-container
+              #   image: ubuntu:22.04
+              #   restartPolicy: Always
+              #   command:
+              #   - "/bin/sh"
+              #   - "-c"
+              #   - |
+              #      echo "Starting ls on the bucket..."
+              #      # Redirect output to /dev/null to prevent storage of output.
+              #      echo "Metadata prefetch for /mnt/gcsfuse..." && ls -R /mnt/gcsfuse > /dev/null && echo "Metadata prefetch for /mnt/gcsfuse complete." &
+              #      tail -f /dev/null
+              #   securityContext:
+              #     allowPrivilegeEscalation: false
+              #     capabilities:
+              #       drop:
+              #       - ALL
+              #     readOnlyRootFilesystem: true
+              #     runAsGroup: 65534
+              #     runAsNonRoot: true
+              #     runAsUser: 65534
+              #     seccompProfile:
+              #       type: RuntimeDefault
+              #   volumeMounts:
+              #   - name: gcs-pvc
+              #     mountPath: /mnt/gcsfuse
+
+              schedulerName: default-scheduler
+              restartPolicy: Never
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: cloud.google.com/gke-nodepool
+                        operator: NotIn
+                        values:
+                        - default-pool
+
+              nodeSelector:
+                cloud.google.com/gke-ephemeral-storage-local-ssd: "true"
+                
+              priorityClassName: medium
+              hostNetwork: true
+              dnsPolicy: ClusterFirstWithHostNet
+              terminationGracePeriodSeconds: 30
+              containers:
+              - name: workload-cpu
+                image: gcr.io/gcs-tess/jd-lightning-multinode
+                
+                env: 
+                - name: REPLICATED_JOB_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
+                - name: JOB_INDEX
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
+                - name: JOB_COMPLETION_INDEX
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+                - name: PROCESSES_IN_JOB
+                  value: "2"
+                - name: WORLD_SIZE
+                  value: "2"
+                
+                - name: JOBSET_NAME
+                  value: "jd-multinode-6"
+                - name: COORDINATOR_ADDRESS
+                  value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
+                - name: MASTER_PORT
+                  value: "1234"
+  
+                ports:
+                - containerPort: 8471
+                - containerPort: 8080
+                - containerPort: 1234
+                securityContext: {}
+                  # privileged: true
+                command:
+                - bash
+                - -c
+                - |
+                  python3 -u /app/model.py --project=gcs-tess --bucket=mirvine-benchmark-central1 --prefix=fineweb/sample/10BT/01 --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=1;
