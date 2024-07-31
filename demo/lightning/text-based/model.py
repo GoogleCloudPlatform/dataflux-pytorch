@@ -18,6 +18,9 @@ import argparse
 import logging
 import torch
 import math
+import os
+import socket
+import time
 
 import lightning.pytorch as pl
 import pyarrow as pa
@@ -37,6 +40,44 @@ from transformers import AutoTokenizer
 # python3 ./model.py --project=test-project --bucket=my-fineweb-data --batch-size=9 --prefix="fineweb/sample/10BT"
 
 
+def configure_master_addr():
+    """Get coordinator IP Address with retries"""
+    coordinator_address = ""
+    coordinator_ip_address = ""
+    if os.environ.get("COORDINATOR_ADDRESS") is not None:
+        coordinator_address = os.environ.get("COORDINATOR_ADDRESS")
+        coordinator_found = False
+        lookup_attempt = 1
+        max_coordinator_lookups = 50
+        while not coordinator_found and lookup_attempt <= max_coordinator_lookups:
+            try:
+                coordinator_ip_address = socket.gethostbyname(
+                    coordinator_address)
+                coordinator_found = True
+            except socket.gaierror:
+                print(
+                    f"Failed to recognize coordinator address {coordinator_address} on"
+                    f" attempt {lookup_attempt}, retrying...")
+                lookup_attempt += 1
+                time.sleep(5)
+    print(f"Coordinator IP address: {coordinator_ip_address}")
+    os.environ["MASTER_ADDR"] = str(coordinator_ip_address)
+
+
+def init_processes():
+    """Initializes the distributed environment."""
+    # Get the necessary environment variables from the GKE environment
+    world_size = int(os.environ["WORLD_SIZE"])
+
+    job_index = int(os.environ.get("JOB_INDEX"))
+    job_completion_index = int(os.environ.get("JOB_COMPLETION_INDEX"))
+    processes_in_job = int(os.environ.get("PROCESSES_IN_JOB"))
+    rank = job_index * processes_in_job + job_completion_index
+    os.environ["NODE_RANK"] = str(rank)
+
+    configure_master_addr()
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", type=str)
@@ -47,6 +88,7 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--limit-train-batches", type=int, default=None)
     parser.add_argument("--log-level", type=str, default="ERROR")
+    parser.add_argument("--num-nodes", type=int, default=1)
     return parser.parse_args()
 
 
@@ -140,6 +182,8 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
         self.batch_size = batch_size
         self.current_file = None
         self.columns = columns
+        self.world_size = int(os.environ["WORLD_SIZE"])
+        self.rank = int(os.environ["NODE_RANK"])
         """
         A sublcass of the DatafluxIterableDataset, this dataset allows for the reading and batch
         distribution of a parquet file, where batch-size corresponds to rows of the parquet table.
@@ -151,12 +195,15 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
         individual parquet files.
         """
         worker_info = data.get_worker_info()
+        files_per_node = math.ceil(len(self.objects) / self.world_size)
+        start_point = self.rank * files_per_node
+        end_point = start_point + files_per_node
         if worker_info is None:
             print("Single-process data loading detected", flush=True)
             for bytes_content in df_iter.dataflux_core.download.dataflux_download_lazy(
                     project_name=self.project_name,
                     bucket_name=self.bucket_name,
-                    objects=self.objects,
+                    objects=self.objects[start_point:end_point],
                     storage_client=self.storage_client,
                     dataflux_download_optimization_params=self.
                     dataflux_download_optimization_params,
@@ -169,11 +216,13 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
         else:
             # Multi-process data loading. Split the workload among workers.
             # Ref: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset.
+            # For the purpose of this example, this split is only performed at the file level.
+            # This means that (num_nodes * num_workers) should be less than or equal to filecount.
             per_worker = int(
-                math.ceil(len(self.objects) / float(worker_info.num_workers)))
+                math.ceil(files_per_node / float(worker_info.num_workers)))
             worker_id = worker_info.id
-            start = worker_id * per_worker
-            end = min(start + per_worker, len(self.objects))
+            start = worker_id * per_worker + start_point
+            end = min(start + per_worker, end_point)
             for bytes_content in df_iter.dataflux_core.download.dataflux_download_lazy(
                     project_name=self.project_name,
                     bucket_name=self.bucket_name,
@@ -192,6 +241,8 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
 def main():
     args = parse_args()
     logging.basicConfig(level=args.log_level)
+    # Set environment variables for distributed workload.
+    init_processes()
     # The prefix passed here determines which parquet files are read from our bucket.
     config = df_iter.Config(prefix=args.prefix)
     my_model = TextDemoModel(encoder, decoder)
@@ -220,8 +271,15 @@ def main():
 
     # Construct the lightning trainer and run the fit with our model and custom dataset.
     # Note that limit_train_batches specifies how much of the dataset to train each epoch.
-    trainer = pl.Trainer(limit_train_batches=args.limit_train_batches,
-                         max_epochs=args.epochs)
+    #import pdb
+    #pdb.set_trace()
+    trainer = pl.Trainer(accelerator='cpu',
+                         devices=1,
+                         strategy='ddp',
+                         limit_train_batches=args.limit_train_batches,
+                         max_epochs=args.epochs,
+                         num_nodes=args.num_nodes)
+    #num_processes=args.num_nodes)
     trainer.fit(model=my_model, train_dataloaders=data_loader)
 
 
