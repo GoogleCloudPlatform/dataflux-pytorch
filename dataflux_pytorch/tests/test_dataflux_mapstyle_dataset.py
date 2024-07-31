@@ -325,7 +325,7 @@ class ListingTestCase(unittest.TestCase):
         self.assertEqual(
             ds.config.max_composite_object_size,
             0,
-            f"got max_composite_object_size for compose download{ds.config.max_composite_object_size}, want {0}",
+            f"got max_composite_object_size for compose download{ds.config.max_composite_object_size}, want 0",
         )
 
     def test_init_sets_perm_true(self):
@@ -353,7 +353,7 @@ class ListingTestCase(unittest.TestCase):
         self.assertEqual(
             ds.config.max_composite_object_size,
             want_size,
-            f"got max_composite_object_size for compose download{ds.config.max_composite_object_size}, want {0}",
+            f"got max_composite_object_size for compose download{ds.config.max_composite_object_size}, want {want_size}",
         )
 
 

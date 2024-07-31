@@ -138,6 +138,9 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.data_format_fn = data_format_fn
         self.config = config
         if not self._has_permissions():
+            logging.info(
+                f"Composed download was disabled as permissions to create or delete objects is missing."
+            )
             self.config.max_composite_object_size = 0
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
