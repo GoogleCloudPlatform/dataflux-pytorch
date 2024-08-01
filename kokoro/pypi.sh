@@ -44,8 +44,9 @@ function install_requirements() {
     echo Installing python3-pip.
     sudo apt-get -y install python3-pip
 
-    echo Installing required dependencies.
+    echo Upgrade pip.
     python3 -m pip install --upgrade pip
+    echo Installing project from pypi
     pip install gcs-torch-dataflux
 }
 
