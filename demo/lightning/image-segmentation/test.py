@@ -6,6 +6,7 @@ import time
 from typing import Any, Dict, Optional
 
 import torch
+import functools
 from dataflux_core import user_agent
 from google.cloud import storage
 from lightning.pytorch.plugins.io import CheckpointIO
@@ -17,18 +18,44 @@ from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.distributed.fsdp import ShardingStrategy, BackwardPrefetch
 from transformers.models.gpt_neox.modeling_gpt_neox import GPTNeoXLayer
 from ray.train import RunConfig, CheckpointConfig
+from ray.train.lightning import RayLightningEnvironment, RayTrainReportCallback, prepare_trainer
 import os
 import time
 from typing import Tuple
 
 import torch
 from lightning import Trainer
-from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos import Transformer, WikiText2
-from lightning.pytorch.plugins.io import TorchCheckpointIO
 from torch import Tensor
-from torch.utils.data import DataLoader
+import pandas as pd
+from datasets import load_dataset
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
+class DollyV2Model(pl.LightningModule):
+    def __init__(self, lr=2e-5, eps=1e-8):
+        super().__init__()
+        self.save_hyperparameters()
+        self.lr = lr
+        self.eps = eps
+        self.model = AutoModelForCausalLM.from_pretrained("databricks/dolly-v2-7b")
+
+    def forward(self, batch):
+        outputs = self.model(
+            batch["input_ids"],
+            attention_mask=batch["attention_mask"],
+            labels=batch["labels"]
+        )
+        return outputs.loss
+
+    def training_step(self, batch, batch_idx):
+        loss = self.forward(batch)
+        self.log("train_loss", loss, prog_bar=True, on_step=True)
+        return loss
+
+    def configure_optimizers(self):
+        if self.global_rank == 0:
+            print(self.trainer.model)
+        return torch.optim.AdamW(self.trainer.model.parameters(), lr=self.lr, eps=self.eps)
 
 class DatafluxLightningCheckpoint(CheckpointIO):
     """A checkpoint manager for GCS using the :class:'CheckpointIO' interface"""
@@ -97,77 +124,83 @@ class DatafluxLightningCheckpoint(CheckpointIO):
     def teardown(self, ) -> None:
         pass
 
-class LightningTransformer(LightningModule):
+def split_text(batch: pd.DataFrame) -> pd.DataFrame:
+    text = list(batch["text"])
+    flat_text = "".join(text)
+    split_text = [
+        x.strip()
+        for x in flat_text.split("\n")
+        if x.strip() and not x.strip()[-1] == ":"
+    ]
+    return pd.DataFrame(split_text, columns=["text"])
 
-    def __init__(self, vocab_size: int = 33278, nlayers: int = 100) -> None:
-        super().__init__()
-        self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
 
-    def forward(self, inputs: Tensor, target: Tensor) -> Tensor:
-        return self.model(inputs, target)
-
-    def training_step(self, batch: Tuple[Tensor, Tensor],
-                      batch_idx: int) -> Tensor:
-        inputs, target = batch
-        output = self(inputs, target)
-        loss = torch.nn.functional.nll_loss(output, target.view(-1))
-        return loss
-
-    def configure_optimizers(self) -> torch.optim.Optimizer:
-        return torch.optim.SGD(self.model.parameters(), lr=0.1)
-
-    def prepare_data(self) -> None:
-        WikiText2(download=True)
-
-    def train_dataloader(self) -> DataLoader:
-        dataset = WikiText2()
-        return DataLoader(dataset)
+def tokenize(batch: pd.DataFrame) -> dict:
+    tokenizer = AutoTokenizer.from_pretrained("databricks/dolly-v2-7b", padding_side="left")
+    tokenizer.pad_token = tokenizer.eos_token
+    ret = tokenizer(
+        list(batch["text"]),
+        truncation=True,
+        max_length=256,
+        padding="max_length",
+        return_tensors="np",
+    )
+    ret["labels"] = ret["input_ids"].copy()
+    return dict(ret)
 
 def train_func(config):
-    dataset = WikiText2()
-    dataloader = DataLoader(dataset, num_workers=1)
-    model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=100)
+    lr = 2e-5
+    eps = 1e-8
+    batch_size_per_worker = 10
+    model = DollyV2Model(lr=lr, eps=eps)
     strategy = config["strategy"]
     ckpt = DatafluxLightningCheckpoint(project_name="amundson-gke-aiml-demo",
                                            bucket_name="dataflux-checkpointing")
-    checkpoint_callback = ModelCheckpoint(
-        save_top_k=-1,
-        every_n_train_steps=1,
-        filename="checkpoint-{epoch:02d}-{step:02d}",
-        enable_version_counter=True,
-    )
+
+    train_ds = ray.train.get_dataset_shard("train")
+    train_dataloader = train_ds.iter_torch_batches(batch_size=batch_size_per_worker)
+
     trainer = Trainer(
-        default_root_dir="gs://dataflux-checkpointing/trail5",
+        default_root_dir="gs://dataflux-checkpointing/trail3",
         max_epochs=config["flags"].epochs,
         devices="auto",
         max_steps=1,
         accelerator="auto",
         strategy=strategy,
         plugins=[ray.train.lightning.RayLightningEnvironment(),ckpt],
+        callbacks=[RayTrainReportCallback()],
         enable_checkpointing=True,
-        callbacks=[checkpoint_callback],
-
     )
-    trainer.fit(model, dataloader)
+    trainer = prepare_trainer(trainer)
+    trainer.fit(model, train_dataloaders=train_dataloader)
 
     start = time.time()
     for i in range(2):
-        trainer.save_checkpoint(os.path.join("gs://dataflux-checkpointing/trail5/",f'ckpt_{i}.ckpt'))
+        trainer.save_checkpoint(os.path.join("gs://dataflux-checkpointing/trail4/",f'ckpt_{i}.ckpt'))
     end = time.time()
     print("Average time to save one checkpoint: " + str((end-start)/2) + " seconds")
 
 
 if __name__ == "__main__":
+    hf_dataset = load_dataset("tiny_shakespeare")
+    train_ds = ray.data.from_huggingface(hf_dataset["train"])
+    train_ds = train_ds.map_batches(split_text, batch_format="pandas")
+    train_ds.take(10)
+    train_ds = train_ds.map_batches(tokenize, batch_format="pandas")
     run_config = RunConfig(
         name="test-run1",
         storage_path="gs://dataflux-checkpointing",
         checkpoint_config=CheckpointConfig(),
     )
-
+    auto_wrap_policy = functools.partial(
+        transformer_auto_wrap_policy,
+        transformer_layer_cls = {GPTNeoXLayer}
+    )
     fsdp_strategy = RayFSDPStrategy(
         sharding_strategy=ShardingStrategy.FULL_SHARD,
         backward_prefetch=BackwardPrefetch.BACKWARD_PRE,
         forward_prefetch=True,
+        auto_wrap_policy=auto_wrap_policy,
         limit_all_gathers=True,
         activation_checkpointing=[GPTNeoXLayer],
     )
@@ -184,6 +217,7 @@ if __name__ == "__main__":
         scaling_config=scaling_config,
         run_config=run_config,
         train_loop_config=config,
+        datasets={"train": train_ds},
     )
     trainer.fit()
 
