@@ -1,0 +1,34 @@
+name: Continuous Tests
+
+on:
+  push:
+    branches: [ amaloo/pypi-tests ]
+  pull_request:
+    branches: [ amaloo/pypi-tests ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8' 
+
+     - name: Create virtual environment
+      run: python3 -m venv venv
+
+    - name: Activate virtual environment
+      shell: bash
+      run: source venv/bin/activate 
+
+    - name: Install dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+
+        pip install gcs-torch-dataflux
+    - name: Run tests
+      run: |
+        pytest dataflux_pytorch/tests -vv --junit-xml=sponge_log.xml --log-cli-level=DEBUG
