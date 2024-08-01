@@ -18,7 +18,7 @@
 set -e
 
 # Code under repo is checked out to this directory.
-# cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
+cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
 
 function setup_virtual_envs() {
     sudo apt-get -y update
@@ -29,12 +29,22 @@ function setup_virtual_envs() {
     source venv/bin/activate
 }
 
+function run_git_commands() {
+    echo Setting git permissions.
+    git config --global --add safe.directory "*" 
+
+    echo Installing git submodules.
+    git submodule init
+
+    echo Updating git submodules.
+    git submodule update
+}
+
 function install_requirements() {
     echo Installing python3-pip.
     sudo apt-get -y install python3-pip
 
     echo Installing required dependencies.
-    pip install .
     python3 -m pip install --upgrade pip
     pip install gcs-torch-dataflux
 }
@@ -45,5 +55,6 @@ function run_unit_tests() {
 }
 
 setup_virtual_envs
+run_git_commands
 install_requirements
 run_unit_tests
