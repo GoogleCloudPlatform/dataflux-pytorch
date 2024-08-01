@@ -27,4 +27,4 @@ jobs:
           pip install gcs-torch-dataflux
       - name: Run tests
         run: |
-          pytest dataflux_pytorch/tests -vv --junit-xml=sponge_log.xml --log-cli-level=DEBUG
+          pytest
