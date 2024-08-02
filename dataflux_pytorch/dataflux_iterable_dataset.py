@@ -19,6 +19,7 @@ import math
 import multiprocessing
 import os
 import warnings
+from dataflux_pytorch._helper import _get_missing_permissions
 
 import dataflux_core
 from google.api_core.client_info import ClientInfo
@@ -30,6 +31,8 @@ MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
     initial=1.0, multiplier=1.5, maximum=30.0)
 
 FORK = "fork"
+CREATE = "storage.objects.create"
+DELETE = "storage.objects.delete"
 
 
 class Config:
@@ -130,6 +133,19 @@ class DataFluxIterableDataset(data.IterableDataset):
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
         self.config = config
+
+        # If composed download is enabled, check if the client has permissions to create and delete the composed object.
+        if self.config.max_composite_object_size != 0:
+            missing_perm = _get_missing_permissions(
+                storage_client=self.storage_client,
+                bucket_name=self.bucket_name,
+                project_name=self.project_name,
+                required_perm=[CREATE, DELETE])
+            if missing_perm and len(missing_perm) > 0:
+                raise PermissionError(
+                    f"Missing permissions {', '.join(missing_perm)} for composed download. To disable composed download set config.disable_compose=True. To enable composed download, grant missing permissions."
+                )
+
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size

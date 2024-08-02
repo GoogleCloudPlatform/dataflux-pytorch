@@ -41,8 +41,15 @@ class IterableDatasetTestCase(unittest.TestCase):
         client = fake_gcs.Client()
 
         self.want_objects = [("objectA", 1), ("objectB", 2)]
-        for (name, length) in self.want_objects:
-            client.bucket(self.bucket_name)._add_file(name, length * '0')
+        for name, length in self.want_objects:
+            client.bucket(self.bucket_name)._add_file(name, length * "0")
+        client._set_perm(
+            [
+                dataflux_iterable_dataset.CREATE,
+                dataflux_iterable_dataset.DELETE
+            ],
+            self.bucket_name,
+        )
         self.storage_client = client
 
     @mock.patch("dataflux_pytorch.dataflux_iterable_dataset.dataflux_core")
@@ -316,15 +323,57 @@ class IterableDatasetTestCase(unittest.TestCase):
         """Tests the DataFluxIterableDataset returns pickling error for passing-in client when multiprcessing start method is spawn."""
         # Act.
         client = storage.Client(project=self.project_name)
-        if multiprocessing.get_start_method(allow_none=False) != "fork":
+        config = self.config
+        config.max_composite_object_size = 0
+        if (multiprocessing.get_start_method(allow_none=False)
+                != dataflux_iterable_dataset.FORK):
             with self.assertRaises(pickle.PicklingError):
                 dataflux_iterable_dataset.DataFluxIterableDataset(
                     project_name=self.project_name,
                     bucket_name=self.bucket_name,
-                    config=self.config,
+                    config=config,
                     data_format_fn=self.data_format_fn,
                     storage_client=client,
                 )
+
+    def test_init_without_perm(self):
+        """Tests that the compose download is disabled when create and delete permissions are missing."""
+
+        # Arrange.
+        client = self.storage_client
+        client._set_perm([], self.bucket_name)
+
+        # Since required permission for composed download is missing, raise permission error.
+        with self.assertRaises(PermissionError):
+            ds = dataflux_iterable_dataset.DataFluxIterableDataset(
+                project_name=self.project_name,
+                bucket_name=self.bucket_name,
+                config=self.config,
+                data_format_fn=self.data_format_fn,
+                storage_client=client,
+            )
+
+    def test_init_with_perm(self):
+        """Tests that the compose download is not disabled when create and delete permissions exists."""
+        # Arrange.
+
+        want_size = self.config.max_composite_object_size
+
+        # Act.
+        ds = dataflux_iterable_dataset.DataFluxIterableDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            data_format_fn=self.data_format_fn,
+            storage_client=self.storage_client,
+        )
+
+        # Since required permission exists, max_composite_object_size will not change.
+        self.assertEqual(
+            ds.config.max_composite_object_size,
+            want_size,
+            f"got max_composite_object_size for compose download{ds.config.max_composite_object_size}, want {want_size}",
+        )
 
 
 if __name__ == "__main__":
