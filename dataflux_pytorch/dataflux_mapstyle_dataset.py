@@ -15,17 +15,23 @@
  """
 
 import logging
+import multiprocessing
 import os
+import warnings
 
 import dataflux_core
+from dataflux_pytorch._helper import _get_missing_permissions
 from google.api_core.client_info import ClientInfo
 from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
 from torch.utils import data
 
-MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(300.0).with_delay(initial=1.0,
-                                                               multiplier=1.2,
-                                                               maximum=45.0)
+MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
+    initial=1.0, multiplier=1.5, maximum=30.0)
+
+FORK = "fork"
+CREATE = "storage.objects.create"
+DELETE = "storage.objects.delete"
 
 
 class Config:
@@ -84,6 +90,10 @@ class Config:
         self.download_retry_config = download_retry_config
 
 
+def data_format_default(data):
+    return data
+
+
 class DataFluxMapStyleDataset(data.Dataset):
 
     def __init__(
@@ -91,7 +101,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         project_name,
         bucket_name,
         config=Config(),
-        data_format_fn=lambda data: data,
+        data_format_fn=data_format_default,
         storage_client=None,
     ):
         """Initializes the DataFluxMapStyleDataset.
@@ -116,14 +126,30 @@ class DataFluxMapStyleDataset(data.Dataset):
             None.
         """
         super().__init__()
+        multiprocessing_start = multiprocessing.get_start_method(
+            allow_none=False)
+        if storage_client is not None and multiprocessing_start != FORK:
+            warnings.warn(
+                "Setting the storage client is not fully supported when multiprocessing starts with spawn or forkserver.",
+                UserWarning,
+            )
         self.storage_client = storage_client
-        if not storage_client:
-            self.storage_client = storage.Client(project=project_name, )
-        dataflux_core.user_agent.add_dataflux_user_agent(self.storage_client)
         self.project_name = project_name
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
         self.config = config
+        # If composed download is enabled, check if the client has permissions to create and delete the composed object.
+        if self.config.max_composite_object_size != 0:
+            missing_perm = _get_missing_permissions(
+                storage_client=self.storage_client,
+                bucket_name=self.bucket_name,
+                project_name=self.project_name,
+                required_perm=[CREATE, DELETE])
+            if missing_perm and len(missing_perm) > 0:
+                raise PermissionError(
+                    f"Missing permissions {', '.join(missing_perm)} for composed download. To disable composed download set config.disable_compose=True or to enable composed download, grant missing permissions."
+                )
+
         self.dataflux_download_optimization_params = (
             dataflux_core.download.DataFluxDownloadOptimizationParams(
                 max_composite_object_size=self.config.max_composite_object_size

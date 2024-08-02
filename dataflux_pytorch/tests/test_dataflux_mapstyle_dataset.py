@@ -14,11 +14,14 @@
  limitations under the License.
  """
 
+import pickle
+import multiprocessing
 import unittest
 from unittest import mock
 
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch import dataflux_mapstyle_dataset
+from google.cloud import storage
 
 
 class ListingTestCase(unittest.TestCase):
@@ -38,7 +41,10 @@ class ListingTestCase(unittest.TestCase):
         self.want_objects = [("objectA", 1), ("objectB", 2)]
         for (name, length) in self.want_objects:
             client.bucket(self.bucket_name)._add_file(
-                self.config.prefix + name, length * '0')
+                self.config.prefix + name, length * "0")
+        client._set_perm([
+            dataflux_mapstyle_dataset.CREATE, dataflux_mapstyle_dataset.DELETE
+        ], self.bucket_name)
         self.storage_client = client
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
@@ -284,9 +290,62 @@ class ListingTestCase(unittest.TestCase):
             self.want_objects,
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
-        self.assertTrue(
-            self.storage_client._connection.user_agent.startswith("dataflux"))
+
+    def test_init_with_spawn_multiprocess(self):
+        """Tests the DataFluxIterableDataset returns pickling error for passing-in client when multiprcessing start method is spawn."""
+        # Act.
+        client = storage.Client(project=self.project_name)
+        config = self.config
+        config.max_composite_object_size = 0
+        if (multiprocessing.get_start_method(allow_none=False)
+                != dataflux_mapstyle_dataset.FORK):
+            with self.assertRaises(pickle.PicklingError):
+                dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+                    project_name=self.project_name,
+                    bucket_name=self.bucket_name,
+                    config=config,
+                    data_format_fn=self.data_format_fn,
+                    storage_client=client,
+                )
+
+    def test_init_without_perm(self):
+        """Tests that the DataFluxIterableDataset returns permission error when create and delete permissions are missing."""
+        # Arrange.
+        client = self.storage_client
+        client._set_perm([], self.bucket_name)
+
+        # Since required permission is missing, max_composite_object_size is 0.
+        with self.assertRaises(PermissionError):
+            ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+                project_name=self.project_name,
+                bucket_name=self.bucket_name,
+                config=self.config,
+                data_format_fn=self.data_format_fn,
+                storage_client=client,
+            )
+
+    def test_init_with_perm(self):
+        """Tests that the compose download is not disabled when create and delete permissions exists."""
+        # Arrange.
+        want_size = self.config.max_composite_object_size
+
+        # Act.
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            data_format_fn=self.data_format_fn,
+            storage_client=self.storage_client,
+        )
+
+        # Since required permission exists, max_composite_object_size will not change.
+        self.assertEqual(
+            ds.config.max_composite_object_size,
+            want_size,
+            f"got max_composite_object_size for compose download{ds.config.max_composite_object_size}, want {want_size}",
+        )
 
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")
     unittest.main()
