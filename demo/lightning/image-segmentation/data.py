@@ -22,7 +22,7 @@ from torch.utils.data import RandomSampler
 from torchvision import transforms
 
 from dataflux_pytorch import dataflux_mapstyle_dataset
-from pytorch_loader import DatafluxPytTrain
+from dataset import DatafluxPytTrain
 
 
 class Unet3DDataModule(pl.LightningDataModule):
