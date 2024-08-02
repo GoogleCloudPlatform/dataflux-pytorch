@@ -44,15 +44,13 @@ function install_requirements() {
     echo Installing python3-pip.
     sudo apt-get -y install python3-pip
 
-    echo Upgrade pip.
-    python3 -m pip install --upgrade pip
     echo Installing project from pypi
     pip install gcs-torch-dataflux
 }
 
 function run_integration_tests(){
     echo Running integration tests.
-    python3 -m pytest dataflux_pytorch/integration_tests/integration_test.py -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/integration_tests/sponge_log.xml" --log-cli-level=DEBUG
+    pytest dataflux_pytorch/integration_tests/integration_test.py -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/integration_tests/sponge_log.xml" --log-cli-level=DEBUG
 }
 
 setup_virtual_envs
