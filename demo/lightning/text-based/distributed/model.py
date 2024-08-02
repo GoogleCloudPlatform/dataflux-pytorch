@@ -273,7 +273,7 @@ def main():
     trainer = pl.Trainer(accelerator='cpu',
                          devices=args.devices,
                          strategy=pl.strategies.DDPStrategy(
-                             timeout=datetime.timedelta(minutes=30)),
+                             timeout=datetime.timedelta(minutes=3)),
                          limit_train_batches=args.limit_train_batches,
                          max_epochs=args.epochs,
                          num_nodes=args.num_nodes)

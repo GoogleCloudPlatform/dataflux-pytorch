@@ -1,6 +1,4 @@
 torch
-dataflux
-pytorch-lightning
 gcs-torch-dataflux
 transformers
 pyarrow
