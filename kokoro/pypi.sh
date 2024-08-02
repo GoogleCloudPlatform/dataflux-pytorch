@@ -44,12 +44,14 @@ function install_requirements() {
     echo Installing python3-pip.
     sudo apt-get -y install python3-pip
 
-    echo Installing project from pypi
+    echo Installing project from PyPI.
     pip install gcs-torch-dataflux
 }
 
 function run_integration_tests(){
-    echo Running integration tests.
+    echo Running integration tests on PyPI version.
+    # NOTE: Using pytest command ensures tests run against the installed PyPI package.
+    # On adding `python3 -m` to the command, the test will run on the local version.
     pytest dataflux_pytorch/integration_tests/integration_test.py -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/integration_tests/sponge_log.xml" --log-cli-level=DEBUG
 }
 
