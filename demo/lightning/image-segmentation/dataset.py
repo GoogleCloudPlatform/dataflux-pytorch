@@ -16,7 +16,6 @@
 
 import io
 import random
-import dataflux_core
 import numpy as np
 import scipy.ndimage
 from google.cloud import storage
@@ -64,18 +63,18 @@ class DatafluxPytTrain(Dataset):
         )
 
     def __len__(self):
-        return len(self.images)
+        return len(self.images_in_bytes)
 
     def __getitem__(self, idx):
         image = np.load(
             io.BytesIO(
-                self.images_in_bytes[idx],
+                self.images_in_bytes.objects[idx],
             ),
         )
 
         label = np.load(
             io.BytesIO(
-                self.labels_in_bytes[idx],
+                self.labels_in_bytes.objects[idx],
             ),
         )
 
@@ -85,12 +84,11 @@ class DatafluxPytTrain(Dataset):
         return data["image"], data["label"]
 
     def __getitems__(self, indices):
-        images_in_bytes_batch = self.images_in_bytes[indices[0]:indices[-1]+1]
-
-        labels_in_bytes_batch = self.labels_in_bytes[indices[0]:indices[-1]+1]
+        images_in_bytes_batch = self.images_in_bytes.__getitems__(indices)
+        labels_in_bytes_batch = self.labels_in_bytes.__getitems__(indices)
 
         res = []
-        for i in range(len(self.images_in_bytes_batch)):
+        for i in range(len(images_in_bytes_batch)):
             data = {
                 "image": np.load(io.BytesIO(images_in_bytes_batch[i])),
                 "label": np.load(io.BytesIO(labels_in_bytes_batch[i])),
