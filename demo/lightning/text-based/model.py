@@ -15,8 +15,8 @@
  """
 
 import argparse
+import datetime
 import logging
-import torch
 import math
 import os
 import socket
@@ -25,12 +25,13 @@ import time
 import lightning.pytorch as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
+import torch
+from torch import Tensor, nn, optim, utils
+from torch.nn.functional import pad
+from torch.utils import data
+from transformers import AutoTokenizer
 
 from dataflux_pytorch import dataflux_iterable_dataset as df_iter
-from torch import optim, nn, utils, Tensor
-from torch.utils import data
-from torch.nn.functional import pad
-from transformers import AutoTokenizer
 
 # This demo was built around the huggingface fineweb dataset.
 # Details of the dataset can be found at https://huggingface.co/datasets/HuggingFaceFW/fineweb/tree/main/sample/10BT
@@ -148,7 +149,11 @@ class TextDemoModel(pl.LightningModule):
         x_hat = self.decoder(z)
         loss = nn.functional.mse_loss(x_hat, x)
         # Logging to TensorBoard (if installed) by default.
-        self.log("train_loss", loss)
+        self.log("train_loss",
+                 loss,
+                 on_step=True,
+                 on_epoch=True,
+                 sync_dist=False)
         return loss
 
 
@@ -176,14 +181,14 @@ def format_data(raw_bytes):
 
 class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
 
-    def __init__(self, columns, batch_size, *args, **kwargs):
+    def __init__(self, columns, batch_size, global_rank, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.columns = columns
         self.batch_size = batch_size
         self.current_file = None
         self.columns = columns
         self.world_size = int(os.environ["WORLD_SIZE"])
-        self.rank = int(os.environ["NODE_RANK"])
+        self.rank = global_rank
         """
         A sublcass of the DatafluxIterableDataset, this dataset allows for the reading and batch
         distribution of a parquet file, where batch-size corresponds to rows of the parquet table.
@@ -223,6 +228,9 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
             worker_id = worker_info.id
             start = worker_id * per_worker + start_point
             end = min(start + per_worker, end_point)
+            logging.info(
+                f"worker {self.rank}.{worker_id} will process {per_worker} files: {start} - {end}"
+            )
             for bytes_content in df_iter.dataflux_core.download.dataflux_download_lazy(
                     project_name=self.project_name,
                     bucket_name=self.bucket_name,
@@ -244,9 +252,26 @@ def main():
     # Set environment variables for distributed workload.
     init_processes()
     # The prefix passed here determines which parquet files are read from our bucket.
-    config = df_iter.Config(prefix=args.prefix)
+    config = df_iter.Config(prefix=args.prefix,
+                            num_processes=1,
+                            sort_listing_results=True)
     my_model = TextDemoModel(encoder, decoder)
     bsize = args.batch_size
+
+    # Construct the lightning trainer and run the fit with our model and custom dataset.
+    # Note that limit_train_batches specifies how much of the dataset to train each epoch.
+    #import pdb
+    #pdb.set_trace()
+    trainer = pl.Trainer(
+        accelerator='cpu',
+        devices=10,
+        strategy=pl.strategies.DDPStrategy(timeout=datetime.timedelta(
+            minutes=1)),
+        limit_train_batches=args.limit_train_batches,
+        max_epochs=args.epochs,
+        num_nodes=args.num_nodes,
+        enable_checkpointing=True,
+    )
 
     # Construct our custom dataflux dataset, providing the batch_size at this time to ensure proper
     # sub-processing of each parquet file.
@@ -257,6 +282,7 @@ def main():
         bucket_name=args.bucket,
         config=config,
         data_format_fn=format_data,
+        global_rank=trainer.global_rank,
     )
 
     # Once our custom dataset is defined, it can be provided like any other dataset as an argument
@@ -269,16 +295,6 @@ def main():
         pin_memory=True,
     )
 
-    # Construct the lightning trainer and run the fit with our model and custom dataset.
-    # Note that limit_train_batches specifies how much of the dataset to train each epoch.
-    #import pdb
-    #pdb.set_trace()
-    trainer = pl.Trainer(accelerator='cpu',
-                         devices=1,
-                         strategy='ddp',
-                         limit_train_batches=args.limit_train_batches,
-                         max_epochs=args.epochs,
-                         num_nodes=args.num_nodes)
     #num_processes=args.num_nodes)
     trainer.fit(model=my_model, train_dataloaders=data_loader)
 

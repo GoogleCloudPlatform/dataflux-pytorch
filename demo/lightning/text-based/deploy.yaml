@@ -3,7 +3,7 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: jd-multinode-6
+  name: mirvine-multinode-2
   labels:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
@@ -86,12 +86,12 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "2"
+                  value: "1"
                 - name: WORLD_SIZE
                   value: "2"
                 
                 - name: JOBSET_NAME
-                  value: "jd-multinode-6"
+                  value: "mirvine-multinode-2"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
