@@ -3,7 +3,7 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: jd-multinode-6
+  name: my-job-run
   labels:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
@@ -21,46 +21,8 @@ spec:
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             spec:
-              # initContainers:
-              # # Metadata Prefetch native sidecar.
-              # - name: metadata-prefetch-container
-              #   image: ubuntu:22.04
-              #   restartPolicy: Always
-              #   command:
-              #   - "/bin/sh"
-              #   - "-c"
-              #   - |
-              #      echo "Starting ls on the bucket..."
-              #      # Redirect output to /dev/null to prevent storage of output.
-              #      echo "Metadata prefetch for /mnt/gcsfuse..." && ls -R /mnt/gcsfuse > /dev/null && echo "Metadata prefetch for /mnt/gcsfuse complete." &
-              #      tail -f /dev/null
-              #   securityContext:
-              #     allowPrivilegeEscalation: false
-              #     capabilities:
-              #       drop:
-              #       - ALL
-              #     readOnlyRootFilesystem: true
-              #     runAsGroup: 65534
-              #     runAsNonRoot: true
-              #     runAsUser: 65534
-              #     seccompProfile:
-              #       type: RuntimeDefault
-              #   volumeMounts:
-              #   - name: gcs-pvc
-              #     mountPath: /mnt/gcsfuse
-
               schedulerName: default-scheduler
               restartPolicy: Never
-              affinity:
-                nodeAffinity:
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    nodeSelectorTerms:
-                    - matchExpressions:
-                      - key: cloud.google.com/gke-nodepool
-                        operator: NotIn
-                        values:
-                        - default-pool
-
               nodeSelector:
                 cloud.google.com/gke-ephemeral-storage-local-ssd: "true"
                 
@@ -70,7 +32,7 @@ spec:
               terminationGracePeriodSeconds: 30
               containers:
               - name: workload-cpu
-                image: gcr.io/gcs-tess/jd-lightning-multinode
+                image: gcr.io/my-project/my-container
                 
                 env: 
                 - name: REPLICATED_JOB_NAME
@@ -91,7 +53,7 @@ spec:
                   value: "2"
                 
                 - name: JOBSET_NAME
-                  value: "jd-multinode-6"
+                  value: "my-job-run"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
@@ -107,4 +69,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/model.py --project=gcs-tess --bucket=mirvine-benchmark-central1 --prefix=fineweb/sample/10BT/01 --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=1;
+                  python3 -u /app/model.py --project=my-project --bucket=my-bucket --prefix=fineweb/sample/10BT/00 --num-workers=1 --num-nodes=2 --devices=2 --batch-size=128 --epochs=2 --limit-train-batches=10 --log-level=ERROR;

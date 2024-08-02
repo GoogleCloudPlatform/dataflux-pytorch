@@ -15,6 +15,7 @@
  """
 
 import argparse
+import datetime
 import logging
 import torch
 import math
@@ -37,7 +38,7 @@ from transformers import AutoTokenizer
 # This model has not been optimized for performance and is only intended as a demonstration.
 
 # Example execution:
-# python3 ./model.py --project=test-project --bucket=my-fineweb-data --batch-size=9 --prefix="fineweb/sample/10BT"
+# python3 ./model.py --project=my-project --bucket=my-fineweb-data --prefix=fineweb/sample/10BT/00 --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=2 --devices=2 --rank=0 --log-level=INFO --limit-train-batches=10 --local=True
 
 
 def configure_master_addr():
@@ -85,10 +86,15 @@ def parse_args():
     parser.add_argument("--prefix", type=str)
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--num-workers", type=int, default=1)
+    parser.add_argument("--devices", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=100)
+    # For clean demo executions, --limit-train-batches should be set to ensure all
+    # workers process the same batch count.
     parser.add_argument("--limit-train-batches", type=int, default=None)
     parser.add_argument("--log-level", type=str, default="ERROR")
     parser.add_argument("--num-nodes", type=int, default=1)
+    parser.add_argument("--local", type=bool, default=False)
+    parser.add_argument("--rank", type=int, default=0)
     return parser.parse_args()
 
 
@@ -148,7 +154,7 @@ class TextDemoModel(pl.LightningModule):
         x_hat = self.decoder(z)
         loss = nn.functional.mse_loss(x_hat, x)
         # Logging to TensorBoard (if installed) by default.
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, on_epoch=True, sync_dist=True)
         return loss
 
 
@@ -176,14 +182,14 @@ def format_data(raw_bytes):
 
 class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
 
-    def __init__(self, columns, batch_size, *args, **kwargs):
+    def __init__(self, columns, batch_size, rank, world_size, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.columns = columns
         self.batch_size = batch_size
         self.current_file = None
         self.columns = columns
-        self.world_size = int(os.environ["WORLD_SIZE"])
-        self.rank = int(os.environ["NODE_RANK"])
+        self.world_size = world_size
+        self.rank = rank
         """
         A sublcass of the DatafluxIterableDataset, this dataset allows for the reading and batch
         distribution of a parquet file, where batch-size corresponds to rows of the parquet table.
@@ -223,6 +229,9 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
             worker_id = worker_info.id
             start = worker_id * per_worker + start_point
             end = min(start + per_worker, end_point)
+            logging.info(
+                f"-----> Worker {self.rank} downloading {self.objects[start:end]}\n"
+            )
             for bytes_content in df_iter.dataflux_core.download.dataflux_download_lazy(
                     project_name=self.project_name,
                     bucket_name=self.bucket_name,
@@ -241,18 +250,42 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
 def main():
     args = parse_args()
     logging.basicConfig(level=args.log_level)
-    # Set environment variables for distributed workload.
-    init_processes()
+    # If running locally, default to localhost port 1234, and use manually specified rank.
+    if args.local:
+        logging.info(
+            "Executing local configuration. Setting MASTER_ADDR/PORT to localhost:1234"
+        )
+        os.environ["MASTER_ADDR"] = "localhost"
+        os.environ["WORLD_SIZE"] = str(args.num_nodes)
+        os.environ["MASTER_PORT"] = "1234"
+        os.environ["NODE_RANK"] = str(args.rank)
+    else:
+        # Set environment variables for distributed workload.
+        init_processes()
     # The prefix passed here determines which parquet files are read from our bucket.
-    config = df_iter.Config(prefix=args.prefix)
+    # Listing results must be sorted to guarantee each worker gets a different fileset.
+    config = df_iter.Config(prefix=args.prefix, sort_listing_results=True)
     my_model = TextDemoModel(encoder, decoder)
     bsize = args.batch_size
 
+    # Construct the lightning trainer and run the fit with our model and custom dataset.
+    # Note that limit_train_batches specifies how much of the dataset to train each epoch.
+    trainer = pl.Trainer(accelerator='cpu',
+                         devices=args.devices,
+                         strategy=pl.strategies.DDPStrategy(
+                             timeout=datetime.timedelta(minutes=30)),
+                         limit_train_batches=args.limit_train_batches,
+                         max_epochs=args.epochs,
+                         num_nodes=args.num_nodes)
+
     # Construct our custom dataflux dataset, providing the batch_size at this time to ensure proper
-    # sub-processing of each parquet file.
+    # sub-processing of each parquet file. Note that rank must be derived from trainer.global_rank
+    # to ensure both world_size and device_count value are accounted for.
     dataset = ParquetIterableDataset(
         columns=cols,
         batch_size=args.batch_size,
+        rank=trainer.global_rank,
+        world_size=trainer.world_size,
         project_name=args.project,
         bucket_name=args.bucket,
         config=config,
@@ -269,17 +302,6 @@ def main():
         pin_memory=True,
     )
 
-    # Construct the lightning trainer and run the fit with our model and custom dataset.
-    # Note that limit_train_batches specifies how much of the dataset to train each epoch.
-    #import pdb
-    #pdb.set_trace()
-    trainer = pl.Trainer(accelerator='cpu',
-                         devices=1,
-                         strategy='ddp',
-                         limit_train_batches=args.limit_train_batches,
-                         max_epochs=args.epochs,
-                         num_nodes=args.num_nodes)
-    #num_processes=args.num_nodes)
     trainer.fit(model=my_model, train_dataloaders=data_loader)
 
 
