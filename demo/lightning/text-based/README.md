@@ -7,7 +7,7 @@ Please note that these demos are for educational and example purposes only, and 
 The single node exmaple code here can be run on your local workstation with a command such as the following:
 
 ```
-# python3 ./model.py --project=test-project --bucket=my-fineweb-data --batch-size=100 --prefix="fineweb/sample/10BT"
+# python3 ./single-node/model.py --project=<MY-PROJECT> --bucket=<MY-BUCKET> --batch-size=100 --prefix="fineweb/sample/10BT"
 ```
 
 This will perform a simple autoencoder training pass that leverages lightning to skip writing a large volume of boilerplate code.
@@ -17,12 +17,12 @@ The distributed demo provides a simple example of how the DatafluxIterableDatase
 
 To execute the demo-code locally and simulate the use of mulltiple nodes, use the following commands. 
 
-*Note: The number of batches processed by each node must be identicle across all nodes to avoid freezing/deadlock during DDP executions. In the demo this can be guaranteed by providing the `--limit-train-batches` argument with a value less than the minimum batch count for a given node.*
+*Note: The number of batches processed by each process must be identical across all processes to avoid freezing/deadlock during DDP executions. In the demo this can be guaranteed by providing the `--limit-train-batches` argument with a value less than the minimum batch count for a given process.*
 
 ### Single process local execution:
 The following command will execute a single-process DDP strategy execution, where the number of processes is dictated by the `--devices` parameter. For local execution, ensure that the parameter `--local` is set to `True`.
 ```
-python3 model.py --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=1 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
+python3 ./distributed/model.py --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=1 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
 ```
 
 ### Multiprocess local execution:
@@ -30,12 +30,12 @@ To test this code locally with multiple processes (representing multiple nodes),
 
 Execution 1:
 ```
-python3 model.py --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
+python3 ./distributed/model.py --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
 ```
 
-Execution 2 (in a separate shell form execution 1):
+Execution 2 (in a separate shell from execution 1):
 ```
-python3 model.py --rank=1 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
+python3 ./distributed/model.py --rank=1 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
 ```
 
 This will set the demo to communicate across two processes, treating them as individual nodes. They will default to communicating via localhost:1234. Both the `--num-nodes` and `--devices` parameters can be configured together, as Lightning will correctly identify the division of labor across both nodes and devices. This can apply in distributed use-cases where you have multiple GPUs per node across a cluster.
