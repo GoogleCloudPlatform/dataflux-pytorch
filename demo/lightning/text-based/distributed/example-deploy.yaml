@@ -79,4 +79,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/model.py --project=my-project --bucket=my-bucket --prefix=fineweb/sample/10BT/00 --num-workers=1 --num-nodes=2 --devices=2 --batch-size=128 --epochs=2 --limit-train-batches=10 --log-level=ERROR;
+                  python3 -u /app/demo/lightning/text-based/distributed/model.py --project=my-project --bucket=my-bucket --prefix=fineweb/sample/10BT/00 --num-workers=1 --num-nodes=2 --devices=2 --batch-size=128 --epochs=2 --limit-train-batches=10 --log-level=ERROR;

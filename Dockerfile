@@ -8,3 +8,5 @@ WORKDIR /app
 COPY ./ ./
 
 RUN pip install .
+# Install additional requirements for running demos.
+RUN pip install --no-cache-dir -r ./demo/lightning/text-based/distributed/requirements.txt
