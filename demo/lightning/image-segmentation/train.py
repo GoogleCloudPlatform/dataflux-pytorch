@@ -10,7 +10,9 @@ if __name__ == "__main__":
     trainer = pl.Trainer(
         accelerator=flags.accelerator,
         max_epochs=flags.epochs,
-        devices=1,
+        devices=2,
         num_nodes=2,
+        strategy="ddp",
+        limit_train_batches=5,
     )
     trainer.fit(model=model, train_dataloaders=train_data_loader)

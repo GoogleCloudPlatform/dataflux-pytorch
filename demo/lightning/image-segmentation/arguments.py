@@ -37,14 +37,14 @@ PARSER.add_argument("--epochs", dest="epochs", type=int, default=5)
 PARSER.add_argument("--accelerator",
                     dest="accelerator",
                     type=str,
-                    default="gpu")
+                    default="auto")
 PARSER.add_argument("--quality_threshold",
                     dest="quality_threshold",
                     type=float,
                     default=0.908)
 PARSER.add_argument("--ga_steps", dest="ga_steps", type=int, default=1)
 PARSER.add_argument("--warmup_steps", dest="warmup_steps", type=int, default=4)
-PARSER.add_argument("--batch_size", dest="batch_size", type=int, default=2)
+PARSER.add_argument("--batch_size", dest="batch_size", type=int, default=5)
 PARSER.add_argument("--layout",
                     dest="layout",
                     type=str,

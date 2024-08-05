@@ -18,7 +18,6 @@ import io
 import random
 import numpy as np
 import scipy.ndimage
-from google.cloud import storage
 from torch.utils.data import Dataset
 
 from dataflux_pytorch import dataflux_mapstyle_dataset
@@ -30,7 +29,6 @@ class DatafluxPytTrain(Dataset):
         self,
         project_name,
         bucket_name,
-        storage_client=None,
         **kwargs,
     ):
 
