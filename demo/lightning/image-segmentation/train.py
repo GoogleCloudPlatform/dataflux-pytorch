@@ -7,6 +7,10 @@ if __name__ == "__main__":
     flags = PARSER.parse_args()
     model = Unet3DLightning(flags)
     train_data_loader = Unet3DDataModule(flags)
-    trainer = pl.Trainer(accelerator=flags.accelerator,
-                         max_epochs=flags.epochs)
+    trainer = pl.Trainer(
+        accelerator=flags.accelerator,
+        max_epochs=flags.epochs,
+        devices=1,
+        num_nodes=2,
+    )
     trainer.fit(model=model, train_dataloaders=train_data_loader)
