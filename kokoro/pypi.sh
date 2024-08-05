@@ -43,7 +43,7 @@ function run_git_commands() {
 function install_requirements() {
     echo Installing python3-pip.
     sudo apt-get -y install python3-pip
-    
+
     echo Installing pytest.
     pip install pytest
 
