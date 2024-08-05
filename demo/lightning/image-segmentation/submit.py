@@ -7,7 +7,7 @@ job_id = client.submit_job(
     # Path to the local directory that contains the entrypoint file.
     runtime_env={
         "working_dir": "./",
-        "pip": ["torch", "lightning", "torchvision", "tqdm", "scipy", "numpy", "nibabel", "gcsfs", "gcs-torch-dataflux","datasets", "evaluate", "transformers>=4.26.0", "torch>=1.12.0","lightning>=2.0",],
+        "pip": ["torch", "lightning", "torchvision", "tqdm", "scipy", "numpy", "nibabel", "gcsfs", "gcs-torch-dataflux","datasets==2.19.1", "evaluate", "transformers", "fsspec"],
     },
 )
 print(f"""
