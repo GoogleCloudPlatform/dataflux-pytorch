@@ -12,7 +12,7 @@ pip install gcs-torch-dataflux gcsfs
 
 ### Configuration
 
-First ensure you are running within a virtual python enviroment, make sure gcloud config project is set to correct values. Otherwise use the following command to set it 
+First ensure you are running within a virtual python enviroment, make sure gcloud config project is set to correct value. Otherwise use the following command to set it 
 
 ```shell
 gcloud config set project {PROJECT_ID}
