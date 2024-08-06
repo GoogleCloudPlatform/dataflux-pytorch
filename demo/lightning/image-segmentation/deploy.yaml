@@ -28,8 +28,8 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 2    # Equal to the number of VMs per slice
-          completions: 2    # Same as the above.
+          parallelism: 2    # Equal to the number of VMs per slice; must match with WORLD_SIZE
+          completions: 2    # Same as the above; must match with WORLD_SIZE
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             spec:
@@ -78,4 +78,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcp_project=<YOUR-GCP-PROJECT> --images_prefix=<YOUR-IMAGES-PREFIX> --labels_prefix=<YOUR-LABELS-PREFIX> --gcs_bucket=<YOUR-GCS-BUCKET>--num_dataloader_threads=1 --num_devices=1 --num_nodes=2;
+                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcp_project=<YOUR-GCP-PROJECT> --images_prefix=<YOUR-IMAGES-PREFIX> --labels_prefix=<YOUR-LABELS-PREFIX> --gcs_bucket=<YOUR-GCS>--num_dataloader_threads=1 --num_devices=1 --num_nodes=2;
