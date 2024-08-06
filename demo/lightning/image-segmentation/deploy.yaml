@@ -15,7 +15,7 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: dataflux-pytorch-l-multi-node
+  name: dataflux-pytorch-l-multi-node-4-nodes
   labels:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
@@ -28,8 +28,8 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 2    # Equal to the number of VMs per slice; must match with WORLD_SIZE
-          completions: 2    # Same as the above; must match with WORLD_SIZE
+          parallelism: 4    # Equal to the number of VMs per slice
+          completions: 4    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             spec:
@@ -42,7 +42,7 @@ spec:
               terminationGracePeriodSeconds: 30
               containers:
               - name: workload-cpu
-                image: gcr.io/gcs-tess/dataflux-pytorch-lightning
+                image: <YOUR-CONTAINER-IMAGE>
                 env: 
                 - name: REPLICATED_JOB_NAME
                   valueFrom:
@@ -60,9 +60,9 @@ spec:
                   value: "2"
                 # WORLD_SIZE must match with num_nodes argument passed to train.py.
                 - name: WORLD_SIZE
-                  value: "2"
+                  value: "4"
                 - name: JOBSET_NAME
-                  value: "dataflux-pytorch-l-multi-node"
+                  value: "dataflux-pytorch-l-multi-node-4-nodes"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
@@ -78,4 +78,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcp_project=<YOUR-GCP-PROJECT> --images_prefix=<YOUR-IMAGES-PREFIX> --labels_prefix=<YOUR-LABELS-PREFIX> --gcs_bucket=<YOUR-GCS>--num_dataloader_threads=1 --num_devices=1 --num_nodes=2;
+                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcp_project=<YOUR-PROJECT> --images_prefix=<YOUR-IMAGES-PREFIX> --labels_prefix=<YOUR-LABELS-PREFIX> --gcs_bucket=<YOUR-GCS-BUCKET> --num_dataloader_threads=1 --num_devices=1 --num_nodes=4;
