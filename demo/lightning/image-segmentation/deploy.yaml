@@ -43,7 +43,6 @@ spec:
               containers:
               - name: workload-cpu
                 image: gcr.io/gcs-tess/dataflux-pytorch-lightning
-                
                 env: 
                 - name: REPLICATED_JOB_NAME
                   valueFrom:
@@ -79,4 +78,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcp_project=amundson-gke-aiml-demo --images_prefix=dataset-original/processed-data/images --labels_prefix=dataset-original/processed-data/labels --gcs_bucket=dlio-compute-time-bucket --num_workers=1;
+                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcp_project=amundson-gke-aiml-demo --images_prefix=dataset-original/processed-data/images --labels_prefix=dataset-original/processed-data/labels --gcs_bucket=dlio-compute-time-bucket --num_workers=2;
