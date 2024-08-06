@@ -22,7 +22,7 @@ from torch.utils.data import RandomSampler
 from torchvision import transforms
 
 from dataflux_pytorch import dataflux_mapstyle_dataset
-from pytorch_loader import DatafluxPytTrain
+from dataset import DatafluxPytTrain
 
 
 class Unet3DDataModule(pl.LightningDataModule):
@@ -47,8 +47,6 @@ class Unet3DDataModule(pl.LightningDataModule):
             self.train_dataset = DatafluxPytTrain(
                 project_name=self.args.gcp_project,
                 bucket_name=self.args.gcs_bucket,
-                config=dataflux_mapstyle_dataset.Config(
-                    sort_listing_results=True),
                 **train_data_kwargs,
             )
             self.train_sampler = None

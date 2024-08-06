@@ -10,7 +10,7 @@ dependencies = [
 ]
 setup(
     name="dataflux-pytorch",
-    packages=["dataflux_core", "dataflux_pytorch"],
+    packages=["dataflux_core", "dataflux_pytorch", "dataflux_pytorch.lightning"],
     package_dir={"dataflux_core": "dataflux_client_python/dataflux_core"},
     install_requires=dependencies,
 )

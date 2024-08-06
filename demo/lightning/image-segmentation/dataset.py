@@ -16,7 +16,6 @@
 
 import io
 import random
-import dataflux_core
 import numpy as np
 import scipy.ndimage
 from google.cloud import storage
@@ -31,15 +30,12 @@ class DatafluxPytTrain(Dataset):
         self,
         project_name,
         bucket_name,
-        config=dataflux_mapstyle_dataset.Config(),
         storage_client=None,
         **kwargs,
     ):
 
         self.train_transforms = kwargs["transforms"]
         patch_size, oversampling = kwargs["patch_size"], kwargs["oversampling"]
-        images_prefix, labels_prefix = kwargs["images_prefix"], kwargs[
-            "labels_prefix"]
         self.patch_size = patch_size
         self.rand_crop = RandBalancedCrop(patch_size=patch_size,
                                           oversampling=oversampling)
@@ -47,53 +43,42 @@ class DatafluxPytTrain(Dataset):
         # Dataflux-specific setup.
         self.project_name = project_name
         self.bucket_name = bucket_name
-        self.config = config
-        self.dataflux_download_optimization_params = (
-            dataflux_core.download.DataFluxDownloadOptimizationParams(
-                max_composite_object_size=self.config.max_composite_object_size
-            ))
-        if not storage_client:
-            self.storage_client = storage.Client(
-                project=project_name,
-            )
 
-        # Data listing.
-        self.images = dataflux_core.fast_list.ListingController(
-            max_parallelism=self.config.num_processes,
-            project=self.project_name,
-            bucket=self.bucket_name,
-            sort_results=self.config.
-            sort_listing_results,  # This needs to be True to map images with labels.
-            prefix=images_prefix,
-        ).run()
-        self.labels = dataflux_core.fast_list.ListingController(
-            max_parallelism=self.config.num_processes,
-            project=self.project_name,
-            bucket=self.bucket_name,
-            sort_results=self.config.
-            sort_listing_results,  # This needs to be True to map images with labels.
-            prefix=labels_prefix,
-        ).run()
+        self.images_dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=dataflux_mapstyle_dataset.Config(
+                # This needs to be True to map images with labels
+                sort_listing_results=True,
+                prefix=kwargs["images_prefix"],
+            ),
+        )
+
+        self.labels_dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=dataflux_mapstyle_dataset.Config(
+                # This needs to be True to map images with labels
+                sort_listing_results=True,
+                prefix=kwargs["labels_prefix"],
+            ),
+        )
 
     def __len__(self):
-        return len(self.images)
+        return len(self.images_dataset)
 
     def __getitem__(self, idx):
         image = np.load(
             io.BytesIO(
-                dataflux_core.download.download_single(
-                    storage_client=self.storage_client,
-                    bucket_name=self.bucket_name,
-                    object_name=self.images[idx][0],
-                )), )
+                self.images_dataset[idx],
+            ),
+        )
 
         label = np.load(
             io.BytesIO(
-                dataflux_core.download.download_single(
-                    storage_client=self.storage_client,
-                    bucket_name=self.bucket_name,
-                    object_name=self.labels[idx][0],
-                )), )
+                self.labels_dataset[idx],
+            ),
+        )
 
         data = {"image": image, "label": label}
         data = self.rand_crop(data)
@@ -101,29 +86,14 @@ class DatafluxPytTrain(Dataset):
         return data["image"], data["label"]
 
     def __getitems__(self, indices):
-        images_in_bytes = dataflux_core.download.dataflux_download(
-            project_name=self.project_name,
-            bucket_name=self.bucket_name,
-            objects=[self.images[idx] for idx in indices],
-            storage_client=self.storage_client,
-            dataflux_download_optimization_params=self.
-            dataflux_download_optimization_params,
-        )
-
-        labels_in_bytes = dataflux_core.download.dataflux_download(
-            project_name=self.project_name,
-            bucket_name=self.bucket_name,
-            objects=[self.labels[idx] for idx in indices],
-            storage_client=self.storage_client,
-            dataflux_download_optimization_params=self.
-            dataflux_download_optimization_params,
-        )
+        images_in_bytes_batch = self.images_dataset.__getitems__(indices)
+        labels_in_bytes_batch = self.labels_dataset.__getitems__(indices)
 
         res = []
-        for i in range(len(images_in_bytes)):
+        for i in range(len(images_in_bytes_batch)):
             data = {
-                "image": np.load(io.BytesIO(images_in_bytes[i])),
-                "label": np.load(io.BytesIO(labels_in_bytes[i])),
+                "image": np.load(io.BytesIO(images_in_bytes_batch[i])),
+                "label": np.load(io.BytesIO(labels_in_bytes_batch[i])),
             }
             data = self.rand_crop(data)
             data = self.train_transforms(data)
