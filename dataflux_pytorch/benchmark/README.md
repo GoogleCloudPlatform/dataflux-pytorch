@@ -12,7 +12,13 @@ pip install gcs-torch-dataflux gcsfs
 
 ### Configuration
 
-First ensure you are running within a virtual python enviroment, then set the enviroment variables.
+First ensure you are running within a virtual python enviroment, make sure gcloud config project is set to correct values. Otherwise use the following command to set it 
+
+```shell
+gcloud config set project {PROJECT_ID}
+```
+
+Then set the enviroment variables.
 
 `CKPT_DIR_PATH` is the location of where to save the checkpoints. `STEPS` is the number of steps the model will take (the number of checkpoints created will be the same). The default value for `STEPS` is 5. The benchmark will run `save_checkpoint` repeatedly and produce the average at the end.
 
