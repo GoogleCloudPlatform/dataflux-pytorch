@@ -86,7 +86,6 @@ class DatafluxPytTrain(Dataset):
     def __getitems__(self, indices):
         images_in_bytes_batch = self.images_dataset.__getitems__(indices)
         labels_in_bytes_batch = self.labels_dataset.__getitems__(indices)
-
         res = []
         for i in range(len(images_in_bytes_batch)):
             data = {

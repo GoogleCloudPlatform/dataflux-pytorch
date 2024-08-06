@@ -39,7 +39,6 @@ def init_processes():
     processes_in_job = int(os.environ.get("PROCESSES_IN_JOB"))
     rank = job_index * processes_in_job + job_completion_index
     os.environ["NODE_RANK"] = str(rank)
-    os.environ["WORLD_SIZE"] = str(2)
 
     configure_master_addr()
 
@@ -52,9 +51,8 @@ if __name__ == "__main__":
     trainer = pl.Trainer(
         accelerator=flags.accelerator,
         max_epochs=flags.epochs,
-        devices=2,
-        num_nodes=2,
+        devices=flags.num_devices,
+        num_nodes=flags.num_nodes,
         strategy="ddp",
-        limit_train_batches=2,
     )
     trainer.fit(model=model, train_dataloaders=train_data_loader)

@@ -58,9 +58,9 @@ spec:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
                   value: "2"
+                # WORLD_SIZE must match with num_nodes argument passed to train.py.
                 - name: WORLD_SIZE
                   value: "2"
-
                 - name: JOBSET_NAME
                   value: "dataflux-pytorch-l-multi-node"
                 - name: COORDINATOR_ADDRESS
@@ -78,4 +78,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcp_project=amundson-gke-aiml-demo --images_prefix=dataset-original/processed-data/images --labels_prefix=dataset-original/processed-data/labels --gcs_bucket=dlio-compute-time-bucket --num_workers=2;
+                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcp_project=<YOUR-GCP-PROJECT> --images_prefix=<YOUR-IMAGES-PREFIX> --labels_prefix=<YOUR-LABELS-PREFIX> --gcs_bucket=<YOUR-GCS-BUCKET>--num_dataloader_threads=1 --num_devices=1 --num_nodes=2;

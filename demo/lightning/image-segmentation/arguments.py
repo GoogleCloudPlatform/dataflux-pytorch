@@ -59,11 +59,13 @@ PARSER.add_argument("--val_input_shape",
                     type=int,
                     default=[128, 128, 128])
 PARSER.add_argument("--seed", dest="seed", default=-1, type=int)
+PARSER.add_argument("--num_devices", dest="num_devices", type=int, default=1)
+PARSER.add_argument("--num_nodes", dest="num_nodes", type=int, default=1)
 PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=1)
 PARSER.add_argument("--num_dataloader_threads",
                     dest="num_dataloader_threads",
                     type=int,
-                    default=1)
+                    default=4)
 PARSER.add_argument("--exec_mode",
                     dest="exec_mode",
                     choices=["train", "evaluate"],
