@@ -145,6 +145,16 @@ class LightningCheckpointTestCase(unittest.TestCase):
         assert torch.equal(tensor, loaded_checkpoint)
         self.ckpt.remove_checkpoint(ckpt_path)
 
+    def test_invalid_path_type(self):
+        ckpt_path = dict()
+        try:
+            self.ckpt._parse_gcs_path(ckpt_path)
+        except:
+            return
+        self.fail(
+            "Attempted to save to a path with an unexpect bucket, expects this to fail"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

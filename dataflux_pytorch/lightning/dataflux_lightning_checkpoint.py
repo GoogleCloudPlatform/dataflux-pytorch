@@ -33,7 +33,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             return str(scheme)+"://"+str(rest)
         else:
             raise TypeError(
-                "Input to save checkpoint must be string or Path object")
+                "path argument must be of type string or pathlib.Path object")
 
     def _parse_gcs_path(self, path: Union[str, Path]) -> str:
         if not path:
