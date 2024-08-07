@@ -24,10 +24,16 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self.bucket = self.storage_client.bucket(self.bucket_name)
 
     def _parse_gcs_path(self, path: str) -> str:
+        path = str(path)
+        sep = "//"
         if not path or not (path.startswith("gcs://")
-                            or path.startswith("gs://")):
-            raise ValueError("Path needs to begin with gcs:// or gs://")
-        path = path.split("//", maxsplit=1)
+                            or path.startswith("gs://")
+                            or path.startswith("gs:/")):
+            raise ValueError(
+                f"Path needs to begin with gcs:// or gs://, got {path}")
+        if not path.startswith("gs://") and path.startswith("gs:/"):
+            sep = "/"
+        path = path.split(sep, maxsplit=1)
         if not path or len(path) < 2:
             raise ValueError("Bucket name must be non-empty")
         split = path[1].split("/", maxsplit=1)

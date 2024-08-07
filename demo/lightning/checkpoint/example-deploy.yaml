@@ -67,7 +67,7 @@ spec:
                   value: "2"
                 
                 - name: JOBSET_NAME
-                  value: "my-job-run"
+                  value: "mirvine-checkpoint"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
@@ -80,6 +80,12 @@ spec:
                   value: "gs://mirvine-benchmark-central1/ckpt-gke/"
                 - name: PJRT_DEVICE
                   value: "CUDA"
+                - name: NCCL_SOCKET_IFNAME
+                  value: "eth0"
+                - name: NCCL_DEBUG
+                  value: "WARN"
+                - name: NUM_LAYERS
+                  value: "200"
   
                 ports:
                 - containerPort: 8471
@@ -91,4 +97,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/demo/lightning/checkpoint/train.py --project=gcs-tess --bucket=my-bucket --prefix=fineweb/sample/10BT/00 --num-workers=1 --num-nodes=2 --devices=2 --batch-size=128 --epochs=2 --limit-train-batches=10 --log-level=ERROR;
+                  python3 -u /app/demo/lightning/checkpoint/train.py;
