@@ -2,11 +2,11 @@ import os
 import socket
 import time
 
+import lightning.pytorch.strategies.fsdp as fsdp
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
-from lightning.pytorch.strategies import FSDPStrategy
 from torch.utils.data import DataLoader
 
 from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
@@ -76,7 +76,7 @@ def main(project: str, bucket: str, ckpt_dir_path: str,
                       max_epochs=5,
                       max_steps=3,
                       accelerator="gpu",
-                      strategy=FSDPStrategy(state_dict_type="sharded"),
+                      strategy=fsdp.FSDPStrategy(state_dict_type="full"),
                       num_nodes=int(os.environ.get("WORLD_SIZE", 1)))
     trainer.fit(model, dataloader)
 

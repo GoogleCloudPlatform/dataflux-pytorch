@@ -85,7 +85,7 @@ spec:
                 - name: NCCL_DEBUG
                   value: "WARN"
                 - name: NUM_LAYERS
-                  value: "200"
+                  value: "1000"
   
                 ports:
                 - containerPort: 8471
