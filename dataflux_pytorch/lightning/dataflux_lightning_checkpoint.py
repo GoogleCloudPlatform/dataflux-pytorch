@@ -1,9 +1,10 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import torch
 from dataflux_core import user_agent
 from google.cloud import storage
 from lightning.pytorch.plugins.io import CheckpointIO
+from pathlib import Path
 
 
 class DatafluxLightningCheckpoint(CheckpointIO):
@@ -44,31 +45,45 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             )
         return prefix
 
+    def _process_input_path(self, path: Union[str, Path]) -> str:
+        if isinstance(path, str):
+            return path
+        elif isinstance(path, Path):
+            # When casting from Path object to string, it considers cloud URLs as Network URLs and gets rid of //
+            scheme, rest = str(path).split(":/")
+            return str(scheme)+"://"+str(rest)
+        else:
+            raise TypeError(
+                "Input to save checkpoint must be string or Path object")
+
     def save_checkpoint(
         self,
         checkpoint: Dict[str, Any],
-        path: str,
+        path: Union[str, Path],
         storage_options: Optional[Any] = None,
     ) -> None:
-        key = self._parse_gcs_path(path)
+        input_path = self._process_input_path(path)
+        key = self._parse_gcs_path(input_path)
         blob = self.bucket.blob(key)
         with blob.open("wb", ignore_flush=True) as blobwriter:
             torch.save(checkpoint, blobwriter)
 
     def load_checkpoint(
         self,
-        path: str,
+        path: Union[str, Path],
         map_location: Optional[Any] = None,
     ) -> Dict[str, Any]:
-        key = self._parse_gcs_path(path)
+        input_path = self._process_input_path(path)
+        key = self._parse_gcs_path(input_path)
         blob = self.bucket.blob(key)
         return torch.load(blob.open("rb"), map_location)
 
     def remove_checkpoint(
         self,
-        path: str,
+        path: Union[str, Path],
     ) -> None:
-        key = self._parse_gcs_path(path)
+        input_path = self._process_input_path(path)
+        key = self._parse_gcs_path(input_path)
         blob = self.bucket.blob(key)
         blob.delete()
 
