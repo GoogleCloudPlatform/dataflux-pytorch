@@ -85,5 +85,6 @@ spec:
               volumes:
                 - emptyDir:
                     medium: Memory
+                    # Shared memory size; update as needed.
                     sizeLimit: 100Gi
                   name: dshm
