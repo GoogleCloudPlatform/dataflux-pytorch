@@ -65,8 +65,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: Union[str, Path],
         storage_options: Optional[Any] = None,
     ) -> None:
-        input_path = self._process_input_path(path)
-        key = self._parse_gcs_path(input_path)
+        key = self._parse_gcs_path(path)
         blob = self.bucket.blob(key)
         with blob.open("wb", ignore_flush=True) as blobwriter:
             torch.save(checkpoint, blobwriter)
@@ -76,8 +75,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: Union[str, Path],
         map_location: Optional[Any] = None,
     ) -> Dict[str, Any]:
-        input_path = self._process_input_path(path)
-        key = self._parse_gcs_path(input_path)
+        key = self._parse_gcs_path(path)
         blob = self.bucket.blob(key)
         return torch.load(blob.open("rb"), map_location)
 
@@ -85,8 +83,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self,
         path: Union[str, Path],
     ) -> None:
-        input_path = self._process_input_path(path)
-        key = self._parse_gcs_path(input_path)
+        key = self._parse_gcs_path(path)
         blob = self.bucket.blob(key)
         blob.delete()
 
