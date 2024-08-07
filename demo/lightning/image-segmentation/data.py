@@ -62,9 +62,10 @@ class Unet3DDataModule(pl.LightningDataModule):
             batch_size=self.args.batch_size,
             shuffle=not self.args.benchmark and self.train_sampler is None,
             sampler=self.train_sampler,
-            num_workers=0,
+            num_workers=1,
             pin_memory=True,
             drop_last=True,
+            prefetch_factor=100,
         )
 
 
