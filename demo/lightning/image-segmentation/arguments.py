@@ -33,18 +33,19 @@ PARSER.add_argument("--local_rank",
                     default=os.environ.get("LOCAL_RANK", 0),
                     type=int)
 
+PARSER.add_argument("--local", dest="local", type=bool, default=False)
 PARSER.add_argument("--epochs", dest="epochs", type=int, default=5)
 PARSER.add_argument("--accelerator",
                     dest="accelerator",
                     type=str,
-                    default="gpu")
+                    default="auto")
 PARSER.add_argument("--quality_threshold",
                     dest="quality_threshold",
                     type=float,
                     default=0.908)
 PARSER.add_argument("--ga_steps", dest="ga_steps", type=int, default=1)
 PARSER.add_argument("--warmup_steps", dest="warmup_steps", type=int, default=4)
-PARSER.add_argument("--batch_size", dest="batch_size", type=int, default=2)
+PARSER.add_argument("--batch_size", dest="batch_size", type=int, default=50)
 PARSER.add_argument("--layout",
                     dest="layout",
                     type=str,
@@ -59,11 +60,13 @@ PARSER.add_argument("--val_input_shape",
                     type=int,
                     default=[128, 128, 128])
 PARSER.add_argument("--seed", dest="seed", default=-1, type=int)
-PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=8)
+PARSER.add_argument("--num_devices", dest="num_devices", type=int, default=1)
+PARSER.add_argument("--num_nodes", dest="num_nodes", type=int, default=1)
+PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=1)
 PARSER.add_argument("--num_dataloader_threads",
                     dest="num_dataloader_threads",
                     type=int,
-                    default=8)
+                    default=4)
 PARSER.add_argument("--exec_mode",
                     dest="exec_mode",
                     choices=["train", "evaluate"],

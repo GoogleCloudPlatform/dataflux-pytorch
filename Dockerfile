@@ -10,3 +10,4 @@ COPY ./ ./
 RUN pip install --no-cache-dir .
 # Install additional requirements for running demos.
 RUN pip install --no-cache-dir -r ./demo/lightning/text-based/distributed/requirements.txt
+RUN pip install --no-cache-dir -r ./demo/lightning/image-segmentation/requirements.txt
