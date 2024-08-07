@@ -59,17 +59,6 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             )
         return prefix
 
-    def _process_input_path(self, path: Union[str, Path]) -> str:
-        if isinstance(path, str):
-            return path
-        elif isinstance(path, Path):
-            # When casting from Path object to string, it considers cloud URLs as Network URLs and gets rid of //
-            scheme, rest = str(path).split(":/")
-            return str(scheme)+"://"+str(rest)
-        else:
-            raise TypeError(
-                "Input to save checkpoint must be string or Path object")
-
     def save_checkpoint(
         self,
         checkpoint: Dict[str, Any],
