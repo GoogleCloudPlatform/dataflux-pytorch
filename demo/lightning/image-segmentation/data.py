@@ -63,9 +63,10 @@ class Unet3DDataModule(pl.LightningDataModule):
             shuffle=not self.args.benchmark and self.train_sampler is None,
             sampler=self.train_sampler,
             num_workers=self.args.num_workers,
+            prefetch_factor=self.args.prefetch_factor,
             pin_memory=True,
             drop_last=True,
-            prefetch_factor=self.args.prefetch_factor,
+            persistent_workers=True,
         )
 
 
