@@ -33,6 +33,7 @@ PARSER.add_argument("--local_rank",
                     default=os.environ.get("LOCAL_RANK", 0),
                     type=int)
 
+PARSER.add_argument("--local", dest="local", type=bool, default=False)
 PARSER.add_argument("--epochs", dest="epochs", type=int, default=5)
 PARSER.add_argument("--accelerator",
                     dest="accelerator",
@@ -44,7 +45,7 @@ PARSER.add_argument("--quality_threshold",
                     default=0.908)
 PARSER.add_argument("--ga_steps", dest="ga_steps", type=int, default=1)
 PARSER.add_argument("--warmup_steps", dest="warmup_steps", type=int, default=4)
-PARSER.add_argument("--batch_size", dest="batch_size", type=int, default=2)
+PARSER.add_argument("--batch_size", dest="batch_size", type=int, default=50)
 PARSER.add_argument("--layout",
                     dest="layout",
                     type=str,

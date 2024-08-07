@@ -45,7 +45,8 @@ def init_processes():
 
 if __name__ == "__main__":
     flags = PARSER.parse_args()
-    init_processes()
+    if not flags.local:
+        init_processes()
     model = Unet3DLightning(flags)
     train_data_loader = Unet3DDataModule(flags)
     trainer = pl.Trainer(
