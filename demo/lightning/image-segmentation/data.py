@@ -65,7 +65,7 @@ class Unet3DDataModule(pl.LightningDataModule):
             num_workers=self.args.num_workers,
             pin_memory=True,
             drop_last=True,
-            prefetch_factor=100,
+            prefetch_factor=self.args.prefetch_factor,
         )
 
 
