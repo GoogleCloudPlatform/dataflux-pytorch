@@ -19,7 +19,6 @@ class LightningCheckpointTestCase(unittest.TestCase):
         client = fake_gcs.Client()
         self.ckpt = DatafluxLightningCheckpoint(
             project_name=self.project_name,
-            bucket_name=self.bucket_name,
             storage_client=client,
         )
         self.bucket = fake_gcs.Bucket("fake_bucket")
@@ -78,15 +77,6 @@ class LightningCheckpointTestCase(unittest.TestCase):
         except:
             return
         self.fail("Empty bucket name expected to fail when parsed")
-
-    def test_invalid_bucket_name(self):
-        try:
-            self.ckpt._parse_gcs_path("gcs://invalid_bucket/ckpt.ckpt")
-        except:
-            return
-        self.fail(
-            "Attempted to save to a path with an unexpect bucket, expects this to fail"
-        )
 
     def test_valid_string_path(self):
         paths = {
