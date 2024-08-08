@@ -2,7 +2,6 @@ import os
 import socket
 import time
 
-import lightning.pytorch.strategies.fsdp as fsdp
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
@@ -52,12 +51,13 @@ def init_processes():
 
 def main(project: str, bucket: str, ckpt_dir_path: str,
          save_only_latest: bool):
-    init_processes()
+    if os.environ.get("COORDINATOR_ADDRESS"):
+        init_processes()
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
 
     model = DemoTransformer(vocab_size=dataset.vocab_size,
-                            nlayers=int(os.environ.get("NUM_LAYERS")))
+                            nlayers=int(os.environ.get("NUM_LAYERS", 2)))
     dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project,
                                                 bucket_name=bucket)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
@@ -69,14 +69,16 @@ def main(project: str, bucket: str, ckpt_dir_path: str,
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
     )
+    strategy = os.environ.get("TRAIN_STRATEGY", "ddp")
+    accelerator = os.environ.get("ACCELERATOR", "cpu")
     trainer = Trainer(default_root_dir=ckpt_dir_path,
                       plugins=[dataflux_ckpt],
                       callbacks=[checkpoint_callback],
                       min_epochs=4,
                       max_epochs=5,
                       max_steps=3,
-                      accelerator="gpu",
-                      strategy=fsdp.FSDPStrategy(state_dict_type="full"),
+                      accelerator=accelerator,
+                      strategy=strategy,
                       num_nodes=int(os.environ.get("WORLD_SIZE", 1)))
     trainer.fit(model, dataloader)
 
