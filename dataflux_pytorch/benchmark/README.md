@@ -35,11 +35,10 @@ export LAYERS=1000
 
 ### Dataflux Lightning Checkpoint
 
-If you are benchmarking Dataflux Lightning Checkpoint, save information regarding your project and bucket, and make sure to enable the flag by setting it to `1`.
+If you are benchmarking Dataflux Lightning Checkpoint, save information regarding your project and make sure to enable the flag by setting it to `1`.
 
 ```shell
 export PROJECT=`YOUR_PROJECT_NAME`
-export BUCKET=`YOUR_BUCKET_NAME`
 export DATAFLUX_CKPT=1
 ```
 

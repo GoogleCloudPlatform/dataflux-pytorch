@@ -49,8 +49,7 @@ def init_processes():
     configure_master_addr()
 
 
-def main(project: str, bucket: str, ckpt_dir_path: str,
-         save_only_latest: bool):
+def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
     dataset = WikiText2()
@@ -58,8 +57,7 @@ def main(project: str, bucket: str, ckpt_dir_path: str,
 
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 2)))
-    dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project,
-                                                bucket_name=bucket)
+    dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
@@ -98,7 +96,6 @@ if __name__ == "__main__":
 
     main(
         os.getenv("PROJECT"),
-        os.getenv("BUCKET"),
         os.getenv("CKPT_DIR_PATH"),
         os.getenv("SAVE_ONLY_LATEST") == "1",
     )

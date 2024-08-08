@@ -40,7 +40,8 @@ class LightningTransformer(LightningModule):
         dataset = WikiText2()
         return DataLoader(dataset)
 
-def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, layers: int = 100, steps: int = 5):
+
+def main(project: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, layers: int = 100, steps: int = 5):
     """Checkpoints a PyTorch Ligthning demo model to GCS using gcsfs or DatafluxLightningCheckpoint.
 
     This function utilizes PyTorch Lightning to checkpoint the WikiText2 dataset. It
@@ -55,25 +56,24 @@ def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, 
       Run DatafluxLightningCheckpoint over 10 steps:
 
       project = 'test-project'
-      bucket = 'test-bucket'
-      ckpt_dir_path = 'gs://path/to/dir/'
+      ckpt_dir_path = 'gs://bucket-name/path/to/dir/'
       save_only_latest = False
       dataflux_ckpt = True
       layers = 1000
       steps = 10
 
-      main(project=project, bucket=bucket, save_only_latest=save_onlylatest,
+      main(project=project, save_only_latest=save_onlylatest,
       dataflux_ckpt=dataflux_ckpt, layers=layers, steps=steps)
 
       Run gcsfs over 10 steps:
 
-      ckpt_dir_path = 'gs://path/to/dir/'
+      ckpt_dir_path = 'gs://bucket-name/path/to/dir/'
       save_only_latest = False
       dataflux_ckpt = False
       layers = 1000
       steps = 10
 
-      main(project=project, bucket=bucket, save_only_latest=save_onlylatest,
+      main(project=project, save_only_latest=save_onlylatest,
       dataflux_ckpt=dataflux_ckpt, layers=layers, steps=steps)
     """
     if steps < 1:
@@ -84,8 +84,7 @@ def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, 
     model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=layers)
     ckpt = TorchCheckpointIO()
     if dataflux_ckpt:
-        ckpt = DatafluxLightningCheckpoint(project_name=project,
-                                           bucket_name=bucket)
+        ckpt = DatafluxLightningCheckpoint(project_name=project)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
@@ -108,9 +107,11 @@ def main(project: str, bucket: str, ckpt_dir_path: str, save_only_latest: bool, 
 
     start = time.time()
     for i in range(steps):
-        trainer.save_checkpoint(os.path.join(ckpt_dir_path,f'ckpt_{i}.ckpt'))
+        trainer.save_checkpoint(os.path.join(ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
-    print("Average time to save one checkpoint: " + str((end-start)/steps) + " seconds")
+    print("Average time to save one checkpoint: " +
+          str((end-start)/steps) + " seconds")
+
 
 if __name__ == "__main__":
 
@@ -121,7 +122,6 @@ if __name__ == "__main__":
 
     main(
         os.getenv("PROJECT"),
-        os.getenv("BUCKET"),
         os.getenv("CKPT_DIR_PATH"),
         os.getenv("SAVE_ONLY_LATEST") == "1",
         os.getenv("DATAFLUX_CKPT") == "1",

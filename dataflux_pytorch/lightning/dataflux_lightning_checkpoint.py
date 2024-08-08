@@ -13,16 +13,14 @@ class DatafluxLightningCheckpoint(CheckpointIO):
     def __init__(
         self,
         project_name: str,
-        bucket_name: str,
         storage_client: Optional[storage.Client] = None,
     ):
         self.project_name = project_name
-        self.bucket_name = bucket_name
         self.storage_client = storage_client
+        self.bucket = None
         if not storage_client:
             self.storage_client = storage.Client(project=self.project_name, )
         user_agent.add_dataflux_user_agent(self.storage_client)
-        self.bucket = self.storage_client.bucket(self.bucket_name)
 
     def _process_input_path(self, path: Union[str, Path]) -> str:
         if isinstance(path, str):
@@ -46,17 +44,16 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         if not input_path or len(input_path) < 2:
             raise ValueError("Bucket name must be non-empty")
         split = input_path[1].split("/", maxsplit=1)
+        bucket_name = ""
         if len(split) == 1:
-            bucket = split[0]
+            bucket_name = split[0]
             prefix = ""
         else:
-            bucket, prefix = split
-        if not bucket:
+            bucket_name, prefix = split
+        if not bucket_name:
             raise ValueError("Bucket name must be non-empty")
-        if bucket != self.bucket_name:
-            raise ValueError(
-                f'Unexpected bucket name, expected {self.bucket_name} got {bucket}'
-            )
+        if not self.bucket:
+            self.bucket = self.storage_client.bucket(bucket_name)
         return prefix
 
     def save_checkpoint(
