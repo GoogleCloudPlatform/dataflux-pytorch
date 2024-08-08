@@ -51,7 +51,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             bucket_name, prefix = split
         if not bucket_name:
             raise ValueError("Bucket name must be non-empty")
-        return prefix, bucket_name
+        return bucket_name, prefix
 
     def save_checkpoint(
         self,
@@ -59,7 +59,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: Union[str, Path],
         storage_options: Optional[Any] = None,
     ) -> None:
-        key, bucket_name = self._parse_gcs_path(path)
+        bucket_name, key = self._parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
         with blob.open("wb", ignore_flush=True) as blobwriter:
@@ -70,7 +70,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: Union[str, Path],
         map_location: Optional[Any] = None,
     ) -> Dict[str, Any]:
-        key, bucket_name = self._parse_gcs_path(path)
+        bucket_name, key = self._parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
         return torch.load(blob.open("rb"), map_location)
@@ -79,7 +79,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self,
         path: Union[str, Path],
     ) -> None:
-        key, bucket_name = self._parse_gcs_path(path)
+        bucket_name, key = self._parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
         blob.delete()
