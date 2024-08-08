@@ -31,13 +31,13 @@ import pandas as pd
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-class DollyV2Model(pl.LightningModule):
+class BertTinyModel(pl.LightningModule):
     def __init__(self, lr=2e-5, eps=1e-8):
         super().__init__()
         self.save_hyperparameters()
         self.lr = lr
         self.eps = eps
-        self.model = AutoModelForCausalLM.from_pretrained("prajjwal1/bert-tiny", token="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")
+        self.model = AutoModelForCausalLM.from_pretrained("prajjwal1/bert-tiny")
 
     def forward(self, batch):
         outputs = self.model(
@@ -101,11 +101,30 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: str,
         storage_options: Optional[Any] = None,
     ) -> None:
-        print(path)
         key = self._parse_gcs_path(str(path))
         blob = self.bucket.blob(key)
         with blob.open("wb", ignore_flush=True) as blobwriter:
             torch.save(checkpoint, blobwriter)
+
+    def load_checkpoint(
+        self,
+        path: str,
+        map_location: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        key = self._parse_gcs_path(path)
+        blob = self.bucket.blob(key)
+        return torch.load(blob.open("rb"), map_location)
+
+    def remove_checkpoint(
+        self,
+        path: str,
+    ) -> None:
+        key = self._parse_gcs_path(path)
+        blob = self.bucket.blob(key)
+        blob.delete()
+
+    def teardown(self, ) -> None:
+        pass
 
 def split_text(batch: pd.DataFrame) -> pd.DataFrame:
     text = list(batch["text"])
@@ -134,17 +153,17 @@ def tokenize(batch: pd.DataFrame) -> dict:
 def train_func(config):
     lr = 2e-5
     eps = 1e-8
-    batch_size_per_worker = 2
-    model = DollyV2Model(lr=lr, eps=eps)
+    batch_size_per_worker = config["flags"].batch_size
+    model = BertTinyModel(lr=lr, eps=eps)
     strategy = config["strategy"]
-    ckpt = DatafluxLightningCheckpoint(project_name="amundson-gke-aiml-demo",
-                                           bucket_name="dataflux-checkpointing")
+    ckpt = DatafluxLightningCheckpoint(project_name=config["flags"].gcp_project,
+                                           bucket_name=config["flags"].gcs_bucket)
 
     train_ds = ray.train.get_dataset_shard("train")
     train_dataloader = train_ds.iter_torch_batches(batch_size=batch_size_per_worker)
 
     trainer = Trainer(
-        default_root_dir="gs://dataflux-checkpointing/bert-tiny",
+        default_root_dir=config["flags"].default_root_dir,
         max_epochs=config["flags"].epochs,
         devices="auto",
         max_steps=1,
@@ -158,10 +177,10 @@ def train_func(config):
     trainer.fit(model, train_dataloaders=train_dataloader)
 
     start = time.time()
-    for i in range(2):
-        trainer.save_checkpoint(os.path.join("gs://dataflux-checkpointing/bert-tiny/",f'ckpt_{i}.ckpt'))
+    print(config["flags"].save_ckpt_path)
+    trainer.save_checkpoint("test.ckpt")
     end = time.time()
-    print("Average time to save one checkpoint: " + str((end-start)/2) + " seconds")
+    print("Time to save distributed checkpoints: " + str(end-start) + " seconds")
 
 
 if __name__ == "__main__":
@@ -170,17 +189,12 @@ if __name__ == "__main__":
     train_ds = train_ds.map_batches(split_text, batch_format="pandas")
     train_ds.take(10)
     train_ds = train_ds.map_batches(tokenize, batch_format="pandas")
-    run_config = RunConfig(
-        name="test-run1",
-        storage_path="gs://dataflux-checkpointing",
-        checkpoint_config=CheckpointConfig(),
-    )
     auto_wrap_policy = functools.partial(
         transformer_auto_wrap_policy,
         transformer_layer_cls = {GPTNeoXLayer}
     )
     fsdp_strategy = RayFSDPStrategy(
-        sharding_strategy=ShardingStrategy.FULL_SHARD,
+        state_dict_type="sharded",
         backward_prefetch=BackwardPrefetch.BACKWARD_PRE,
         forward_prefetch=True,
         auto_wrap_policy=auto_wrap_policy,
@@ -191,9 +205,13 @@ if __name__ == "__main__":
     config = dict()
     config["flags"] = flags
     config["strategy"] = fsdp_strategy
-
+    run_config = RunConfig(
+        name=config["flags"].run_name,
+        storage_path=config["flags"].default_root_dir,
+        checkpoint_config=CheckpointConfig(),
+    )
     # Configure scaling and resource requirements.
-    scaling_config = ray.train.ScalingConfig(num_workers=2, use_gpu=True)
+    scaling_config = ray.train.ScalingConfig(num_workers=config["flags"].num_workers, use_gpu=True)
     # Launch distributed training job.
     trainer = TorchTrainer(
         train_func,

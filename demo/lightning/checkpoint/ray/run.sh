@@ -17,8 +17,15 @@ set -e
 
 SEED=${1:--1}
 
+# configure your settings here
 GCP_PROJECT=amundson-gke-aiml-demo
 GCS_BUCKET=dataflux-checkpointing
+DEFAULT_ROOT_DIR=gs://dataflux-checkpointing/fsdp/example
+RAY_RUN_NAME=ray-run-1
+
+# default set to match cluster.yaml
+BATCH_SIZE=2
+NUM_WORKERS=2
 
 # start timing
 start=$(date +%s)
@@ -27,7 +34,11 @@ echo "STARTING TIMING RUN AT $start_fmt"
 
 python3  train.py \
   --gcp_project=${GCP_PROJECT} \
-  --gcs_bucket=${GCS_BUCKET}
+  --gcs_bucket=${GCS_BUCKET} \
+  --batch_size=${BATCH_SIZE} \
+  --num_workers=${NUM_WORKERS} \
+  --run_name=${RAY_RUN_NAME} \
+  --default_root_dir=${DEFAULT_ROOT_DIR}
 
 # end timing
 end=$(date +%s)
