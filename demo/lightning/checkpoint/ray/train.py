@@ -107,26 +107,6 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         with blob.open("wb", ignore_flush=True) as blobwriter:
             torch.save(checkpoint, blobwriter)
 
-    def load_checkpoint(
-        self,
-        path: str,
-        map_location: Optional[Any] = None,
-    ) -> Dict[str, Any]:
-        key = self._parse_gcs_path(path)
-        blob = self.bucket.blob(key)
-        return torch.load(blob.open("rb"), map_location)
-
-    def remove_checkpoint(
-        self,
-        path: str,
-    ) -> None:
-        key = self._parse_gcs_path(path)
-        blob = self.bucket.blob(key)
-        blob.delete()
-
-    def teardown(self, ) -> None:
-        pass
-
 def split_text(batch: pd.DataFrame) -> pd.DataFrame:
     text = list(batch["text"])
     flat_text = "".join(text)
