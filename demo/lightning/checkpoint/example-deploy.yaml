@@ -74,8 +74,6 @@ spec:
                   value: "1234"
                 - name: PROJECT
                   value: "my-project"
-                - name: BUCKET
-                  value: "my-bucket"
                 - name: CKPT_DIR_PATH
                   value: "gs://my-bucket/checkpoint-path/"
                 - name: PJRT_DEVICE

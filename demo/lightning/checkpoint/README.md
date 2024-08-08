@@ -11,7 +11,6 @@ The code in this folder provides a training demo for checkpointing with PyTorch 
 
 1. Set the environment variables required to run the demo. These include:
   * `PROJECT`: The GCP project you are using
-  * `BUCKET`: The name of the bucket where you want to save checkpoints
   * `CKPT_DIR_PATH`: The full path of the directory in which to save checkpoints, in the format `gs://<bucket>/<directory>/`
 2. Set the optional environment variables, if desired:
   * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints
