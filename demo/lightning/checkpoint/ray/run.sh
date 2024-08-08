@@ -18,10 +18,10 @@ set -e
 SEED=${1:--1}
 
 # configure your settings here
-GCP_PROJECT=amundson-gke-aiml-demo
-GCS_BUCKET=dataflux-checkpointing
-DEFAULT_ROOT_DIR=gs://dataflux-checkpointing/fsdp/example
-RAY_RUN_NAME=ray-run-1
+GCP_PROJECT={PROJECT_NAME}
+GCS_BUCKET={BUCKET_NAME}
+DEFAULT_ROOT_DIR={PATH_TO_DIR}
+RAY_RUN_NAME={RUN_NAME}
 
 # default set to match cluster.yaml
 BATCH_SIZE=2

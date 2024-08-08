@@ -7,7 +7,6 @@ We use [Ray.IO](Ray.IO) to deploy and scale the training workload with [PyTorch]
 We will spin up a [Ray cluster](https://docs.ray.io/en/latest/cluster/key-concepts.html#ray-cluster) for our workload. The [cluster.yaml](cluster.yaml) file contains the specification and here's the overview:
 
 
-
 *   Ray head node
     *   There’s only one head node in the cluster that is responsible for cluster management. See more about the Ray head node [here](https://docs.ray.io/en/latest/cluster/key-concepts.html#head-node).
     *   Key Specification:
@@ -20,7 +19,6 @@ We will spin up a [Ray cluster](https://docs.ray.io/en/latest/cluster/key-concep
         *   **Source Image**: projects/deeplearning-platform-release/global/images/family/common-cu121-debian-11-py310
             *   This image comes pre-installed with NVIDIA drivers and a lot more machine learning applications.
         *   **GPUs**: 4 \* NVIDIA Tesla V100 GPUs
-
 
 > **_NOTE:_**  It would be best to run the following steps on your workstation with a display device so you can see the Ray dashboard using a browser.
 
@@ -53,12 +51,11 @@ We will spin up a [Ray cluster](https://docs.ray.io/en/latest/cluster/key-concep
 
 ### Workload
 
+1. We support these additional flags in [`arguments.py`](arguments.py) and pass those values in from [`run_and_time.sh`](run_and_time.sh).
 
-3. Finally, we support these additional flags in [`arguments.py`](arguments.py) and pass those values in from [`run_and_time.sh`](run_and_time.sh).
+> **_IMPORTANT:_**  Make sure to modify the [`run.sh`](run.sh) file by specifying the values for `RAY_RUN_NAME`, `DEFAULT_ROOT_DIR`, `GCP_PROJECT` and `GCS_BUCKET`.
 
-> **_IMPORTANT:_**  Make sure to modify the [`run.sh`](run.sh) file by specifying the values for ``, ``, `GCP_PROJECT` and `GCS_BUCKET`.
-
-4. Submit the workload job by running
+2. Submit the workload job by running
 
 ```shell
 export RAY_ADDRESS=http://localhost:8265
@@ -66,4 +63,4 @@ python3 submit.py
 ```
 
 ## Results
-The job should finish within a couple minutes and you can follow the job log by clicking into the job detail from the Ray dashboard.
+The job should finish within a couple minutes and you can follow the job log by clicking into the job detail from the Ray dashboard. Time to save each distributed checkpoint will be printed out to logs and can be viewed on job completion.

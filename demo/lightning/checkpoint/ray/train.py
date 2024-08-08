@@ -1,35 +1,24 @@
-import lightning as pl
-
 from arguments import PARSER
 import time
-
-from typing import Any, Dict, Optional
-
-import torch
 import functools
-from dataflux_core import user_agent
-from google.cloud import storage
-from lightning.pytorch.plugins.io import CheckpointIO
 
 import ray.train.lightning
 from ray.train.torch import TorchTrainer
 from ray.train.lightning import RayFSDPStrategy
-from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
-from torch.distributed.fsdp import ShardingStrategy, BackwardPrefetch
 from transformers.models.gpt_neox.modeling_gpt_neox import GPTNeoXLayer
 from ray.train import RunConfig, CheckpointConfig
 from ray.train.lightning import RayLightningEnvironment, RayTrainReportCallback, prepare_trainer
-import os
-import time
-from typing import Tuple
 
-import torch
+import lightning as pl
 from lightning import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from torch import Tensor
+import torch
+from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
+from torch.distributed.fsdp import BackwardPrefetch
 import pandas as pd
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
+
+from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 
 class BertTinyModel(pl.LightningModule):
     def __init__(self, lr=2e-5, eps=1e-8):
@@ -56,75 +45,6 @@ class BertTinyModel(pl.LightningModule):
         if self.global_rank == 0:
             print(self.trainer.model)
         return torch.optim.AdamW(self.trainer.model.parameters(), lr=self.lr, eps=self.eps)
-
-class DatafluxLightningCheckpoint(CheckpointIO):
-    """A checkpoint manager for GCS using the :class:'CheckpointIO' interface"""
-
-    def __init__(
-        self,
-        project_name: str,
-        bucket_name: str,
-        storage_client: Optional[storage.Client] = None,
-    ):
-        self.project_name = project_name
-        self.bucket_name = bucket_name
-        self.storage_client = storage_client
-        if not storage_client:
-            self.storage_client = storage.Client(project=self.project_name, )
-        user_agent.add_dataflux_user_agent(self.storage_client)
-        self.bucket = self.storage_client.bucket(self.bucket_name)
-
-    def _parse_gcs_path(self, path: str) -> str:
-        if path.startswith("gs:/"):
-          path = path.replace("gs:/","gs://")
-          path = path.split("//", maxsplit=1)
-          if not path or len(path) < 2:
-              raise ValueError("Bucket name must be non-empty")
-          split = path[1].split("/", maxsplit=1)
-          if len(split) == 1:
-              bucket = split[0]
-              prefix = ""
-          else:
-              bucket, prefix = split
-          if not bucket:
-              raise ValueError("Bucket name must be non-empty")
-          if bucket != self.bucket_name:
-              raise ValueError(
-                  f'Unexpected bucket name, expected {self.bucket_name} got {bucket}'
-              )
-          return prefix
-        return path
-
-    def save_checkpoint(
-        self,
-        checkpoint: Dict[str, Any],
-        path: str,
-        storage_options: Optional[Any] = None,
-    ) -> None:
-        key = self._parse_gcs_path(str(path))
-        blob = self.bucket.blob(key)
-        with blob.open("wb", ignore_flush=True) as blobwriter:
-            torch.save(checkpoint, blobwriter)
-
-    def load_checkpoint(
-        self,
-        path: str,
-        map_location: Optional[Any] = None,
-    ) -> Dict[str, Any]:
-        key = self._parse_gcs_path(path)
-        blob = self.bucket.blob(key)
-        return torch.load(blob.open("rb"), map_location)
-
-    def remove_checkpoint(
-        self,
-        path: str,
-    ) -> None:
-        key = self._parse_gcs_path(path)
-        blob = self.bucket.blob(key)
-        blob.delete()
-
-    def teardown(self, ) -> None:
-        pass
 
 def split_text(batch: pd.DataFrame) -> pd.DataFrame:
     text = list(batch["text"])
@@ -169,7 +89,7 @@ def train_func(config):
         max_steps=1,
         accelerator="auto",
         strategy=strategy,
-        plugins=[ray.train.lightning.RayLightningEnvironment(),ckpt],
+        plugins=[RayLightningEnvironment(),ckpt],
         callbacks=[RayTrainReportCallback()],
         enable_checkpointing=True,
     )
@@ -180,7 +100,7 @@ def train_func(config):
     print(config["flags"].save_ckpt_path)
     trainer.save_checkpoint("test.ckpt")
     end = time.time()
-    print("Time to save distributed checkpoints: " + str(end-start) + " seconds")
+    print("Time to save distributed checkpoint: " + str(end-start) + " seconds")
 
 
 if __name__ == "__main__":
