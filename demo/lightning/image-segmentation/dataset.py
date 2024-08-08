@@ -18,7 +18,6 @@ import io
 import random
 import numpy as np
 import scipy.ndimage
-from google.cloud import storage
 from torch.utils.data import Dataset
 
 from dataflux_pytorch import dataflux_mapstyle_dataset
@@ -30,7 +29,6 @@ class DatafluxPytTrain(Dataset):
         self,
         project_name,
         bucket_name,
-        storage_client=None,
         **kwargs,
     ):
 
@@ -88,7 +86,6 @@ class DatafluxPytTrain(Dataset):
     def __getitems__(self, indices):
         images_in_bytes_batch = self.images_dataset.__getitems__(indices)
         labels_in_bytes_batch = self.labels_dataset.__getitems__(indices)
-
         res = []
         for i in range(len(images_in_bytes_batch)):
             data = {

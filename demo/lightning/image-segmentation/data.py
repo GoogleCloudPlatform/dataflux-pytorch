@@ -18,10 +18,9 @@ import lightning.pytorch as pl
 import random
 import numpy as np
 from torch.utils.data import DataLoader
-from torch.utils.data import RandomSampler
+from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 
-from dataflux_pytorch import dataflux_mapstyle_dataset
 from dataset import DatafluxPytTrain
 
 
@@ -51,7 +50,11 @@ class Unet3DDataModule(pl.LightningDataModule):
             )
             self.train_sampler = None
             if self.args.num_workers > 1:
-                self.train_sampler = RandomSampler(self.train_dataset)
+                self.train_sampler = DistributedSampler(
+                    self.train_dataset,
+                    seed=self.args.seed,
+                    drop_last=True
+                )
 
     def train_dataloader(self):
         return DataLoader(
@@ -59,10 +62,11 @@ class Unet3DDataModule(pl.LightningDataModule):
             batch_size=self.args.batch_size,
             shuffle=not self.args.benchmark and self.train_sampler is None,
             sampler=self.train_sampler,
-            num_workers=self.args.num_dataloader_threads,
-            persistent_workers=True,
+            num_workers=self.args.num_workers,
+            prefetch_factor=self.args.prefetch_factor,
             pin_memory=True,
             drop_last=True,
+            persistent_workers=True,
         )
 
 
