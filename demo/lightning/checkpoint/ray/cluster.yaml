@@ -1,5 +1,5 @@
 # An unique identifier for the head node and workers of this cluster.
-cluster_name: "dataflux-lightning-demo-4"
+cluster_name: {YOUR_CLUSTER_NAME}
 
 # The maximum number of workers nodes to launch in addition to the head
 # node.
@@ -27,9 +27,9 @@ idle_timeout_minutes: 30
 # Cloud-provider specific configuration.
 provider:
     type: gcp
-    region: us-central1
-    availability_zone: us-central1-a
-    project_id: amundson-gke-aiml-demo
+    region: {YOUR_REGION}
+    availability_zone: {YOUR_ZONE}
+    project_id: {YOUR_PROJECT_NAME}
 
 # How Ray will authenticate with newly launched nodes.
 auth:
@@ -104,7 +104,7 @@ available_node_types:
               - onHostMaintenance: TERMINATE
             # Un-Comment this to launch workers with the Service Account of the Head Node
             serviceAccounts:
-              - email: ray-autoscaler-sa-v1@amundson-gke-aiml-demo.iam.gserviceaccount.com
+              - email: ray-autoscaler-sa-v1@{YOUR_PROJECT_NAME}.iam.gserviceaccount.com
                 scopes:
                   - https://www.googleapis.com/auth/cloud-platform
             guestAccelerators:
