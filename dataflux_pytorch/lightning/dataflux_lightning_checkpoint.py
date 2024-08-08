@@ -1,10 +1,10 @@
+from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import torch
 from dataflux_core import user_agent
 from google.cloud import storage
 from lightning.pytorch.plugins.io import CheckpointIO
-from pathlib import Path
 
 
 class DatafluxLightningCheckpoint(CheckpointIO):
@@ -28,7 +28,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         elif isinstance(path, Path):
             # When casting from Path object to string, it considers cloud URLs as Network URLs and gets rid of //
             scheme, rest = str(path).split(":/")
-            return str(scheme)+"://"+str(rest)
+            return str(scheme) + "://" + str(rest)
         else:
             raise TypeError(
                 "path argument must be of type string or pathlib.Path object")
