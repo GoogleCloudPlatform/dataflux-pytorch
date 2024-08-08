@@ -1,9 +1,10 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import torch
 from dataflux_core import user_agent
 from google.cloud import storage
 from lightning.pytorch.plugins.io import CheckpointIO
+from pathlib import Path
 
 
 class DatafluxLightningCheckpoint(CheckpointIO):
@@ -23,14 +24,28 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         user_agent.add_dataflux_user_agent(self.storage_client)
         self.bucket = self.storage_client.bucket(self.bucket_name)
 
-    def _parse_gcs_path(self, path: str) -> str:
-        if not path or not (path.startswith("gcs://")
-                            or path.startswith("gs://")):
+    def _process_input_path(self, path: Union[str, Path]) -> str:
+        if isinstance(path, str):
+            return path
+        elif isinstance(path, Path):
+            # When casting from Path object to string, it considers cloud URLs as Network URLs and gets rid of //
+            scheme, rest = str(path).split(":/")
+            return str(scheme)+"://"+str(rest)
+        else:
+            raise TypeError(
+                "path argument must be of type string or pathlib.Path object")
+
+    def _parse_gcs_path(self, path: Union[str, Path]) -> str:
+        if not path:
+            raise ValueError("Path cannot be empty")
+        input_path = self._process_input_path(path)
+        if not (input_path.startswith("gcs://")
+                or input_path.startswith("gs://")):
             raise ValueError("Path needs to begin with gcs:// or gs://")
-        path = path.split("//", maxsplit=1)
-        if not path or len(path) < 2:
+        input_path = input_path.split("//", maxsplit=1)
+        if not input_path or len(input_path) < 2:
             raise ValueError("Bucket name must be non-empty")
-        split = path[1].split("/", maxsplit=1)
+        split = input_path[1].split("/", maxsplit=1)
         if len(split) == 1:
             bucket = split[0]
             prefix = ""
@@ -47,7 +62,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
     def save_checkpoint(
         self,
         checkpoint: Dict[str, Any],
-        path: str,
+        path: Union[str, Path],
         storage_options: Optional[Any] = None,
     ) -> None:
         key = self._parse_gcs_path(path)
@@ -57,7 +72,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
 
     def load_checkpoint(
         self,
-        path: str,
+        path: Union[str, Path],
         map_location: Optional[Any] = None,
     ) -> Dict[str, Any]:
         key = self._parse_gcs_path(path)
@@ -66,7 +81,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
 
     def remove_checkpoint(
         self,
-        path: str,
+        path: Union[str, Path],
     ) -> None:
         key = self._parse_gcs_path(path)
         blob = self.bucket.blob(key)
