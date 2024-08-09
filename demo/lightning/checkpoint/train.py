@@ -1,14 +1,19 @@
 import os
 import socket
 import time
+from pathlib import Path
 
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
+from lightning.pytorch.strategies import FSDPStrategy
+from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
+from torch.distributed.checkpoint import save
 from torch.utils.data import DataLoader
 
-from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+from dataflux_pytorch.lightning import (DatafluxLightningCheckpoint,
+                                        GCSDistributedWriter)
 
 
 def configure_master_addr():
@@ -57,7 +62,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
 
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 2)))
-    dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project)
+    # dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
@@ -67,16 +72,22 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
     )
-    strategy = os.environ.get("TRAIN_STRATEGY", "ddp")
-    accelerator = os.environ.get("ACCELERATOR", "cpu")
+    # strategy = os.environ.get("TRAIN_STRATEGY", "ddp")
+    accelerator = os.environ.get("ACCELERATOR", "gpu")
     trainer = Trainer(default_root_dir=ckpt_dir_path,
-                      plugins=[dataflux_ckpt],
+                      plugins=[],
                       callbacks=[checkpoint_callback],
                       min_epochs=4,
                       max_epochs=5,
                       max_steps=3,
                       accelerator=accelerator,
-                      strategy=strategy,
+                      strategy=DatafluxFSDPStrategy(
+                          path=ckpt_dir_path,
+                          project_name=project,
+                          storage_client=None,
+                          state_dict_type="sharded",
+                      ),
+                      devices=1,
                       num_nodes=int(os.environ.get("WORLD_SIZE", 1)))
     trainer.fit(model, dataloader)
 
@@ -90,6 +101,40 @@ class DemoTransformer(LightningTransformer):
     ) -> None:
         super().__init__()
         self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
+
+
+class DatafluxFSDPStrategy(FSDPStrategy):
+
+    def __init__(self, path, project_name, storage_client, **kwargs):
+        super().__init__(**kwargs)
+        self.writer = GCSDistributedWriter(path, project_name, storage_client)
+        self.checkpoint_io = DatafluxLightningCheckpoint(
+            project_name, storage_client)
+
+    def save_checkpoint(self,
+                        checkpoint,
+                        filepath,
+                        storage_options=None) -> None:
+        if storage_options is not None:
+            raise TypeError(
+                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
+                " `FSDPStrategy` does not use the `CheckpointIO`.")
+
+        path = Path(self.broadcast(filepath))
+        # if self._state_dict_type != "sharded":
+        #     raise ValueError("state_dict_type must be 'sharded'")
+
+        converted_state = {"model": checkpoint.pop("state_dict")}
+        converted_state.update({
+            f"optimizer_{idx}": optim_state
+            for idx, optim_state in enumerate(
+                checkpoint.pop("optimizer_states", []))
+        })
+        save(converted_state, checkpoint_id=path, storage_writer=self.writer)
+
+        if self.global_rank == 0:
+            self.checkpoint_io.save_checkpoint(checkpoint,
+                                               path / _METADATA_FILENAME)
 
 
 if __name__ == "__main__":
