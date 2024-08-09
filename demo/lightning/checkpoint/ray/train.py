@@ -76,8 +76,7 @@ def train_func(config):
     batch_size_per_worker = config["flags"].batch_size
     model = BertTinyModel(lr=lr, eps=eps)
     strategy = config["strategy"]
-    ckpt = DatafluxLightningCheckpoint(project_name=config["flags"].gcp_project,
-                                           bucket_name=config["flags"].gcs_bucket)
+    ckpt = DatafluxLightningCheckpoint(project_name=config["flags"].gcp_project)
 
     train_ds = ray.train.get_dataset_shard("train")
     train_dataloader = train_ds.iter_torch_batches(batch_size=batch_size_per_worker)
@@ -97,7 +96,6 @@ def train_func(config):
     trainer.fit(model, train_dataloaders=train_dataloader)
 
     start = time.time()
-    print(config["flags"].save_ckpt_path)
     trainer.save_checkpoint("test.ckpt")
     end = time.time()
     print("Time to save distributed checkpoint: " + str(end-start) + " seconds")

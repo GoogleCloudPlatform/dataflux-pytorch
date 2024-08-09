@@ -27,7 +27,7 @@ We will spin up a [Ray cluster](https://docs.ray.io/en/latest/cluster/key-concep
    git clone --recurse-submodules https://github.com/GoogleCloudPlatform/dataflux-pytorch
    cd dataflux-pytorch
    pip install gcs-torch-dataflux
-   cd demo/image-segmentation
+   cd demo/lightning/checkpoint/ray
    ```
 2. [Install Ray](https://docs.ray.io/en/latest/ray-overview/installation.html).
    ```shell
@@ -44,10 +44,6 @@ We will spin up a [Ray cluster](https://docs.ray.io/en/latest/cluster/key-concep
    ray dashboard cluster.yaml --no-config-cache
    ```
 3. On your workstation, you can visit http://localhost:8265/ to see the status of the created Ray cluster.
-
-    * Note that it might take a while to set up the worker nodes. Once they are completed, you can verify the cluster status looks like:
-
-    ![sample cluster image](imgs/cluster.png "sample cluster image")
 
 ### Workload
 
