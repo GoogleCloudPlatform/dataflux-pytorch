@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, Tuple
 
 import torch
 from dataflux_core import user_agent
@@ -17,7 +17,6 @@ class DatafluxLightningCheckpoint(CheckpointIO):
     ):
         self.project_name = project_name
         self.storage_client = storage_client
-        self.bucket = None
         if not storage_client:
             self.storage_client = storage.Client(project=self.project_name, )
         user_agent.add_dataflux_user_agent(self.storage_client)
@@ -33,7 +32,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             raise TypeError(
                 "path argument must be of type string or pathlib.Path object")
 
-    def _parse_gcs_path(self, path: Union[str, Path]) -> str:
+    def _parse_gcs_path(self, path: Union[str, Path]) -> Tuple[str, str]:
         if not path:
             raise ValueError("Path cannot be empty")
         input_path = self._process_input_path(path)
@@ -52,9 +51,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             bucket_name, prefix = split
         if not bucket_name:
             raise ValueError("Bucket name must be non-empty")
-        if not self.bucket:
-            self.bucket = self.storage_client.bucket(bucket_name)
-        return prefix
+        return bucket_name, prefix
 
     def save_checkpoint(
         self,
@@ -62,8 +59,9 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: Union[str, Path],
         storage_options: Optional[Any] = None,
     ) -> None:
-        key = self._parse_gcs_path(path)
-        blob = self.bucket.blob(key)
+        bucket_name, key = self._parse_gcs_path(path)
+        bucket_client = self.storage_client.bucket(bucket_name)
+        blob = bucket_client.blob(key)
         with blob.open("wb", ignore_flush=True) as blobwriter:
             torch.save(checkpoint, blobwriter)
 
@@ -72,16 +70,18 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: Union[str, Path],
         map_location: Optional[Any] = None,
     ) -> Dict[str, Any]:
-        key = self._parse_gcs_path(path)
-        blob = self.bucket.blob(key)
+        bucket_name, key = self._parse_gcs_path(path)
+        bucket_client = self.storage_client.bucket(bucket_name)
+        blob = bucket_client.blob(key)
         return torch.load(blob.open("rb"), map_location)
 
     def remove_checkpoint(
         self,
         path: Union[str, Path],
     ) -> None:
-        key = self._parse_gcs_path(path)
-        blob = self.bucket.blob(key)
+        bucket_name, key = self._parse_gcs_path(path)
+        bucket_client = self.storage_client.bucket(bucket_name)
+        blob = bucket_client.blob(key)
         blob.delete()
 
     def teardown(self, ) -> None:
