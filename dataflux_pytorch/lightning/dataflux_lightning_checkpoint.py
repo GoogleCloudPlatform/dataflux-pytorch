@@ -111,9 +111,10 @@ class GCSFileSystem(FileSystemBase):
     def create_stream(self, path: Union[str, os.PathLike],
                       mode: str) -> Generator[io.IOBase, None, None]:
         bucket, path = _parse_gcs_path(path)
-        with self.storage_client.bucket(bucket).blob(path).open(
-                "wb", ignore_flush=True) as stream:
+        with io.BytesIO() as stream:
             yield cast(io.IOBase, stream)
+            self.storage_client.bucket(bucket).blob(path).upload_from_file(
+                stream, rewind=True)
 
     def concat_path(self, path: Union[str, os.PathLike],
                     suffix: str) -> Union[str, os.PathLike]:

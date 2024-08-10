@@ -3,13 +3,15 @@ import socket
 import time
 from pathlib import Path
 
+import torch.nn.modules as nn
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
-from lightning.pytorch.strategies import FSDPStrategy
+from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
 from torch.distributed.checkpoint import save
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.utils.data import DataLoader
 
 from dataflux_pytorch.lightning import (DatafluxLightningCheckpoint,
@@ -74,21 +76,25 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
     )
     # strategy = os.environ.get("TRAIN_STRATEGY", "ddp")
     accelerator = os.environ.get("ACCELERATOR", "gpu")
-    trainer = Trainer(default_root_dir=ckpt_dir_path,
-                      plugins=[],
-                      callbacks=[checkpoint_callback],
-                      min_epochs=4,
-                      max_epochs=5,
-                      max_steps=3,
-                      accelerator=accelerator,
-                      strategy=DatafluxFSDPStrategy(
-                          path=ckpt_dir_path,
-                          project_name=project,
-                          storage_client=None,
-                          state_dict_type="sharded",
-                      ),
-                      devices=1,
-                      num_nodes=int(os.environ.get("WORLD_SIZE", 1)))
+    trainer = Trainer(
+        default_root_dir=ckpt_dir_path,
+        plugins=[],
+        callbacks=[checkpoint_callback],
+        min_epochs=4,
+        max_epochs=5,
+        max_steps=3,
+        accelerator=accelerator,
+        strategy=DatafluxFSDPStrategy(
+            path=ckpt_dir_path,
+            project_name=project,
+            storage_client=None,
+            state_dict_type="sharded",
+            auto_wrap_policy=ModuleWrapPolicy(module_classes=[
+                nn.TransformerDecoderLayer, nn.TransformerEncoderLayer
+            ]),
+        ),
+        devices=2,
+        num_nodes=1)
     trainer.fit(model, dataloader)
 
 
@@ -103,7 +109,7 @@ class DemoTransformer(LightningTransformer):
         self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
 
 
-class DatafluxFSDPStrategy(FSDPStrategy):
+class DatafluxFSDPStrategy(DDPStrategy):
 
     def __init__(self, path, project_name, storage_client, **kwargs):
         super().__init__(**kwargs)
