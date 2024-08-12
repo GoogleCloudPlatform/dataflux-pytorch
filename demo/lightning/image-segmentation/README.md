@@ -67,7 +67,8 @@ _Note: the following instructions assume that you have Jobset and Kueue enabled 
     docker tag dataflux-demo gcr.io/{YOUR-GCP-PROJECT}/dataflux-demo
     docker push gcr.io/{YOUR-GCP-PROJECT}/dataflux-demo
     ```
-1. Apply deployment
+1. Apply deployment  
+
    Update `demo/lightning/image-segmentation/deployment.yaml` at appropriate places. Specifically the arguments to `spec.containers.command` and `spec.containers.image`. The deployment has been tested on a cluster with `4` nodes. If you wish to run the workload on different number of nodes, make sure to set `spec.parallelism`, `spec.completions`, the environment variable `WORLD_SIZE`, and the argument `--num_nodes` to `spec.containers.command` are all set to the _same_ value, which is the number of nodes.
 
    ```sh
