@@ -1,5 +1,5 @@
 # Image Segmentation Demo Code
-The code examples in this directory demonstrate how Dataflux can be used for image segmentation training alongside PyTorch Lightning. The image segmentation workload implemented here works on the KiTS 19 dataset which has `210` images and their corresponding labels. The images and their labels are stored in separate directories.
+The code examples in this directory demonstrate how Dataflux can be used for image segmentation training alongside PyTorch Lightning. The image segmentation workload implemented here works on the [KiTS19](https://github.com/neheller/kits19) dataset which contains `210` images and their corresponding labels. The images and their labels are stored in separate directories.
 
 1. `dataset.py`
 
@@ -75,7 +75,7 @@ The code examples in this directory demonstrate how Dataflux can be used for ima
 
 1. `train.py`
 
-    An instance of the `Unet3DDataModule` class is created and passed to the Pytorch Lightning trainer instance's `fit` function as the `train_dataloaders`
+    An instance of the `Unet3DDataModule` class is created and passed to the Pytorch Lightning trainer instance's `fit` function in the `train_dataloaders` keyword argument.
     ```py
     model = Unet3DLightning(flags)
     train_data_loader = Unet3DDataModule(flags)
@@ -122,8 +122,8 @@ Please note that these demos are for educational and example purposes only, and 
     python3 demo/lightning/image-segmentation/train.py \
     --gcp_project={YOUR-GCP-PROJECT} \
     --gcs_bucket={YOUR-GCS-BUCKET} \
-    --images_prefix={YOUR-GCS-BUCKET}\images \
-    --labels_prefix={YOUR-GCS-BUCKET}\labels \
+    --images_prefix={YOUR-GCS-BUCKET}/images \
+    --labels_prefix={YOUR-GCS-BUCKET}/labels \
     --num_dataloader_threads=10 \
     --prefetch_factor=5 \
     --num_devices=1 \
@@ -160,7 +160,7 @@ _Note: the following instructions assume that you have Jobset and Kueue enabled 
 
    Update `demo/lightning/image-segmentation/deployment.yaml` at appropriate places. Specifically, `spec.containers.image` and the arguments to `spec.containers.command`. 
    
-   This deployment has been tested on a cluster with `4` nodes. If you wish to run the workload on a cluster with different number of nodes, make sure to set `spec.parallelism`, `spec.completions`, the environment variable `WORLD_SIZE`, and the argument `--num_nodes` to `spec.containers.command` are all set to the _same_ value, which is the number of nodes.
+   This deployment has been tested on a cluster with `4` nodes. If you wish to run the workload on a cluster with different number of nodes, make sure to set `spec.parallelism`, `spec.completions`, the environment variable `WORLD_SIZE`, and the argument `--num_nodes` to `spec.containers.command` are all set to the _same_ value, which is the number of nodes in your cluster.
 
    ```sh
    kubectl apply -f deploy.yaml
