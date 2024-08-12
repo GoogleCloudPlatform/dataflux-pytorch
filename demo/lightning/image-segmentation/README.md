@@ -75,7 +75,7 @@ The code examples in this directory demonstrate how Dataflux can be used for ima
 
 1. `train.py`
 
-    An instance of the `Unet3DDataModule` class is created and passed to the Pytorch Lightning trainer instance's `fit` function in the `train_dataloaders` keyword argument.
+    An instance of the `Unet3DDataModule` class is created and passed to the Pytorch Lightning `Trainer` instance's `fit` function in the `train_dataloaders` keyword argument.
     ```py
     model = Unet3DLightning(flags)
     train_data_loader = Unet3DDataModule(flags)
@@ -134,7 +134,7 @@ Please note that these demos are for educational and example purposes only, and 
 Be sure to set `--local` to `True`.
 
 ## Multi-node GKE Cluster Execution
-_Note: the following instructions assume that you have Jobset and Kueue enabled on your GKE cluster. For easy compatability we recommend creating a cluster with XPK which will configure these features automatically._
+_Note: the following instructions assume that you have Jobset and Kueue enabled on your GKE cluster. For easy compatability we recommend creating a cluster with [XPK](https://github.com/google/xpk) which will configure these features automatically._
 
 1. Connect to your GKE cluster from your workstation
     ```sh
