@@ -1,5 +1,5 @@
 # Image Segmentation Demo Code
-The code examples in this directory demonstrate how Dataflux can be used for image segmentation training alongside PyTorch Lightning. The image segmentation workload implemented here works on the [KiTS19](https://github.com/neheller/kits19) dataset which contains `210` images and their corresponding labels. The images and their labels are stored in separate directories.
+The code examples in this directory demonstrate how GCS Connector for Pytorch can be used for image segmentation training alongside PyTorch Lightning. The image segmentation workload implemented here works on the [KiTS19](https://github.com/neheller/kits19) dataset which contains `210` images and their corresponding labels. The images and their labels are stored in separate directories.
 
 1. `dataset.py`
 
@@ -18,7 +18,7 @@ The code examples in this directory demonstrate how Dataflux can be used for ima
             self.rand_crop = RandBalancedCrop(patch_size=patch_size,
                                             oversampling=oversampling)
 
-            # Dataflux-specific setup.
+            # GCS Connector for Pytorch specific setup.
             self.project_name = project_name
             self.bucket_name = bucket_name
 
