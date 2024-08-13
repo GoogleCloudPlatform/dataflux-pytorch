@@ -74,8 +74,6 @@ class DatafluxLightningCheckpoint(CheckpointIO):
 
         bucket_client = self.storage_client.bucket(bucket_name)
 
-        # Doing this to creat empty directory structure for the file since blob.upload_from_file fails otherwise.
-        bucket_client.blob(rest_of_the_path+'/').upload_from_string('')
         blob = bucket_client.blob(key)
         try:
             with open(key, 'rb') as f:  # Open in read-binary mode
