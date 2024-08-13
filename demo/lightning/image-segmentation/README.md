@@ -97,7 +97,7 @@ Please note that these demos are for educational and example purposes only, and 
 ## Setup
 1. Create a copy of the dataset in your GCP project
     ```sh
-    gcloud storage cp -r gs://dataflux-demo-public/image-seg-dataset gs://{YOUR-GCS-BUCKET}
+    gcloud storage cp -r gs://dataflux-demo-public/image-segmentation-dataset gs://{YOUR-GCS-BUCKET}
     ```
 1. Clone `dataflux-pytorch` repo to your workstation
     ```sh
@@ -109,7 +109,7 @@ Please note that these demos are for educational and example purposes only, and 
     ```
 1. Install dependencies
     ```sh
-    # Create a python virutal environment and activate it
+    # Create a python virtual environment and activate it
     python3 -m venv .venv && source .venv/bin/activate
 
     cd dataflux-pytorch
