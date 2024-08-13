@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union, Tuple
 
 import torch
+import os
+import time
 from dataflux_core import user_agent
 from google.cloud import storage
 from lightning.pytorch.plugins.io import CheckpointIO
@@ -59,11 +61,32 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: Union[str, Path],
         storage_options: Optional[Any] = None,
     ) -> None:
-        bucket_name, key = self._parse_gcs_path(path)
+        # bucket_name, key = self._parse_gcs_path(path)
+        # bucket_client = self.storage_client.bucket(bucket_name)
+        # blob = bucket_client.blob(key)
+        # with blob.open("wb", ignore_flush=True) as blobwriter:
+        #     torch.save(checkpoint, blobwriter)
+        if isinstance(path, Path):
+            path = str(path)
+        print("***********PATH BEFORE MAKING DIR")
+        print(path)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'wb') as f:
+            torch.save(checkpoint, f)
+        time.sleep(2)
+        bucket_name, key = self._parse_gcs_path(
+            'gs://yashsha-ckpt-demo/transfer/')
         bucket_client = self.storage_client.bucket(bucket_name)
+        print("***********PATH")
+        path = os.path.abspath(path)
+        print(path)
+        print("***************")
         blob = bucket_client.blob(key)
-        with blob.open("wb", ignore_flush=True) as blobwriter:
-            torch.save(checkpoint, blobwriter)
+        try:
+            blob.upload_from_filename(path)
+        except Exception as e:
+            print(f"Error uploading to GCS: {e}")
+        # blob.upload_from_string("Helloworld")
 
     def load_checkpoint(
         self,
