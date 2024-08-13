@@ -1,7 +1,12 @@
+from lightning.pytorch.plugins.io import CheckpointIO
+from google.cloud import storage
+from dataflux_core import user_agent
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, Tuple
 
 import torch
+import os
+import time
 import os
 import time
 from dataflux_core import user_agent
@@ -61,32 +66,22 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         path: Union[str, Path],
         storage_options: Optional[Any] = None,
     ) -> None:
-        # bucket_name, key = self._parse_gcs_path(path)
-        # bucket_client = self.storage_client.bucket(bucket_name)
-        # blob = bucket_client.blob(key)
-        # with blob.open("wb", ignore_flush=True) as blobwriter:
-        #     torch.save(checkpoint, blobwriter)
-        if isinstance(path, Path):
-            path = str(path)
-        print("***********PATH BEFORE MAKING DIR")
-        print(path)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, 'wb') as f:
+        bucket_name, key = self._parse_gcs_path(path)
+        rest_of_the_path, _ = os.path.split(key)
+        os.makedirs(os.path.dirname(rest_of_the_path+"/"), exist_ok=True)
+        with open(key, 'wb') as f:
             torch.save(checkpoint, f)
-        time.sleep(2)
-        bucket_name, key = self._parse_gcs_path(
-            'gs://yashsha-ckpt-demo/transfer/')
+
         bucket_client = self.storage_client.bucket(bucket_name)
-        print("***********PATH")
-        path = os.path.abspath(path)
-        print(path)
-        print("***************")
+
+        # Doing this to creat empty directory structure for the file since blob.upload_from_file fails otherwise.
+        bucket_client.blob(rest_of_the_path+'/').upload_from_string('')
         blob = bucket_client.blob(key)
         try:
-            blob.upload_from_filename(path)
+            with open(key, 'rb') as f:  # Open in read-binary mode
+                blob.upload_from_file(f)
         except Exception as e:
             print(f"Error uploading to GCS: {e}")
-        # blob.upload_from_string("Helloworld")
 
     def load_checkpoint(
         self,
