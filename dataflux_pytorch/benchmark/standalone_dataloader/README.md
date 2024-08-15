@@ -42,8 +42,8 @@ In the following commands, update `gcs-tess` to your project ID as needed.
 2. `docker tag dataflux-list-and-download gcr.io/gcs-tess/dataflux-maxtext`
 3. `docker push gcr.io/gcs-tess/dataflux-maxtext`
 
-### Run the map-style loop
+### Run the benchmark
 
-1. Update any needed flags/configs in `demo/list-and-download/map/deployment.yaml`
+1. Update any needed flags/configs in `dataflux_pytorch/benchmark/standalone_dataloader/deployment.yaml`
     * Notably the job name, completions/parallelism, image name, and any flags
 2. `kubectl apply -f dataflux_pytorch/benchmark/standalone_dataloader/deployment.yaml`
