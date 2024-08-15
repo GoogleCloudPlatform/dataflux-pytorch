@@ -1,3 +1,4 @@
+import math
 import os
 import sys
 
@@ -12,10 +13,15 @@ from typing import Sequence, Type
 
 import jax
 import maxtext.MaxText
+import pyarrow as pa
+import pyarrow.parquet as pq
 from absl import app
-from maxtext.MaxText import max_logging, pyconfig, train
+from maxtext.MaxText import max_logging, pyconfig, storage_utils, train
 from maxtext.MaxText.torch_datasets import parquet
+from torch.utils import data
 from torch.utils.data import DataLoader, IterableDataset
+
+from dataflux_pytorch import dataflux_iterable_dataset
 
 TOTAL_TRAINING_TIME_DIRECTORY = "total_training_time"
 PER_STEP_DATA_LOADING_TIME_DIRECTORY = "per_step_data_loading_time"
@@ -89,19 +95,29 @@ def parquet_data_loader(config):
     batch_size = config.local_batch_size
 
     # On each node, we "walk" the directory to get the list of files within the dataset.
-    parquet_files = list_files_walk(config.dataset_directory)
+    # parquet_files = list_files_walk(config.dataset_directory)
 
     worker_id = jax.process_index()
 
-    sublists = split_list(parquet_files, jax.process_count())
+    # sublists = split_list(parquet_files, jax.process_count())
 
-    strategy_type = data_loader_strategy_type(config)
+    # strategy_type = data_loader_strategy_type(config)
 
-    dataset = strategy_type(
-        allocated_parquet_files=sublists[worker_id],
-        batch_size=batch_size,
-        columns=["outputs", "image_base64_str"],
-    )
+    # dataset = strategy_type(
+    #     allocated_parquet_files=sublists[worker_id],
+    #     batch_size=batch_size,
+    #     columns=["outputs", "image_base64_str"],
+    # )
+    dataset = ParquetIterableDataset(batch_size=batch_size,
+                                     columns=["outputs", "image_base64_str"],
+                                     rank=worker_id,
+                                     world_size=jax.process_count(),
+                                     project_name=os.environ["PROJECT"],
+                                     bucket_name=os.environ["BUCKET"],
+                                     config=dataflux_iterable_dataset.Config(
+                                         num_processes=1,
+                                         sort_listing_results=True,
+                                         prefix=os.environ["PREFIX"]))
     data_loader = DataLoader(
         dataset=dataset,
         num_workers=config.data_loader_num_workers,
@@ -237,25 +253,25 @@ def data_load_loop(config):
         )
         base_name = f"{jax.process_index()}.csv"
         # Upload total training time.
-        maxtext.MaxText.storage_utils.upload_csv(
+        storage_utils.upload_csv(
             config.gcs_metrics_bucket,
             os.path.join(config.run_name, TOTAL_TRAINING_TIME_DIRECTORY,
                          base_name), [[jax.process_index(), training_time]])
 
         # Upload per-step data loading time.
-        maxtext.MaxText.storage_utils.upload_csv(
+        storage_utils.upload_csv(
             config.gcs_metrics_bucket,
             os.path.join(config.run_name, PER_STEP_DATA_LOADING_TIME_DIRECTORY,
                          base_name), per_step_data_loading_time)
 
         # Upload per-step total time.
-        maxtext.MaxText.storage_utils.upload_csv(
+        storage_utils.upload_csv(
             config.gcs_metrics_bucket,
             os.path.join(config.run_name, PER_STEP_TIME_DIRECTORY, base_name),
             step_time)
 
         # Upload per epoch time.
-        maxtext.MaxText.storage_utils.upload_csv(
+        storage_utils.upload_csv(
             config.gcs_metrics_bucket,
             os.path.join(config.run_name, PER_EPOCH_TIME_DIRECTORY, base_name),
             epoch_times)
@@ -263,6 +279,7 @@ def data_load_loop(config):
         max_logging.log(
             f"Finished uploading metrics to GCS bucket {config.gcs_metrics_bucket} on host {jax.process_index()}"
         )
+        max_logging.log(f"Run name for accessing metrics: {config.run_name}")
 
 
 def main(argv: Sequence[str]) -> None:
@@ -277,6 +294,83 @@ def main(argv: Sequence[str]) -> None:
     if config.dataset_type == "tfds":
         os.environ["TFDS_DATA_DIR"] = config.dataset_path
     data_load_loop(config)
+
+
+class ParquetIterableDataset(dataflux_iterable_dataset.DataFluxIterableDataset
+                             ):
+
+    def __init__(self, columns, batch_size, rank, world_size, *args, **kwargs):
+        super().__init__(*args, data_format_fn=self.data_format_fn, **kwargs)
+        self.columns = columns
+        self.batch_size = batch_size
+        self.current_file = None
+        self.columns = columns
+        self.world_size = world_size
+        self.rank = rank
+        """
+        A sublcass of the DatafluxIterableDataset, this dataset allows for the reading and batch
+        distribution of a parquet file, where batch-size corresponds to rows of the parquet table.
+        """
+
+    def data_format_fn(self, raw_bytes):
+        """
+        The data comes in as a large parquet_file that must be read into a buffer and parsed
+        into the correct parquet format.
+        """
+        reader = pa.BufferReader(raw_bytes)
+        table = pq.ParquetFile(reader)
+        return table
+
+    def __iter__(self):
+        """
+        Overriding the __iter__ function allows batch size to be used to sub-divide the contents of
+        individual parquet files.
+        """
+        worker_info = data.get_worker_info()
+        files_per_node = math.ceil(len(self.objects) / self.world_size)
+        start_point = self.rank * files_per_node
+        end_point = start_point + files_per_node
+        if worker_info is None:
+            print("Single-process data loading detected", flush=True)
+            for bytes_content in dataflux_iterable_dataset.dataflux_core.download.dataflux_download_lazy(
+                    project_name=self.project_name,
+                    bucket_name=self.bucket_name,
+                    objects=self.objects[start_point:end_point],
+                    storage_client=self.storage_client,
+                    dataflux_download_optimization_params=self.
+                    dataflux_download_optimization_params,
+                    retry_config=self.config.download_retry_config,
+            ):
+                table = self.data_format_fn(bytes_content)
+                for batch in table.iter_batches(batch_size=self.batch_size,
+                                                columns=self.columns):
+                    yield from batch.to_pylist()
+        else:
+            # Multi-process data loading. Split the workload among workers.
+            # Ref: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset.
+            # For the purpose of this example, this split is only performed at the file level.
+            # This means that (num_nodes * num_workers) should be less than or equal to filecount.
+            per_worker = int(
+                math.ceil(files_per_node / float(worker_info.num_workers)))
+            worker_id = worker_info.id
+            start = worker_id * per_worker + start_point
+            end = min(start + per_worker, end_point)
+            max_logging.log(
+                f"-----> Worker {self.rank}.{worker_id} downloading {self.objects[start:end]}\n"
+            )
+            for bytes_content in dataflux_iterable_dataset.dataflux_core.download.dataflux_download_lazy(
+                    project_name=self.project_name,
+                    bucket_name=self.bucket_name,
+                    objects=self.objects[start:end],
+                    storage_client=self.storage_client,
+                    dataflux_download_optimization_params=self.
+                    dataflux_download_optimization_params,
+                    retry_config=self.config.download_retry_config,
+            ):
+                table = self.data_format_fn(bytes_content)
+                for batch in table.iter_batches(batch_size=self.batch_size,
+                                                columns=self.columns):
+                    yield from batch.to_pylist()
 
 
 if __name__ == "__main__":

@@ -13,7 +13,9 @@ These instructions are run relative to this directory.
     export JOB_INDEX=0 JOB_COMPLETION_INDEX=0 PROCESSES_IN_JOB=1 JAX_PROCESS_COUNT=1 JAX_COORDINATOR_ADDRESS=localhost
     export RUN_NAME=$USER-dataflux-maxtext-$(date +"%Y-%m-%d-%H-%M-%S")
 
-    export DATASET_DIRECTORY="<YOUR-DATASET-DIRECTORY>"
+    export PROJECT="<YOUR-PROJECT>"
+    export BUCKET="<YOUR-BUCKET>"
+    export PREFIX="<DATA-PREFIX>"
     export EPOCHS=2
     export MAX_STEPS=-1
     export LOCAL_BATCH_SIZE=32
