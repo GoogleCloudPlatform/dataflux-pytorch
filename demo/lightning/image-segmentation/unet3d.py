@@ -34,7 +34,7 @@ class Unet3D(nn.Module):
             # Make the model smaller so benchmarking finishes quickly.
             filters = [2, 2, 2, 2, 2]
         else:
-            filters = [32, 64, 128, 256, 320]
+            filters = [2, 2, 2, 2, 2]
 
         self.filters = filters
         self.inp = filters[:-1]
