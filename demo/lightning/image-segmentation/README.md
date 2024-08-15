@@ -1,6 +1,8 @@
 # Image Segmentation Demo Code
 The code examples in this directory demonstrate how GCS Connector for Pytorch can be used for image segmentation training alongside PyTorch Lightning. The image segmentation workload implemented here works on the [KiTS19](https://github.com/neheller/kits19) dataset which contains `210` images and their corresponding labels. The images and their labels are stored in separate directories.
 
+If you are looking to benchmark data loading performance, set `--benchmark` to `True`. Note that this will skip training altogether.
+
 1. `dataset.py`
 
     Defines the `DatafluxPytTrain` class which wraps two `DataFluxMapStyleDataset`s corresponding to the `images` and the `labels` in the raw dataset.
