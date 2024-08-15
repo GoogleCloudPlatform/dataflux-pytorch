@@ -22,11 +22,10 @@ These instructions are run relative to this directory.
     export PREFETCH_FACTOR=2
     export DATA_LOADER_NUM_WORKERS=10
     export PER_STEP_INTERVAL=0.1
-    export DATA_LOADER_STRATEGY_NAME="FileParallelSequentialRead"
-    export GCS_METRICS_BUCKET="distributed-training-metrics"
+    export GCS_METRICS_BUCKET="<METRICS-BUCKET>"
 
     export COMMON_RUN_FLAGS="enable_checkpointing=False hardware=cpu"
-    export BENCHMARK_RUN_FLAGS="run_name=${RUN_NAME} dataset_directory=${DATASET_DIRECTORY} epochs=${EPOCHS} max_steps=${MAX_STEPS} local_batch_size=${LOCAL_BATCH_SIZE} prefetch_factor=${PREFETCH_FACTOR} data_loader_num_workers=${DATA_LOADER_NUM_WORKERS} per_step_interval=${PER_STEP_INTERVAL} data_loader_strategy_name=${DATA_LOADER_STRATEGY_NAME} gcs_metrics_bucket=${GCS_METRICS_BUCKET}"                  
+    export BENCHMARK_RUN_FLAGS="run_name=${RUN_NAME} dataset_directory=${DATASET_DIRECTORY} epochs=${EPOCHS} max_steps=${MAX_STEPS} local_batch_size=${LOCAL_BATCH_SIZE} prefetch_factor=${PREFETCH_FACTOR} data_loader_num_workers=${DATA_LOADER_NUM_WORKERS} per_step_interval=${PER_STEP_INTERVAL} gcs_metrics_bucket=${GCS_METRICS_BUCKET}"                  
     ```
 3.  Run the trainer:
     ```sh

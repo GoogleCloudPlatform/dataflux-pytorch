@@ -12,12 +12,10 @@ from types import MappingProxyType
 from typing import Sequence, Type
 
 import jax
-import maxtext.MaxText
 import pyarrow as pa
 import pyarrow.parquet as pq
 from absl import app
 from maxtext.MaxText import max_logging, pyconfig, storage_utils, train
-from maxtext.MaxText.torch_datasets import parquet
 from torch.utils import data
 from torch.utils.data import DataLoader, IterableDataset
 
@@ -28,12 +26,6 @@ PER_STEP_DATA_LOADING_TIME_DIRECTORY = "per_step_data_loading_time"
 PER_STEP_TIME_DIRECTORY = "per_step_time"
 PER_EPOCH_TIME_DIRECTORY = "per_epoch_time"
 
-DATA_LOADER_STRATEGIES_BY_NAME = MappingProxyType({
-    'FileParallelSequentialRead':
-    parquet.FileParallelSequentialRead,
-    'FileParallelRandomRead':
-    parquet.FileParallelRandomRead,
-})
 STEP_BARRIER_MSG = "Synchronize all processes within a step"
 
 
@@ -74,15 +66,6 @@ def split_list(lst, n):
     return sublists
 
 
-def data_loader_strategy_type(config) -> Type[IterableDataset]:
-    name = config.data_loader_strategy_name
-    if name in DATA_LOADER_STRATEGIES_BY_NAME:
-        return DATA_LOADER_STRATEGIES_BY_NAME[name]
-    raise ValueError(
-        f'data_loader_strategy of \'{name}\' is not one of the following '
-        f'supported strategies: {DATA_LOADER_STRATEGIES_BY_NAME.keys()}')
-
-
 def list_files_walk(start_path='.'):
     dataset_files = []
     for root, _, files in os.walk(start_path):
@@ -93,21 +76,8 @@ def list_files_walk(start_path='.'):
 
 def parquet_data_loader(config):
     batch_size = config.local_batch_size
-
-    # On each node, we "walk" the directory to get the list of files within the dataset.
-    # parquet_files = list_files_walk(config.dataset_directory)
-
     worker_id = jax.process_index()
 
-    # sublists = split_list(parquet_files, jax.process_count())
-
-    # strategy_type = data_loader_strategy_type(config)
-
-    # dataset = strategy_type(
-    #     allocated_parquet_files=sublists[worker_id],
-    #     batch_size=batch_size,
-    #     columns=["outputs", "image_base64_str"],
-    # )
     dataset = ParquetIterableDataset(batch_size=batch_size,
                                      columns=["outputs", "image_base64_str"],
                                      rank=worker_id,
