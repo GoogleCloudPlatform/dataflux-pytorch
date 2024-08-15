@@ -47,6 +47,10 @@ if __name__ == "__main__":
     flags = PARSER.parse_args()
     if not flags.local:
         init_processes()
+    profiler = None
+    if flags.benchmark:
+        profiler = "simple"
+
     model = Unet3DLightning(flags)
     train_data_loader = Unet3DDataModule(flags)
     trainer = pl.Trainer(
@@ -55,6 +59,6 @@ if __name__ == "__main__":
         devices=flags.num_devices,
         num_nodes=flags.num_nodes,
         strategy="ddp",
-        profiler="simple",
+        profiler=profiler,
     )
     trainer.fit(model=model, train_dataloaders=train_data_loader)

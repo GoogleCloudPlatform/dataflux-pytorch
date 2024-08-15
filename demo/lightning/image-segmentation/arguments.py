@@ -72,7 +72,6 @@ PARSER.add_argument("--exec_mode",
 
 PARSER.add_argument("--benchmark",
                     dest="benchmark",
-                    action="store_true",
                     default=False)
 PARSER.add_argument("--amp", dest="amp", action="store_true", default=False)
 PARSER.add_argument(
