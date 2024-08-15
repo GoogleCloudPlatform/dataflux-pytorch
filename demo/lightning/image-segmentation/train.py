@@ -55,5 +55,6 @@ if __name__ == "__main__":
         devices=flags.num_devices,
         num_nodes=flags.num_nodes,
         strategy="ddp",
+        profiler="simple",
     )
     trainer.fit(model=model, train_dataloaders=train_data_loader)
