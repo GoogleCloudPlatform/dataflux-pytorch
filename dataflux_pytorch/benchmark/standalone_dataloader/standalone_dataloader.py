@@ -8,8 +8,7 @@ sys.path.append(file_dir + "/maxtext/MaxText")
 import datetime
 import random
 import time
-from types import MappingProxyType
-from typing import Sequence, Type
+from typing import Sequence
 
 import jax
 import pyarrow as pa
@@ -17,7 +16,7 @@ import pyarrow.parquet as pq
 from absl import app
 from maxtext.MaxText import max_logging, pyconfig, storage_utils, train
 from torch.utils import data
-from torch.utils.data import DataLoader, IterableDataset
+from torch.utils.data import DataLoader
 
 from dataflux_pytorch import dataflux_iterable_dataset
 
@@ -27,51 +26,6 @@ PER_STEP_TIME_DIRECTORY = "per_step_time"
 PER_EPOCH_TIME_DIRECTORY = "per_epoch_time"
 
 STEP_BARRIER_MSG = "Synchronize all processes within a step"
-
-
-def split_list(lst, n):
-    """Splits a list into roughly equal sized sublists and pads.
-
-  Args:
-    lst: The list to split.
-    n: The desired number of sublists.
-
-  Returns:
-    A list of sublists.
-  """
-    # Calculate the size of each sublist.
-    size = len(lst) // n
-
-    # Create the sublists.
-    sublists = [lst[i * size:(i + 1) * size] for i in range(n)]
-
-    last_idx = n * size
-
-    if last_idx >= len(lst):
-        return sublists
-
-    remainder = len(lst) - last_idx
-
-    for i in range(remainder):
-        sublists[i].append(lst[last_idx + i])
-
-    # Padding to make sure all nodes are loading the same amount of
-    # files. Needed to make sure no deadlocking when the workload
-    # is distributed unevenly.
-    max_length = max([len(each) for each in sublists])
-    for each in sublists:
-        while len(each) < max_length:
-            each.append(random.choice(lst))
-
-    return sublists
-
-
-def list_files_walk(start_path='.'):
-    dataset_files = []
-    for root, _, files in os.walk(start_path):
-        for file in files:
-            dataset_files.append(os.path.join(root, file))
-    return sorted(dataset_files)
 
 
 def parquet_data_loader(config):

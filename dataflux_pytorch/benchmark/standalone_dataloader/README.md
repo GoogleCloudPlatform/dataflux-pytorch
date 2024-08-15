@@ -31,3 +31,19 @@ These instructions are run relative to this directory.
     ```sh
     JAX_PLATFORMS=cpu python3 standalone_dataloader.py maxtext/MaxText/configs/base.yml ${BENCHMARK_RUN_FLAGS} ${COMMON_RUN_FLAGS}
     ```
+
+## Running on GKE
+
+### Build the Docker image
+
+In the following commands, update `gcs-tess` to your project ID as needed.
+
+1. `docker build -t dataflux-list-and-download .`
+2. `docker tag dataflux-list-and-download gcr.io/gcs-tess/dataflux-maxtext`
+3. `docker push gcr.io/gcs-tess/dataflux-maxtext`
+
+### Run the map-style loop
+
+1. Update any needed flags/configs in `demo/list-and-download/map/deployment.yaml`
+    * Notably the job name, completions/parallelism, image name, and any flags
+2. `kubectl apply -f dataflux_pytorch/benchmark/standalone_dataloader/deployment.yaml`
