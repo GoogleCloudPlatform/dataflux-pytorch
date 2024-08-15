@@ -1,3 +1,6 @@
 [submodule "dataflux-client-python"]
 	path = dataflux_client_python
 	url = https://github.com/GoogleCloudPlatform/dataflux-client-python.git
+[submodule "dataflux_pytorch/benchmark/standalone_dataloader/maxtext"]
+	path = dataflux_pytorch/benchmark/standalone_dataloader/maxtext
+	url = https://github.com/google/maxtext.git
