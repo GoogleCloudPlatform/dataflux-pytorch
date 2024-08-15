@@ -29,7 +29,7 @@ class Unet3D(nn.Module):
                  weights_init_scale=1.0):
         super(Unet3D, self).__init__()
 
-        filters = [32, 64, 128, 256, 320]
+        filters = [2, 2, 2, 2, 2]
         self.filters = filters
 
         self.inp = filters[:-1]
