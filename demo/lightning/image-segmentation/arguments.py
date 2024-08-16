@@ -33,7 +33,10 @@ PARSER.add_argument("--local_rank",
                     default=os.environ.get("LOCAL_RANK", 0),
                     type=int)
 
-PARSER.add_argument("--local", dest="local", type=bool, default=False)
+PARSER.add_argument("--local",
+                    dest="local",
+                    default=False,
+                    action="store_true")
 PARSER.add_argument("--epochs", dest="epochs", type=int, default=5)
 PARSER.add_argument("--accelerator",
                     dest="accelerator",
@@ -72,7 +75,8 @@ PARSER.add_argument("--exec_mode",
 
 PARSER.add_argument("--benchmark",
                     dest="benchmark",
-                    default=False)
+                    default=False,
+                    action="store_true")
 PARSER.add_argument("--amp", dest="amp", action="store_true", default=False)
 PARSER.add_argument(
     "--optimizer",
