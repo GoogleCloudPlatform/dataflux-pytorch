@@ -33,7 +33,10 @@ PARSER.add_argument("--local_rank",
                     default=os.environ.get("LOCAL_RANK", 0),
                     type=int)
 
-PARSER.add_argument("--local", dest="local", type=bool, default=False)
+PARSER.add_argument("--local",
+                    dest="local",
+                    default=False,
+                    action="store_true")
 PARSER.add_argument("--epochs", dest="epochs", type=int, default=5)
 PARSER.add_argument("--accelerator",
                     dest="accelerator",
@@ -62,13 +65,9 @@ PARSER.add_argument("--val_input_shape",
 PARSER.add_argument("--seed", dest="seed", default=-1, type=int)
 PARSER.add_argument("--num_devices", dest="num_devices", type=int, default=1)
 PARSER.add_argument("--num_nodes", dest="num_nodes", type=int, default=1)
-PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=1)
+PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=2)
 PARSER.add_argument("--prefetch_factor",
                     dest="prefetch_factor", type=int, default=2)
-PARSER.add_argument("--num_dataloader_threads",
-                    dest="num_dataloader_threads",
-                    type=int,
-                    default=4)
 PARSER.add_argument("--exec_mode",
                     dest="exec_mode",
                     choices=["train", "evaluate"],
@@ -76,8 +75,8 @@ PARSER.add_argument("--exec_mode",
 
 PARSER.add_argument("--benchmark",
                     dest="benchmark",
-                    action="store_true",
-                    default=False)
+                    default=False,
+                    action="store_true")
 PARSER.add_argument("--amp", dest="amp", action="store_true", default=False)
 PARSER.add_argument(
     "--optimizer",

@@ -25,10 +25,12 @@ class Unet3DLightning(pl.LightningModule):
     def __init__(self, flags):
         super().__init__()
         self.flags = flags
+        self.benchmark = flags.benchmark
         self.model = Unet3D(1,
                             3,
                             normalization=flags.normalization,
-                            activation=flags.activation)
+                            activation=flags.activation,
+                            benchmark=flags.benchmark)
         self.loss_fn = DiceCELoss(
             to_onehot_y=True,
             use_softmax=True,
@@ -37,6 +39,8 @@ class Unet3DLightning(pl.LightningModule):
         )
 
     def forward(self, x):
+        if self.benchmark:
+            return x
         return self.model.forward(x)
 
     def configure_optimizers(self):
@@ -51,6 +55,8 @@ class Unet3DLightning(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         images, labels = train_batch
+        if self.benchmark:
+            return None
         predictions = self.model(images)
         loss = self.loss_fn(predictions, labels)
         return loss
