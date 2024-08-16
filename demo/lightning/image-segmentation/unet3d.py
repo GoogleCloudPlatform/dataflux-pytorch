@@ -26,12 +26,16 @@ class Unet3D(nn.Module):
                  n_class,
                  normalization,
                  activation,
-                 weights_init_scale=1.0):
+                 weights_init_scale=1.0,
+                 benchmark=False):
         super(Unet3D, self).__init__()
 
-        filters = [2, 2, 2, 2, 2]
-        self.filters = filters
+        if benchmark:
+            filters = [2, 2, 2, 2, 2]
+        else:
+            filters = [32, 64, 128, 256, 320]
 
+        self.filters = filters
         self.inp = filters[:-1]
         self.out = filters[1:]
         input_dim = filters[0]

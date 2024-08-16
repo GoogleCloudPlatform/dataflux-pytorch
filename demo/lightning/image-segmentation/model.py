@@ -29,7 +29,8 @@ class Unet3DLightning(pl.LightningModule):
         self.model = Unet3D(1,
                             3,
                             normalization=flags.normalization,
-                            activation=flags.activation)
+                            activation=flags.activation
+                            benchmark=flags.benchmark)
         self.loss_fn = DiceCELoss(
             to_onehot_y=True,
             use_softmax=True,
