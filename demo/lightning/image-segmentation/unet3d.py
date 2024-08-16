@@ -31,6 +31,7 @@ class Unet3D(nn.Module):
         super(Unet3D, self).__init__()
 
         if benchmark:
+            # Make the model smaller so benchmarking finishes quickly.
             filters = [2, 2, 2, 2, 2]
         else:
             filters = [32, 64, 128, 256, 320]
