@@ -20,9 +20,9 @@ To execute the demo-code locally and simulate the use of mulltiple nodes, use th
 *Note: The number of batches processed by each process must be identical across all processes to avoid freezing/deadlock during DDP executions. In the demo this can be guaranteed by providing the `--limit-train-batches` argument with a value less than the minimum batch count for a given process.*
 
 ### Single process local execution:
-The following command will execute a single-process DDP strategy execution, where the number of processes is dictated by the `--devices` parameter. For local execution, ensure that the parameter `--local` is set to `True`.
+The following command will execute a single-process DDP strategy execution, where the number of processes is dictated by the `--devices` parameter. For local execution, ensure that the parameter `--local` is specified.
 ```
-python3 ./distributed/model.py --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=1 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
+python3 ./distributed/model.py --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=1 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local --limit-train-batches=10
 ```
 
 ### Multiprocess local execution:
