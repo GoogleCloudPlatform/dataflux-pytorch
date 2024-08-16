@@ -93,7 +93,7 @@ def parse_args():
     parser.add_argument("--limit-train-batches", type=int, default=None)
     parser.add_argument("--log-level", type=str, default="ERROR")
     parser.add_argument("--num-nodes", type=int, default=1)
-    parser.add_argument("--local", type=bool, default=False)
+    parser.add_argument("--local", default=False, action="store_true")
     parser.add_argument("--rank", type=int, default=0)
     return parser.parse_args()
 
