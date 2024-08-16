@@ -1,7 +1,7 @@
 # Image Segmentation Demo Code
 The code examples in this directory demonstrate how GCS Connector for Pytorch can be used for image segmentation training alongside PyTorch Lightning. The image segmentation workload implemented here works on the [KiTS19](https://github.com/neheller/kits19) dataset which contains `210` images and their corresponding labels. The images and their labels are stored in separate directories.
 
-If you are looking to benchmark data loading performance, set `--benchmark` to `True`. Note that this will skip training altogether.
+If you are looking to benchmark data loading performance, pass `--benchmark` to `train.py`. Note that this will skip training altogether.
 
 1. `dataset.py`
 
@@ -130,10 +130,10 @@ Please note that these demos are for educational and example purposes only, and 
     --prefetch_factor=5 \
     --num_devices=1 \
     --num_nodes=1 \
-    --local=True 
+    --local 
 ```
 
-Be sure to set `--local` to `True`.
+Be sure to specify `--local`.
 
 ## Multi-node GKE Cluster Execution
 _Note: the following instructions assume that you have Jobset and Kueue enabled on your GKE cluster. For easy compatability we recommend creating a cluster with [XPK](https://github.com/google/xpk) which will configure these features automatically._
