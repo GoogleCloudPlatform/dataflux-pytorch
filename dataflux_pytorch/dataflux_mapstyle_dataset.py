@@ -22,7 +22,6 @@ import warnings
 import dataflux_core
 from dataflux_pytorch._helper import _get_missing_permissions
 from google.cloud.storage.retry import DEFAULT_RETRY
-from google.auth.exceptions import RefreshError
 from torch.utils import data
 
 MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
@@ -139,18 +138,12 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.config = config
         # If composed download is enabled, check if the client has permissions to create and delete the composed object.
         if self.config.max_composite_object_size != 0:
-            try:
-                missing_perm = _get_missing_permissions(
-                    storage_client=self.storage_client,
-                    bucket_name=self.bucket_name,
-                    project_name=self.project_name,
-                    required_perm=[CREATE, DELETE])
-            except RefreshError as e:
-                e.add_note(
-                    "Default credentials might be missing. Run `gcloud auth application-default login`")
-                raise
-            except Exception:
-                raise
+            missing_perm = _get_missing_permissions(
+                storage_client=self.storage_client,
+                bucket_name=self.bucket_name,
+                project_name=self.project_name,
+                required_perm=[CREATE, DELETE])
+
             if missing_perm and len(missing_perm) > 0:
                 raise PermissionError(
                     f"Missing permissions {', '.join(missing_perm)} for composed download. To disable composed download set config.disable_compose=True or to enable composed download, grant missing permissions."
