@@ -56,7 +56,7 @@ if __name__ == "__main__":
     listing_end = time.time()
     if flags.listing_only:
         print(
-            f"Skipping training because you've set listing_only to True\nListing took {listing_end - listing_start} seconds.")
+            f"Skipping training because you've set listing_only to True.")
         exit(0)
 
     model = Unet3DLightning(flags)
@@ -69,3 +69,4 @@ if __name__ == "__main__":
         profiler=profiler,
     )
     trainer.fit(model=model, train_dataloaders=train_data_loader)
+    print(f"Listing took {listing_end - listing_start} seconds.")
