@@ -77,6 +77,10 @@ PARSER.add_argument("--benchmark",
                     dest="benchmark",
                     default=False,
                     action="store_true")
+PARSER.add_argument("--listing_only",
+                    dest="listing_only",
+                    default=False,
+                    action="store_true")
 PARSER.add_argument("--amp", dest="amp", action="store_true", default=False)
 PARSER.add_argument(
     "--optimizer",
