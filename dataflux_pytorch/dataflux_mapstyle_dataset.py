@@ -143,7 +143,6 @@ class DataFluxMapStyleDataset(data.Dataset):
                 bucket_name=self.bucket_name,
                 project_name=self.project_name,
                 required_perm=[CREATE, DELETE])
-
             if missing_perm and len(missing_perm) > 0:
                 raise PermissionError(
                     f"Missing permissions {', '.join(missing_perm)} for composed download. To disable composed download set config.disable_compose=True or to enable composed download, grant missing permissions."
