@@ -1,7 +1,10 @@
 # Image Segmentation Demo Code
 The code examples in this directory demonstrate how GCS Connector for Pytorch can be used for image segmentation training alongside PyTorch Lightning. The image segmentation workload implemented here works on the [KiTS19](https://github.com/neheller/kits19) dataset which contains `210` images and their corresponding labels. The images and their labels are stored in separate directories.
 
-If you are looking to benchmark data loading performance, pass `--benchmark` to `train.py`. Note that this will skip training altogether.
+If you are looking to benchmark data loading performance, pass `--benchmark` to `train.py`. Note that this will run the training loop but does not run the actual training logic.
+
+If you are looking to benchmark the listing performance only, pass `--listing_only` to `train.py`. Note that this will skip training altogether. Passing `--benchmark` along with `--listing_only` would have the same effect as passing just the latter.
+
 
 1. `dataset.py`
 
