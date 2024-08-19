@@ -32,6 +32,6 @@ def _get_missing_permissions(storage_client: any, bucket_name: str,
         perm = bucket.test_iam_permissions(required_perm)
     except Exception as e:
         logging.exception(f"Error testing permissions: {e}")
-        return None
+        raise
 
     return [p for p in required_perm if p not in perm]
