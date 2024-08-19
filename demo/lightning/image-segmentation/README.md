@@ -3,7 +3,7 @@ The code examples in this directory demonstrate how GCS Connector for Pytorch ca
 
 If you are looking to benchmark data loading performance, pass `--benchmark` to `train.py`. Note that this will run the training loop but does not run the actual training logic.
 
-If you are looking to benchmark just the listing performance, pass `--listing_only` to `train.py`. Note that this will skip training altogether.
+If you are looking to benchmark the listing performance only, pass `--listing_only` to `train.py`. Note that this will skip training altogether. Passing `--benchmark` along with `--listing_only` would have the same effect as passing just the latter.
 
 
 1. `dataset.py`
