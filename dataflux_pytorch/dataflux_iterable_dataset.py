@@ -164,7 +164,7 @@ class DataFluxIterableDataset(data.IterableDataset):
                             dataflux_download_optimization_params=self.
                             dataflux_download_optimization_params,
                             retry_config=self.config.download_retry_config,
-            ))
+                        ))
         else:
             # Multi-process data loading. Split the workload among workers.
             # Ref: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset.
@@ -182,7 +182,7 @@ class DataFluxIterableDataset(data.IterableDataset):
                             dataflux_download_optimization_params=self.
                             dataflux_download_optimization_params,
                             retry_config=self.config.download_retry_config,
-            ))
+                        ))
 
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
