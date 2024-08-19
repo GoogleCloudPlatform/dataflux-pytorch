@@ -147,7 +147,9 @@ class DataFluxMapStyleDataset(data.Dataset):
                     required_perm=[CREATE, DELETE])
             except RefreshError as e:
                 e.add_note(
-                    "Default credentials were not found. `Run gcloud auth application-default login`")
+                    "Default credentials might be missing. Run `gcloud auth application-default login`")
+                raise
+            except Exception:
                 raise
             if missing_perm and len(missing_perm) > 0:
                 raise PermissionError(

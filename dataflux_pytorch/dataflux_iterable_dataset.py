@@ -141,12 +141,12 @@ class DataFluxIterableDataset(data.IterableDataset):
                     bucket_name=self.bucket_name,
                     project_name=self.project_name,
                     required_perm=[CREATE, DELETE])
-
             except RefreshError as e:
                 e.add_note(
-                    "Default credentials were not found. `Run gcloud auth application-default login`")
+                    "Default credentials might be missing. Run `gcloud auth application-default login`")
                 raise
-
+            except Exception:
+                raise
             if missing_perm and len(missing_perm) > 0:
                 raise PermissionError(
                     f"Missing permissions {', '.join(missing_perm)} for composed download. To disable composed download set config.disable_compose=True. To enable composed download, grant missing permissions."
