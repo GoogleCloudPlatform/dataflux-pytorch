@@ -14,10 +14,9 @@
  limitations under the License.
  """
 
-import logging
-
 import dataflux_core
 from google.cloud import storage
+from google.auth.exceptions import RefreshError
 
 
 def _get_missing_permissions(storage_client: any, bucket_name: str,
@@ -30,7 +29,9 @@ def _get_missing_permissions(storage_client: any, bucket_name: str,
 
     try:
         perm = bucket.test_iam_permissions(required_perm)
-    except Exception as e:
-        logging.exception(f"Error testing permissions: {e}")
+    except RefreshError as e:
+        e.add_note(
+            "Application Default credentials may be missing. Follow https://cloud.google.com/docs/authentication/provide-credentials-adc to set up Application Default Credentials.")
+        raise
 
     return [p for p in required_perm if p not in perm]

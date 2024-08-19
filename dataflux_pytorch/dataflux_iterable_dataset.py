@@ -22,8 +22,6 @@ import warnings
 from dataflux_pytorch._helper import _get_missing_permissions
 
 import dataflux_core
-from google.api_core.client_info import ClientInfo
-from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
 from torch.utils import data
 
