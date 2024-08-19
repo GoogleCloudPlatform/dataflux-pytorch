@@ -22,9 +22,8 @@ import warnings
 from dataflux_pytorch._helper import _get_missing_permissions
 
 import dataflux_core
-from google.api_core.client_info import ClientInfo
-from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
+from google.auth.exceptions import RefreshError
 from torch.utils import data
 
 MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
@@ -136,11 +135,18 @@ class DataFluxIterableDataset(data.IterableDataset):
 
         # If composed download is enabled, check if the client has permissions to create and delete the composed object.
         if self.config.max_composite_object_size != 0:
-            missing_perm = _get_missing_permissions(
-                storage_client=self.storage_client,
-                bucket_name=self.bucket_name,
-                project_name=self.project_name,
-                required_perm=[CREATE, DELETE])
+            try:
+                missing_perm = _get_missing_permissions(
+                    storage_client=self.storage_client,
+                    bucket_name=self.bucket_name,
+                    project_name=self.project_name,
+                    required_perm=[CREATE, DELETE])
+
+            except RefreshError as e:
+                e.add_note(
+                    "Default credentials were not found. `Run gcloud auth application-default login`")
+                raise
+
             if missing_perm and len(missing_perm) > 0:
                 raise PermissionError(
                     f"Missing permissions {', '.join(missing_perm)} for composed download. To disable composed download set config.disable_compose=True. To enable composed download, grant missing permissions."
@@ -166,7 +172,7 @@ class DataFluxIterableDataset(data.IterableDataset):
                             dataflux_download_optimization_params=self.
                             dataflux_download_optimization_params,
                             retry_config=self.config.download_retry_config,
-                        ))
+            ))
         else:
             # Multi-process data loading. Split the workload among workers.
             # Ref: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset.
@@ -184,7 +190,7 @@ class DataFluxIterableDataset(data.IterableDataset):
                             dataflux_download_optimization_params=self.
                             dataflux_download_optimization_params,
                             retry_config=self.config.download_retry_config,
-                        ))
+            ))
 
     def _list_GCS_blobs_with_retry(self):
         """Retries Dataflux Listing upon exceptions, up to the retries defined in self.config."""
