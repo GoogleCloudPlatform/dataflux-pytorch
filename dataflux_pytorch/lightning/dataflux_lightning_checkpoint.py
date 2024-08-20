@@ -1,10 +1,11 @@
-import io
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 from dataflux_core import user_agent
 from google.cloud import storage
+from google.cloud.storage import transfer_manager
 from lightning.pytorch.plugins.io import CheckpointIO
 
 
@@ -63,9 +64,11 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_name, key = self._parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
-        with io.BytesIO() as stream:
-            torch.save(checkpoint, stream)
-            blob.upload_from_file(stream, rewind=True)
+        with tempfile.NamedTemporaryFile(mode="w+b") as file:
+            torch.save(checkpoint, file)
+            transfer_manager.upload_chunks_concurrently(filename=file.name,
+                                                        blob=blob,
+                                                        worker_type='thread')
 
     def load_checkpoint(
         self,
