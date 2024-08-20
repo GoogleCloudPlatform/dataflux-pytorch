@@ -48,7 +48,7 @@ PARSER.add_argument("--quality_threshold",
                     default=0.908)
 PARSER.add_argument("--ga_steps", dest="ga_steps", type=int, default=1)
 PARSER.add_argument("--warmup_steps", dest="warmup_steps", type=int, default=4)
-PARSER.add_argument("--batch_size", dest="batch_size", type=int, default=50)
+PARSER.add_argument("--batch_size", dest="batch_size", type=int, default=20)
 PARSER.add_argument("--layout",
                     dest="layout",
                     type=str,
@@ -65,9 +65,11 @@ PARSER.add_argument("--val_input_shape",
 PARSER.add_argument("--seed", dest="seed", default=-1, type=int)
 PARSER.add_argument("--num_devices", dest="num_devices", type=int, default=1)
 PARSER.add_argument("--num_nodes", dest="num_nodes", type=int, default=1)
-PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=2)
+PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=10)
 PARSER.add_argument("--prefetch_factor",
-                    dest="prefetch_factor", type=int, default=2)
+                    dest="prefetch_factor",
+                    type=int,
+                    default=2)
 PARSER.add_argument("--exec_mode",
                     dest="exec_mode",
                     choices=["train", "evaluate"],
