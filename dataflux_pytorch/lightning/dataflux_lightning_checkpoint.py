@@ -16,9 +16,11 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self,
         project_name: str,
         storage_client: Optional[storage.Client] = None,
+        use_transfer_manager: bool = True,
     ):
         self.project_name = project_name
         self.storage_client = storage_client
+        self.use_transfer_manager = use_transfer_manager
         if not storage_client:
             self.storage_client = storage.Client(project=self.project_name, )
         user_agent.add_dataflux_user_agent(self.storage_client)
@@ -64,11 +66,14 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_name, key = self._parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
-        with tempfile.NamedTemporaryFile(mode="w+b") as file:
-            torch.save(checkpoint, file)
-            transfer_manager.upload_chunks_concurrently(filename=file.name,
-                                                        blob=blob,
-                                                        worker_type='thread')
+        if self.use_transfer_manager:
+            with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as file:
+                torch.save(checkpoint, file)
+                transfer_manager.upload_chunks_concurrently(
+                    filename=file.name, blob=blob, worker_type='thread')
+                return
+        with blob.open("wb", ignore_flush=True) as blobwriter:
+            torch.save(checkpoint, blobwriter)
 
     def load_checkpoint(
         self,
@@ -78,6 +83,11 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_name, key = self._parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
+        if self.use_transfer_manager:
+            with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as file:
+                transfer_manager.download_chunks_concurrently(
+                    blob=blob, filename=file.name, worker_type='thread')
+                return torch.load(file, map_location)
         return torch.load(blob.open("rb"), map_location)
 
     def remove_checkpoint(

@@ -1,6 +1,7 @@
 import unittest
-from typing import Any, Dict
 from pathlib import Path
+from typing import Any, Dict
+
 import torch
 
 from dataflux_client_python.dataflux_core.tests import fake_gcs
@@ -20,8 +21,10 @@ class LightningCheckpointTestCase(unittest.TestCase):
         self.ckpt = DatafluxLightningCheckpoint(
             project_name=self.project_name,
             storage_client=client,
+            # Transfer Manager makes its own HTTP calls so it doesn't work with the fake
+            use_transfer_manager=False,
         )
-        self.bucket = fake_gcs.Bucket("fake_bucket")
+        self.bucket = client.bucket("fake_bucket")
 
     def test_invalid_string_path_save(self):
         ckpt_path = "fake_bucket/checkpoint.ckpt"
