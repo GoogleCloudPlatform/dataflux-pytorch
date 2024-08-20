@@ -56,7 +56,7 @@ class Unet3DLightning(pl.LightningModule):
     def training_step(self, train_batch, batch_idx):
         images, labels = train_batch
         if self.benchmark:
-            return None
+            return torch.tensor(1, dtype=float, requires_grad=True)
         predictions = self.model(images)
         loss = self.loss_fn(predictions, labels)
         return loss

@@ -65,7 +65,7 @@ PARSER.add_argument("--val_input_shape",
 PARSER.add_argument("--seed", dest="seed", default=-1, type=int)
 PARSER.add_argument("--num_devices", dest="num_devices", type=int, default=1)
 PARSER.add_argument("--num_nodes", dest="num_nodes", type=int, default=1)
-PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=2)
+PARSER.add_argument("--num_workers", dest="num_workers", type=int, default=10)
 PARSER.add_argument("--prefetch_factor",
                     dest="prefetch_factor",
                     type=int,
