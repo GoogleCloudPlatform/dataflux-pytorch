@@ -81,7 +81,7 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcp_project=<YOUR-GCP-PROJECT> --images_prefix=<YOUR-IMAGES-PREFIX> --labels_prefix=<YOUR-LABELS-PREFIX> --gcs_bucket=<YOUR-GCS-BUCKET> --num_workers=10 --prefetch_factor=10 --num_devices=1 --num_nodes=4;
+                  python3 -u /app/demo/lightning/image-segmentation/train.py --gcs_bucket=<YOUR-GCS-BUCKET> --gcp_project=<YOUR-GCP-PROJECT> --images_prefix=<YOUR-IMAGES-PREFIX> --labels_prefix=<YOUR-LABELS-PREFIX> --batch_size=20 --num_workers=10 --prefetch_factor=2 --num_devices=1 --num_nodes=4;
               volumes:
                 - emptyDir:
                     medium: Memory
