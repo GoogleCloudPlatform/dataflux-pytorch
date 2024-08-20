@@ -56,7 +56,8 @@ class Unet3DLightning(pl.LightningModule):
     def training_step(self, train_batch, batch_idx):
         images, labels = train_batch
         if self.benchmark:
-            # Return a scalar of value 1 to speed up training_step.
+            # Returning None will break distributed training, so
+            # return a scalar of value 1 to speed up training_step.
             return torch.tensor(1, dtype=float, requires_grad=True)
         predictions = self.model(images)
         loss = self.loss_fn(predictions, labels)
