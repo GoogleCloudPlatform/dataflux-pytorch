@@ -83,7 +83,7 @@ Average time to load one checkpoint: 63.66342296364783 seconds
 The table below contains benchmarking times on saving checkpoints to GCS. For 10/100-layer checkpoints the average save/load times is taken over 20 calls to save_checkpoint or load_checkpoint, and 10 calls for 1000 layers. The tests were done from a VM with 48vCPU, 192 GB RAM, 512 GB SSD located in `us-west1-a` zone. The GCS bucket was located in the same region, `us-west1`.
 
 
-Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `TorchCheckpointIO`, which refers to PyTorch Lightning's default [TorchCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.TorchCheckpointIO.html) implementation. A value is provided for local writes to a local SSD on GCE, as well as for direct writes to GCS using gcsfs via the default implementation.
+Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `TorchCheckpointIO`, which refers to PyTorch Lightning's default [TorchCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.TorchCheckpointIO.html) implementation. A value is provided for direct writes and reads with GCS using gcsfs via the default implementation.
 
 ### Saving Checkpoints
 
@@ -98,18 +98,6 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #d9d2e9"><strong>Average Checkpoint Save Time</strong>
    </td>
    <td style="background-color: #d9d2e9"><strong>Write Throughput (MB/s)</strong>
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">TorchCheckpointIO (Local SSD)
-   </td>
-   <td style="background-color: #f3f3f3">10
-   </td>
-   <td style="background-color: #f3f3f3">75.6
-   </td>
-   <td style="background-color: #f3f3f3">0.42
-   </td>
-   <td style="background-color: #f3f3f3">180.0
    </td>
   </tr>
   <tr>
@@ -149,18 +137,6 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9">TorchCheckpointIO (Local SSD)
-   </td>
-   <td style="background-color: #d9d9d9">100
-   </td>
-   <td style="background-color: #d9d9d9">298
-   </td>
-   <td style="background-color: #d9d9d9">2.02
-   </td>
-   <td style="background-color: #d9d9d9">147.5
-   </td>
-  </tr>
-  <tr>
    <td style="background-color: #d9d9d9">TorchCheckpointIO (gcsfs)
    </td>
    <td style="background-color: #d9d9d9">100
@@ -194,18 +170,6 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #d9d9d9">1.19
    </td>
    <td style="background-color: #d9d9d9">250.4
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">TorchCheckpointIO (Local SSD)
-   </td>
-   <td style="background-color: #f3f3f3">1000
-   </td>
-   <td style="background-color: #f3f3f3">2500
-   </td>
-   <td style="background-color: #f3f3f3">24.05
-   </td>
-   <td style="background-color: #f3f3f3">104.0
    </td>
   </tr>
   <tr>
@@ -262,18 +226,6 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3">TorchCheckpointIO (Local SSD)
-   </td>
-   <td style="background-color: #f3f3f3">10
-   </td>
-   <td style="background-color: #f3f3f3">75.6
-   </td>
-   <td style="background-color: #f3f3f3">0.03
-   </td>
-   <td style="background-color: #f3f3f3">2520.0
-   </td>
-  </tr>
-  <tr>
    <td style="background-color: #f3f3f3">TorchCheckpointIO (gcsfs)
    </td>
    <td style="background-color: #f3f3f3">10
@@ -310,18 +262,6 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9">TorchCheckpointIO (Local SSD)
-   </td>
-   <td style="background-color: #d9d9d9">100
-   </td>
-   <td style="background-color: #d9d9d9">298
-   </td>
-   <td style="background-color: #d9d9d9">0.18
-   </td>
-   <td style="background-color: #d9d9d9">1655.6
-   </td>
-  </tr>
-  <tr>
    <td style="background-color: #d9d9d9">TorchCheckpointIO (gcsfs)
    </td>
    <td style="background-color: #d9d9d9">100
@@ -355,18 +295,6 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #d9d9d9">1.72
    </td>
    <td style="background-color: #d9d9d9">173.3
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">TorchCheckpointIO (Local SSD)
-   </td>
-   <td style="background-color: #f3f3f3">1000
-   </td>
-   <td style="background-color: #f3f3f3">2500
-   </td>
-   <td style="background-color: #f3f3f3">2.14
-   </td>
-   <td style="background-color: #f3f3f3">1168.2
    </td>
   </tr>
   <tr>
