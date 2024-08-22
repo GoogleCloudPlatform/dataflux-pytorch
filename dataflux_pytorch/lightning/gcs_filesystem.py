@@ -6,7 +6,6 @@ from typing import Generator, Optional, Union, cast
 
 from dataflux_core import user_agent
 from google.cloud import storage
-# from lightning.pytorch.plugins.io import CheckpointIO
 from torch.distributed.checkpoint import FileSystemWriter
 from torch.distributed.checkpoint.filesystem import FileSystemBase
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
@@ -35,7 +34,9 @@ class GCSFileSystem(FileSystemBase):
 
     def concat_path(self, path: Union[str, os.PathLike],
                     suffix: str) -> Union[str, os.PathLike]:
-        return cast(Path, path) / suffix
+        if not isinstance(path, Path):
+            path = Path(path)
+        return path / suffix
 
     def init_path(self, path: Union[str,
                                     os.PathLike]) -> Union[str, os.PathLike]:
@@ -55,10 +56,7 @@ class GCSFileSystem(FileSystemBase):
         self.storage_client.bucket(new_bucket).rename_blob(blob, new_path)
 
     def mkdir(self, path: Union[str, os.PathLike]) -> None:
-        bucket, path = parse_gcs_path(path)
-        blob = self.storage_client.bucket(bucket).blob(path)
-        blob.upload_from_string(
-            '', content_type='application/x-www-form-urlencoded;charset=UTF-8')
+        pass
 
     def exists(self, path: Union[str, os.PathLike]) -> bool:
         bucket, path = parse_gcs_path(path)
@@ -75,7 +73,7 @@ class GCSFileSystem(FileSystemBase):
                                                          os.PathLike]) -> bool:
         if isinstance(checkpoint_id, Path):
             return True
-
+        # parse_gcs_path will raise exception if path is not in valid.
         parse_gcs_path(checkpoint_id)
         return True
 
