@@ -1,5 +1,6 @@
+import io
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 from dataflux_core import user_agent
@@ -14,9 +15,11 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self,
         project_name: str,
         storage_client: Optional[storage.Client] = None,
+        use_transfer_manager: bool = False,
     ):
         self.project_name = project_name
         self.storage_client = storage_client
+        self.use_transfer_manager = use_transfer_manager
         if not storage_client:
             self.storage_client = storage.Client(project=self.project_name, )
         user_agent.add_dataflux_user_agent(self.storage_client)
@@ -73,7 +76,12 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_name, key = self._parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
-        return torch.load(blob.open("rb"), map_location)
+        if not self.use_transfer_manager:
+            return torch.load(blob.open("rb"), map_location)
+        stream = io.BytesIO()
+        blob.download_to_file(stream)
+        stream.seek(0)
+        return torch.load(stream, map_location)
 
     def remove_checkpoint(
         self,

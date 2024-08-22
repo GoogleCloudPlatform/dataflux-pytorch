@@ -41,7 +41,13 @@ class LightningTransformer(LightningModule):
         return DataLoader(dataset)
 
 
-def main(project: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, layers: int = 100, steps: int = 5):
+def main(project: str,
+         ckpt_dir_path: str,
+         save_only_latest: bool,
+         dataflux_ckpt: bool,
+         use_transfer_manager: bool,
+         layers: int = 100,
+         steps: int = 5):
     """Checkpoints a PyTorch Ligthning demo model to GCS using gcsfs or DatafluxLightningCheckpoint.
 
     This function utilizes PyTorch Lightning to checkpoint the WikiText2 dataset. It
@@ -84,7 +90,8 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt
     model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=layers)
     ckpt = TorchCheckpointIO()
     if dataflux_ckpt:
-        ckpt = DatafluxLightningCheckpoint(project_name=project)
+        ckpt = DatafluxLightningCheckpoint(
+            project_name=project, use_transfer_manager=use_transfer_manager)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
@@ -110,7 +117,13 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt
         trainer.save_checkpoint(os.path.join(ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
     print("Average time to save one checkpoint: " +
-          str((end-start)/steps) + " seconds")
+          str((end - start) / steps) + " seconds")
+    start = time.time()
+    for i in range(steps):
+        ckpt.load_checkpoint(os.path.join(ckpt_dir_path, f'ckpt_{i}.ckpt'))
+    end = time.time()
+    print("Average time to load one checkpoint: " +
+          str((end - start) / steps) + " seconds")
 
 
 if __name__ == "__main__":
@@ -125,6 +138,7 @@ if __name__ == "__main__":
         os.getenv("CKPT_DIR_PATH"),
         os.getenv("SAVE_ONLY_LATEST") == "1",
         os.getenv("DATAFLUX_CKPT") == "1",
+        os.getenv("USE_TRANSFER_MANAGER") == "1",
         layers,
         steps,
     )
