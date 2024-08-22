@@ -69,11 +69,51 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
         if self.use_transfer_manager:
-            with tempfile.NamedTemporaryFile(mode="w+b", delete=False) as file:
-                torch.save(checkpoint, file)
-                transfer_manager.upload_chunks_concurrently(
-                    filename=file.name, blob=blob, worker_type='thread')
+            # with tempfile.NamedTemporaryFile(mode="w+b", delete=False) as file:
+            #     torch.save(checkpoint, file)
+            #     transfer_manager.upload_chunks_concurrently(
+            #         filename=file.name, blob=blob, worker_type='thread')
+            #     return
+            stream = io.BytesIO()
+            torch.save(checkpoint, stream)
+            size = stream.tell()
+            stream.seek(0)
+            with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=8) as executor:
+                futures = []
+                chunk_size = size // 31  # Produce at most 32 chunks
+                if chunk_size < 33554432:
+                    chunk_size = 33554432
+                i = 0
+                while True:
+                    data = stream.read(chunk_size)
+                    if len(data) == 0:
+                        # Reached the end
+                        break
+                    futures.append(
+                        executor.submit(
+                            _upload_chunk,
+                            bucket_client,
+                            key,
+                            i,
+                            data,
+                        ))
+                    i += 1
+                concurrent.futures.wait(
+                    futures,
+                    timeout=None,
+                    return_when=concurrent.futures.ALL_COMPLETED)
+                to_compose_names = []
+                for future in futures:
+                    to_compose_names.append(future.result())
+                to_compose_blobs = [
+                    bucket_client.blob(name) for name in to_compose_names
+                ]
+                blob.compose(to_compose_blobs)
+                for blob in to_compose_blobs:
+                    blob.delete()
                 return
+
         with blob.open("wb", ignore_flush=True) as blobwriter:
             torch.save(checkpoint, blobwriter)
 
@@ -116,11 +156,10 @@ class DatafluxLightningCheckpoint(CheckpointIO):
                 stream.write(future.result())
             stream.seek(0)
             return torch.load(stream, map_location)
-        return torch.load(blob.open("rb"), map_location)
-        # stream = io.BytesIO()
-        # blob.download_to_file(stream)
-        # stream.seek(0)
-        # return torch.load(stream, map_location)
+        stream = io.BytesIO()
+        blob.download_to_file(stream)
+        stream.seek(0)
+        return torch.load(stream, map_location)
 
     def remove_checkpoint(
         self,
@@ -138,3 +177,9 @@ class DatafluxLightningCheckpoint(CheckpointIO):
 def _download_and_write_chunk_in_place(blob: storage.Blob, start: int,
                                        end: int):
     return blob.download_as_bytes(start=start, end=end)
+
+
+def _upload_chunk(bucket: storage.Bucket, name: str, number: int, data: bytes):
+    file_name = name + "." + str(number)
+    bucket.blob(file_name).upload_from_file(io.BytesIO(data))
+    return file_name
