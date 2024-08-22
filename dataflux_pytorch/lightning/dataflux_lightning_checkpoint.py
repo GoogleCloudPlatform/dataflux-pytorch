@@ -33,19 +33,10 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         storage_options: Optional[Any] = None,
     ) -> None:
         bucket_name, key = parse_gcs_path(path)
-        rest_of_the_path, _ = os.path.split(key)
-        os.makedirs(os.path.dirname(rest_of_the_path+"/"), exist_ok=True)
-        with open(key, 'wb') as f:
-            torch.save(checkpoint, f)
-
         bucket_client = self.storage_client.bucket(bucket_name)
-
         blob = bucket_client.blob(key)
-        try:
-            with open(key, 'rb') as f:  # Open in read-binary mode
-                blob.upload_from_file(f)
-        except Exception as e:
-            print(f"Error uploading to GCS: {e}")
+        with blob.open("wb", ignore_flush=True) as blobwriter:
+            torch.save(checkpoint, blobwriter)
 
     def load_checkpoint(
         self,
