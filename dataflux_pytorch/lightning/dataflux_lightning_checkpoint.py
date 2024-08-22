@@ -76,14 +76,11 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             #     return
             stream = io.BytesIO()
             torch.save(checkpoint, stream)
-            size = stream.tell()
             stream.seek(0)
             with concurrent.futures.ThreadPoolExecutor(
                     max_workers=8) as executor:
                 futures = []
-                chunk_size = size // 31  # Produce at most 32 chunks
-                if chunk_size < 33554432:
-                    chunk_size = 33554432
+                chunk_size = 67108864
                 i = 0
                 while True:
                     data = stream.read(chunk_size)
@@ -103,15 +100,6 @@ class DatafluxLightningCheckpoint(CheckpointIO):
                     futures,
                     timeout=None,
                     return_when=concurrent.futures.ALL_COMPLETED)
-                to_compose_names = []
-                for future in futures:
-                    to_compose_names.append(future.result())
-                to_compose_blobs = [
-                    bucket_client.blob(name) for name in to_compose_names
-                ]
-                blob.compose(to_compose_blobs)
-                for blob in to_compose_blobs:
-                    blob.delete()
                 return
 
         with blob.open("wb", ignore_flush=True) as blobwriter:
@@ -124,26 +112,23 @@ class DatafluxLightningCheckpoint(CheckpointIO):
     ) -> Dict[str, Any]:
         bucket_name, key = self._parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
-        blob = bucket_client.blob(key)
+        blobs = []
+        i = 0
+        while True:
+            blob = bucket_client.blob(key + "." + str(i))
+            if not blob.exists():
+                break
+            blobs.append(blob)
+            i += 1
+        print(f"Found {i} checkpoint parts")
         if self.use_transfer_manager:
-            blob.reload()
-            print(blob.size)
             with concurrent.futures.ThreadPoolExecutor(
                     max_workers=8) as executor:
                 futures = []
-                chunk_size = 67108864
-                cursor = 0
-                end = blob.size
-                while cursor < end:
-                    start = cursor
-                    cursor = min(cursor + chunk_size, end)
+                for blob in blobs:
                     futures.append(
-                        executor.submit(
-                            _download_and_write_chunk_in_place,
-                            blob,
-                            start=start,
-                            end=cursor - 1,
-                        ))
+                        executor.submit(_download_and_write_chunk_in_place,
+                                        blob, None, None))
 
                 concurrent.futures.wait(
                     futures,
