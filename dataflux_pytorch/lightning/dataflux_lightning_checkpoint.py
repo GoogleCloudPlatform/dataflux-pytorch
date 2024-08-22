@@ -1,3 +1,5 @@
+import concurrent.futures
+import io
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
@@ -67,7 +69,7 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
         if self.use_transfer_manager:
-            with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as file:
+            with tempfile.NamedTemporaryFile(mode="w+b", delete=False) as file:
                 torch.save(checkpoint, file)
                 transfer_manager.upload_chunks_concurrently(
                     filename=file.name, blob=blob, worker_type='thread')
@@ -84,11 +86,41 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
         if self.use_transfer_manager:
-            with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as file:
-                transfer_manager.download_chunks_concurrently(
-                    blob=blob, filename=file.name, worker_type='thread')
-                return torch.load(file, map_location)
+            blob.reload()
+            print(blob.size)
+            with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=8) as executor:
+                futures = []
+                chunk_size = 67108864
+                cursor = 0
+                end = blob.size
+                while cursor < end:
+                    start = cursor
+                    cursor = min(cursor + chunk_size, end)
+                    futures.append(
+                        executor.submit(
+                            _download_and_write_chunk_in_place,
+                            blob,
+                            start=start,
+                            end=cursor - 1,
+                        ))
+
+                concurrent.futures.wait(
+                    futures,
+                    timeout=None,
+                    return_when=concurrent.futures.ALL_COMPLETED)
+
+            # Raise any exceptions; combine checksums.
+            stream = io.BytesIO()
+            for future in futures:
+                stream.write(future.result())
+            stream.seek(0)
+            return torch.load(stream, map_location)
         return torch.load(blob.open("rb"), map_location)
+        # stream = io.BytesIO()
+        # blob.download_to_file(stream)
+        # stream.seek(0)
+        # return torch.load(stream, map_location)
 
     def remove_checkpoint(
         self,
@@ -101,3 +133,8 @@ class DatafluxLightningCheckpoint(CheckpointIO):
 
     def teardown(self, ) -> None:
         pass
+
+
+def _download_and_write_chunk_in_place(blob: storage.Blob, start: int,
+                                       end: int):
+    return blob.download_as_bytes(start=start, end=end)
