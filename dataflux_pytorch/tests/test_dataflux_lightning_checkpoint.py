@@ -6,6 +6,7 @@ import torch
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch.lightning.dataflux_lightning_checkpoint import \
     DatafluxLightningCheckpoint
+from dataflux_pytorch.lightning.path_utils import parse_gcs_path
 
 
 class LightningCheckpointTestCase(unittest.TestCase):
@@ -73,7 +74,7 @@ class LightningCheckpointTestCase(unittest.TestCase):
 
     def test_empty_bucket_name(self):
         try:
-            self.ckpt._parse_gcs_path("gcs://")
+            parse_gcs_path("gcs://")
         except:
             return
         self.fail("Empty bucket name expected to fail when parsed")
@@ -84,7 +85,7 @@ class LightningCheckpointTestCase(unittest.TestCase):
         }
         for p in paths:
             try:
-                self.ckpt._parse_gcs_path(p)
+                parse_gcs_path(p)
             except:
                 self.fail(msg=f'Valid path: {p} parsed but failed')
 
@@ -95,7 +96,7 @@ class LightningCheckpointTestCase(unittest.TestCase):
         }
         for p in paths:
             try:
-                self.ckpt._parse_gcs_path(p)
+                parse_gcs_path(p)
             except:
                 self.fail(msg=f'Valid path: {p} parsed but failed')
 
@@ -138,7 +139,7 @@ class LightningCheckpointTestCase(unittest.TestCase):
     def test_invalid_path_type(self):
         ckpt_path = dict()
         try:
-            self.ckpt._parse_gcs_path(ckpt_path)
+            parse_gcs_path(ckpt_path)
         except:
             return
         self.fail(
