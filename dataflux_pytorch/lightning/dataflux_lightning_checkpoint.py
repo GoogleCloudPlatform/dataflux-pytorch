@@ -1,8 +1,6 @@
-from lightning.pytorch.plugins.io import CheckpointIO
-from google.cloud import storage
-from dataflux_core import user_agent
+import io
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 import os
@@ -46,7 +44,10 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_name, key = parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
-        return torch.load(blob.open("rb"), map_location)
+        stream = io.BytesIO()
+        blob.download_to_file(stream)
+        stream.seek(0)
+        return torch.load(stream, map_location)
 
     def remove_checkpoint(
         self,

@@ -51,14 +51,22 @@ if __name__ == "__main__":
     if flags.benchmark:
         profiler = "simple"
 
-    model = Unet3DLightning(flags)
+    listing_start = time.time()
     train_data_loader = Unet3DDataModule(flags)
-    trainer = pl.Trainer(
-        accelerator=flags.accelerator,
-        max_epochs=flags.epochs,
-        devices=flags.num_devices,
-        num_nodes=flags.num_nodes,
-        strategy="ddp",
-        profiler=profiler,
-    )
-    trainer.fit(model=model, train_dataloaders=train_data_loader)
+    listing_end = time.time()
+    if flags.listing_only:
+        print(
+            f"Skipping training because you've set listing_only to True.")
+    else:
+        model = Unet3DLightning(flags)
+        trainer = pl.Trainer(
+            accelerator=flags.accelerator,
+            max_epochs=flags.epochs,
+            devices=flags.num_devices,
+            num_nodes=flags.num_nodes,
+            strategy="ddp",
+            profiler=profiler,
+        )
+        trainer.fit(model=model, train_dataloaders=train_data_loader)
+
+    print(f"Listing took {listing_end - listing_start} seconds.")

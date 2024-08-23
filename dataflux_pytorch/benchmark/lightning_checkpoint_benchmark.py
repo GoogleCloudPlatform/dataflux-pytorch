@@ -41,7 +41,12 @@ class LightningTransformer(LightningModule):
         return DataLoader(dataset)
 
 
-def main(project: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt: bool, layers: int = 100, steps: int = 5):
+def main(project: str,
+         ckpt_dir_path: str,
+         save_only_latest: bool,
+         dataflux_ckpt: bool,
+         layers: int = 100,
+         steps: int = 5):
     """Checkpoints a PyTorch Ligthning demo model to GCS using gcsfs or DatafluxLightningCheckpoint.
 
     This function utilizes PyTorch Lightning to checkpoint the WikiText2 dataset. It
@@ -110,7 +115,14 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, dataflux_ckpt
         trainer.save_checkpoint(os.path.join(ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
     print("Average time to save one checkpoint: " +
-          str((end-start)/steps) + " seconds")
+          str((end - start) / steps) + " seconds")
+    start = time.time()
+    for i in range(steps):
+        data = ckpt.load_checkpoint(
+            os.path.join(ckpt_dir_path, f'ckpt_{i}.ckpt'))
+    end = time.time()
+    print("Average time to load one checkpoint: " +
+          str((end - start) / steps) + " seconds")
 
 
 if __name__ == "__main__":

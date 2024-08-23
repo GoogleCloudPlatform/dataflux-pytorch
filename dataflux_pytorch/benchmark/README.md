@@ -1,6 +1,6 @@
 # Benchmarking PyTorch Lightning Checkpoints with Google Cloud Storage
 
-This benchmarking script will allow you to run and benchmark the performance of the PyTorch Lightning Checkpoint save function. This script does not rely on GPUs, TPUs or CPU Clusters and can be run directly on your machine. The script runs the `WikiText2` PyTorch Lightning demo code with some modifications.
+This benchmarking script will allow you to run and benchmark the performance of the PyTorch Lightning Checkpoint save/load function. This script does not rely on GPUs, TPUs or CPU Clusters and can be run directly on your machine. The script runs the `WikiText2` PyTorch Lightning demo code with some modifications.
 
 ## Getting started
 
@@ -20,7 +20,7 @@ gcloud config set project {PROJECT_ID}
 
 Then set the enviroment variables.
 
-`CKPT_DIR_PATH` is the location of where to save the checkpoints. `STEPS` is the number of steps the model will take (the number of checkpoints created will be the same). The default value for `STEPS` is 5. The benchmark will run `save_checkpoint` repeatedly and produce the average at the end.
+`CKPT_DIR_PATH` is the location of where to save the checkpoints. `STEPS` is the number of steps the model will take (the number of checkpoints created will be the same). The default value for `STEPS` is 5. The benchmark will run `save_checkpoint` repeatedly and produce the average at the end, then run `load_checkpoint` on all the saved checkpoints and produce the average.
 
 ```shell
 export CKPT_DIR_PATH=`gs://path/to/directory/`
@@ -71,14 +71,17 @@ HPU available: False, using: 0 HPUs
 Epoch 0:   0%|                                                                                                            | 10/59674 [12:17<1221:29:06,  0.01it/s, v_num=5]`Trainer.fit` stopped: `max_steps=10` reached.
 Epoch 0:   0%|                                                                                                            | 10/59674 [12:17<1221:29:09,  0.01it/s, v_num=5]
 Average time to save one checkpoint: 58.68560411930084 seconds
+Average time to load one checkpoint: 62.54739844375839 seconds
 ```
 
 ## Results
 
-The table below contains benchmarking times on saving checkpoints to GCS, the average save time is taken over 10 calls to save_checkpoint. The tests were done from a VM with 48vCPU, 192 GB RAM, 512 GB SSD located in `us-west1-a` zone. The GCS bucket was located in the same region, `us-west1`.
+The table below contains benchmarking times on saving checkpoints to GCS, the average save/load time is taken over 10 calls to save_checkpoint and load_checkpoint. The tests were done from a VM with 48vCPU, 192 GB RAM, 512 GB SSD located in `us-west1-a` zone. The GCS bucket was located in the same region, `us-west1`.
 
 
-Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to fsspec.
+Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to the default `TorchCheckpointIO` with fsspec/gcsfs.
+
+### Checkpoint Save
 
 <table>
   <tr>
@@ -94,7 +97,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"> Default
+   <td style="background-color: #d9d9d9">Default
    </td>
    <td style="background-color: #d9d9d9">10
    </td>
@@ -142,7 +145,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"> Default
+   <td style="background-color: #d9d9d9">Default
    </td>
    <td style="background-color: #d9d9d9">1000
    </td>
@@ -163,6 +166,95 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #f3f3f3">24.17
    </td>
    <td style="background-color: #f3f3f3">103.43
+   </td>
+  </tr>
+</table>
+
+### Checkpoint Load
+
+<table>
+  <tr>
+   <td style="background-color: #d9d2e9"><strong>Checkpoint Type</strong>
+   </td>
+   <td style="background-color: #d9d2e9"><strong>Layers</strong>
+   </td>
+   <td style="background-color: #d9d2e9"><strong>Checkpoint Size (MB) per step</strong>
+   </td>
+   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Restore Time</strong>
+   </td>
+   <td style="background-color: #d9d2e9"><strong>Read Throughput (MB/s)</strong>
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9">Default
+   </td>
+   <td style="background-color: #d9d9d9">10
+   </td>
+   <td style="background-color: #d9d9d9">75.6
+   </td>
+   <td style="background-color: #d9d9d9">2.38
+   </td>
+   <td style="background-color: #d9d9d9">31.76
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux
+   </td>
+   <td style="background-color: #f3f3f3">10
+   </td>
+   <td style="background-color: #f3f3f3">75.6
+   </td>
+   <td style="background-color: #f3f3f3">0.51
+   </td>
+   <td style="background-color: #f3f3f3">148.24
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9">Default
+   </td>
+   <td style="background-color: #d9d9d9">100
+   </td>
+   <td style="background-color: #d9d9d9">298
+   </td>
+   <td style="background-color: #d9d9d9">12.83
+   </td>
+   <td style="background-color: #d9d9d9">23.23
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux
+   </td>
+   <td style="background-color: #f3f3f3">100
+   </td>
+   <td style="background-color: #f3f3f3">298
+   </td>
+   <td style="background-color: #f3f3f3">1.69
+   </td>
+   <td style="background-color: #f3f3f3">176.33
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9">Default
+   </td>
+   <td style="background-color: #d9d9d9">1000
+   </td>
+   <td style="background-color: #d9d9d9">2500
+   </td>
+   <td style="background-color: #d9d9d9">186.57
+   </td>
+   <td style="background-color: #d9d9d9">13.40
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux
+   </td>
+   <td style="background-color: #f3f3f3">1000
+   </td>
+   <td style="background-color: #f3f3f3">2500
+   </td>
+   <td style="background-color: #f3f3f3">14.77
+   </td>
+   <td style="background-color: #f3f3f3">169.26
    </td>
   </tr>
 </table>
