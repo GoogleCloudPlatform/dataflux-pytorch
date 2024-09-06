@@ -62,7 +62,7 @@ function run_benchmarks(){
     echo Running parquet-text benchmark.
     python3 -u ./demo/lightning/text-based/distributed/model.py --local --project=dataflux-project --bucket=fineweb-df-benchmark --num-workers=2 --num-nodes=1 --devices=5 --batch-size=512 --epochs=5 --limit-train-batches=1000 --log-level=ERROR;
     echo Running image-segmentation benchmark.
-    python3 -u ./demo/lightning/image-segmentation/train.py --local --gcp_project=dataflux-project --gcs_bucket=dataflux-demo-public --images_prefix=image-segmentation-dataset/images --labels_prefix=image-segmentation-dataset/labels --num_nodes=1 --num_devices=5 --epochs=2;
+    python3 -u ./demo/lightning/image-segmentation/train.py --local --benchmark --gcp_project=dataflux-project --gcs_bucket=dataflux-demo-public --images_prefix=image-segmentation-dataset/images --labels_prefix=image-segmentation-dataset/labels --num_nodes=1 --num_devices=5 --epochs=2;
 }
 
 setup_virtual_envs
