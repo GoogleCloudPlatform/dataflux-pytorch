@@ -67,7 +67,7 @@ All benchmarks were run against sets of parquet files from the [Hugging Face Fin
 This code is still being updated and improved, so all benchmark results are subject to change.
 
 ### Basic Throughput Testing
-For this testing, batch size was limited to 2000, thus time metrics were not comprable and only throughput was measured.
+For this testing, training was limited to 2000 batches, thus time metrics were not comprable. Each run processed a different volume of data, so only throughput was measured.
 
 |Node Count|Device Count| Max Bucket Egress (Gbps)|Epochs |
 |------------|----------|-------------|-----|
