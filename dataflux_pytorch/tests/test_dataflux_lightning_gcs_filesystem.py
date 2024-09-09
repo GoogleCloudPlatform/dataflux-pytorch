@@ -29,15 +29,46 @@ class GCSFileSystemTestCase(unittest.TestCase):
             with self.fake_gcs.create_stream(path, "wb") as stream:
                 pass
 
-    def test_create_stream_valid_path_string(self):
+    def test_create_stream_valid_path_string_write_mode(self):
         path = f'gs://{self.bucket_name}/some-dir/'
         with self.fake_gcs.create_stream(path, "wb") as stream:
             pass
 
-    def test_create_stream_valid_path_object(self):
+    def test_create_stream_valid_path_object_write_mode(self):
         path = Path(f'gs://{self.bucket_name}/some-dir/')
         with self.fake_gcs.create_stream(path, "wb") as stream:
             pass
+
+    def test_create_stream_valid_path_string_read_mode(self):
+        path = f'gs://{self.bucket_name}/some-dir/'
+        with self.fake_gcs.create_stream(path, "rb") as stream:
+            pass
+
+    def test_create_stream_valid_path_object_read_mode(self):
+        path = Path(f'gs://{self.bucket_name}/some-dir/')
+        with self.fake_gcs.create_stream(path, "rb") as stream:
+            pass
+
+    def test_create_stream_valid_path_object_invalid_mode(self):
+        path = Path(f'gs://{self.bucket_name}/some-dir/')
+        with self.assertRaises(ValueError) as context:
+            with self.fake_gcs.create_stream(path, "invalid_mode"):
+                pass
+
+        self.assertEqual(
+            str(context.exception),
+            "Invalid mode argument, create_stream only supports rb (read mode) & wb (write mode)"
+        )
+
+    def test_create_stream_valid_path_string_invalid_mode(self):
+        path = f'gs://{self.bucket_name}/some-dir/'
+        with self.assertRaises(ValueError) as context:
+            with self.fake_gcs.create_stream(path, "invalid_mode"):
+                pass
+        self.assertEqual(
+            str(context.exception),
+            "Invalid mode argument, create_stream only supports rb (read mode) & wb (write mode)"
+        )
 
     def test_concat_path_with_string(self):
         path = "/base/path"
