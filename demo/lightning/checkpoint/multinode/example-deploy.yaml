@@ -76,6 +76,8 @@ spec:
                   value: "my-project"
                 - name: CKPT_DIR_PATH
                   value: "gs://my-bucket/checkpoint-path/"
+                - name: CKPT_RESTORE_PATH
+                  value: "gs://my-bucket/checkpoint-path/"
                 - name: PJRT_DEVICE
                   value: "CUDA"
                 - name: NCCL_SOCKET_IFNAME

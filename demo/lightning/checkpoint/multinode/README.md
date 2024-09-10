@@ -14,8 +14,8 @@ The code in this folder provides a training demo for multi node checkpointing wi
 2. Set the optional environment variables, if desired:
   * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints
   * `ACCELERATOR`: Set to `gpu` if running on a GPU, or `cpu` if running on a CPU (default)
-    * If running on a GPU, you also must set `PJRT_DEVICE` to `CUDA`.
-  * `TRAIN_STRATEGY`: This demo requires custom strategy which should override DDP Strategy or FSDP Strategy. FSDP strategy will require actual GPU. 
+    * If running on a GPU, you also must set `PJRT_DEVICE` to `CPU`.
+  * `TRAIN_STRATEGY`: This demo requires custom strategy which should extend DDP Strategy or FSDP Strategy. Extending FSDP Strategy requires GPU. 
 4. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
 3. Run the binary: `python3 -m demo.lightning.checkpoint.multinode.train`
 

@@ -157,7 +157,7 @@ def init_processes():
     configure_master_addr()
 
 
-def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
+def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_path: str = ""):
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
     dataset = WikiText2()
@@ -189,11 +189,11 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
                           model=model,
                           state_dict_type="sharded",
                       ),
-                      num_nodes=1
+                      num_nodes=2
                       )
     trainer.fit(model, dataloader)
-    new_path = ckpt_dir_path + \
-        "lightning_logs/version_0/checkpoints/checkpoint-epoch=00-step=03.ckpt"
+    # new_path = ckpt_dir_path + \
+    #     "lightning_logs/version_0/checkpoints/checkpoint-epoch=00-step=03.ckpt"
     print("Restoring checkpoints ...")
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 2)))
@@ -205,15 +205,15 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
                       max_steps=3,
                       accelerator=accelerator,
                       strategy=DatafluxFSDPStrategy(
-                          path=new_path,
+                          path=ckpt_restore_path,
                           project_name=project,
                           storage_client=None,
                           model=model,
                           state_dict_type="sharded",
                       ),
-                      num_nodes=1
+                      num_nodes=2
                       )
-    trainer.fit(model, dataloader, ckpt_path=new_path)
+    trainer.fit(model, dataloader, ckpt_path=ckpt_restore_path)
 
 
 class DemoTransformer(LightningTransformer):
@@ -233,4 +233,5 @@ if __name__ == "__main__":
         os.getenv("PROJECT"),
         os.getenv("CKPT_DIR_PATH"),
         os.getenv("SAVE_ONLY_LATEST") == "1",
+        os.getenv("CKPT_RESTORE_PATH"),
     )
