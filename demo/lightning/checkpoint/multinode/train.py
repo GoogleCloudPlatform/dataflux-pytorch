@@ -1,3 +1,4 @@
+import io
 import os
 import socket
 import time
@@ -187,7 +188,6 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
 
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 2)))
-    dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
@@ -199,7 +199,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
     )
     accelerator = os.environ.get("ACCELERATOR", "gpu")
     trainer = Trainer(default_root_dir=ckpt_dir_path,
-                      plugins=[dataflux_ckpt],
+                      plugins=[],
                       callbacks=[checkpoint_callback],
                       min_epochs=4,
                       max_epochs=5,
