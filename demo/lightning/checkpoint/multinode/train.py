@@ -115,8 +115,9 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                     optim.load_state_dict(flattened_osd)
 
         # Load metadata (anything not a module or optimizer)
-        bucket, key = parse_gcs_path(path)
-        new_path = "gs://" + bucket + "/" + key + "/" + _METADATA_FILENAME
+        # bucket, key = parse_gcs_path(path)
+        new_path = path / _METADATA_FILENAME
+        # new_path = "gs://" + bucket + "/" + key + "/" + _METADATA_FILENAME
         bucket, key = parse_gcs_path(new_path)
         print("####### NEW_PATH #######")
         print(new_path)
