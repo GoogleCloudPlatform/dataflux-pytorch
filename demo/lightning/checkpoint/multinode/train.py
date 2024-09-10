@@ -174,7 +174,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
     )
-    accelerator = os.environ.get("ACCELERATOR", "gpu")
+    accelerator = os.environ.get("ACCELERATOR", "cpu")
     trainer = Trainer(default_root_dir=ckpt_dir_path,
                       plugins=[],
                       callbacks=[checkpoint_callback],
