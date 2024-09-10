@@ -3,7 +3,7 @@
 The code in this folder provides a training demo for multi node checkpointing with PyTorch Lightning. This demo is under development.
 
 ## Limitations
-* Custom Strategy needs to be implemented and passed to the trainer. The strategy needs to extend [Strategy class](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.strategies.Strategy.html) or one of the class which extend Strategy class.
+* Custom Strategy needs to be implemented and passed to the trainer. The strategy needs to extend [Strategy class](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.strategies.Strategy.html) or one of the class which extend Strategy class. When using Strategy which extends [FSDPStrategy](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.strategies.FSDPStrategy.html), GPU is required.
 * `requirements.txt` includes gcsfs because even though it is not used for checkpointing, PyTorch Lightning's default logger also writes to the root directory where checkpoints are saved.
 
 ## Running locally
