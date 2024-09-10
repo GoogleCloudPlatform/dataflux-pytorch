@@ -41,8 +41,8 @@ spec:
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: yashsha-container
-                image: gcr.io/gcs-tess/yashsha-container
+              - name: checkpoint-gpu
+                image: gcr.io/my-project/my-container
                 # Remove below value if running this on CPU.
                 resources:
                   limits:
