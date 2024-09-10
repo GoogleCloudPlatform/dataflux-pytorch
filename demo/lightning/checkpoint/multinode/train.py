@@ -97,9 +97,6 @@ class DatafluxFSDPStrategy(FSDPStrategy):
 
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
 
-                # TODO: replace with newer APIs
-                # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
-                # the optimizer states must be loaded separately
                 for idx, optim in enumerate(self.optimizers):
                     optim_key = f"optimizer_{idx}"
                     optim_state = load_sharded_optimizer_state_dict(
@@ -115,32 +112,11 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                     optim.load_state_dict(flattened_osd)
 
         # Load metadata (anything not a module or optimizer)
-        # bucket, key = parse_gcs_path(path)
         new_path = path / _METADATA_FILENAME
-        # new_path = "gs://" + bucket + "/" + key + "/" + _METADATA_FILENAME
-        bucket, key = parse_gcs_path(new_path)
-        print("####### NEW_PATH #######")
-        print(new_path)
-        print("###### KEY #######")
-        print(key)
-        with something(storage_client=self.storage_client, bucket_name=bucket, key=key) as metadata_file:
-            print("### TORCH.LOAD (METADATA FILE)#####")
+        metadata = None
+        with self.fs.create_stream(path=new_path, mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
-
-
-@contextmanager
-def something(storage_client, bucket_name, key):
-    # storage_client = storage.Client(project=project,)
-    # user_agent.add_dataflux_user_agent(storage_client)
-    # bucket_name, key = parse_gcs_path(path)
-    bucket_client = storage_client.bucket(bucket_name)
-    blob = bucket_client.blob(key)
-    stream = io.BytesIO()
-    blob.download_to_file(stream)
-    blob_data = blob.download_as_bytes()
-    yield io.BytesIO(blob_data)
-    # return stream
 
 
 def configure_master_addr():
