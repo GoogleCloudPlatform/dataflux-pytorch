@@ -28,8 +28,8 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 2    # Equal to the number of VMs per slice
-          completions: 2    # Same as the above.
+          parallelism: 10    # Equal to the number of VMs per slice
+          completions: 10    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             spec:
@@ -62,10 +62,10 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "2"
+                  value: "10"
                 - name: WORLD_SIZE
-                  value: "2"
-                
+                  value: "10"
+
                 - name: JOBSET_NAME
                   value: "my-job-run"
                 - name: COORDINATOR_ADDRESS
@@ -83,12 +83,12 @@ spec:
                 - name: NCCL_DEBUG
                   value: "WARN"
                 - name: NUM_LAYERS
-                  value: "100"
+                  value: "1000"
                 - name: TRAIN_STRATEGY
                   value: "fsdp"
                 - name: ACCELERATOR
                   value: "gpu"
-  
+
                 ports:
                 - containerPort: 8471
                 - containerPort: 8080
@@ -100,3 +100,4 @@ spec:
                 - -c
                 - |
                   python3 -u /app/demo/lightning/checkpoint/multinode/train.py;
+
