@@ -15,9 +15,8 @@ The code in this folder provides a training demo for multi node checkpointing wi
   * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints
   * `ACCELERATOR`: Set to `gpu` if running on a GPU, or `cpu` if running on a CPU (default)
     * If running on a GPU, you also must set `PJRT_DEVICE` to `CPU`.
-  * `TRAIN_STRATEGY`: This demo requires custom strategy which should extend [Strategy class](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.strategies.Strategy.html) or one of the class which extend Strategy class. When using Strategy which extends [FSDPStrategy](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.strategies.FSDPStrategy.html), GPU is required. 
-4. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
-3. Run the binary: `python3 -m demo.lightning.checkpoint.multinode.train`
+3. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
+4. Run the binary: `python3 -m demo.lightning.checkpoint.multinode.train`
 
 ## Running on GKE
 
