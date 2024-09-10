@@ -194,7 +194,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
     trainer.fit(model, dataloader)
     new_path = ckpt_dir_path + \
         "lightning_logs/version_0/checkpoints/checkpoint-epoch=00-step=03.ckpt"
-    print("### trainer.fit for checkpoint loading...")
+    print("Restoring checkpoints ...")
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 2)))
     trainer = Trainer(default_root_dir=ckpt_dir_path,
