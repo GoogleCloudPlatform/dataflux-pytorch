@@ -36,5 +36,5 @@ Make sure to update the container name in the yaml config file to match the one 
 ### Run the workload on GKE
 
 1. Connect to your GKE cluster: `gcloud container clusters get-credentials <CLUSTER_NAME> --region=<COMPUTE_REGION>`
-2. Make a copy of `demo/lightning/checkpoint/example-deploy.yaml` and update the placeholders and environment variables as needed
-3. Run `kubectl -f apply <path-to-your-yaml-file>`
+2. Make a copy of `demo/lightning/checkpoint/multinode/example-deploy.yaml` and update the placeholders and environment variables as needed
+3. Run `kubectl apply -f <path-to-your-yaml-file>`

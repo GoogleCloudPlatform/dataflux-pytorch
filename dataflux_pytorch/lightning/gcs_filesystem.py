@@ -104,4 +104,4 @@ class GCSDistributedReader(FileSystemReader):
                  project_name: str,
                  storage_client: Optional[storage.Client] = None):
         super().__init__(path=path)
-        self.fs = GCSFileSystem(project_name, "read", storage_client)
+        self.fs = GCSFileSystem(project_name, storage_client)
