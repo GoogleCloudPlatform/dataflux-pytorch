@@ -20,6 +20,8 @@ from dataflux_core import user_agent
 from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.strategies import FSDPStrategy
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
 from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
 from torch.distributed.checkpoint import save, load
 from torch.nn import Module
@@ -35,7 +37,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         self.checkpoint_io = DatafluxLightningCheckpoint(
             project_name, storage_client)
         self.model = model
-        self.storage_client = storage.Client(project=project_name,)
+        self.storage_client = storage.Client(project=project_name)
         user_agent.add_dataflux_user_agent(self.storage_client)
 
     def save_checkpoint(self,
@@ -62,7 +64,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                                                path / _METADATA_FILENAME)
 
     def get_sharded_state_dict_context(self, module: Module) -> Generator[None, None, None]:
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
         from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
@@ -79,8 +81,6 @@ class DatafluxFSDPStrategy(FSDPStrategy):
     def load_checkpoint(self, checkpoint_path):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
-
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
         assert self.model is not None
         assert self.lightning_module is not None
@@ -189,7 +189,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
                           model=model,
                           state_dict_type="sharded",
                       ),
-                      num_nodes=2
+                      num_nodes=int(os.environ.get("WORLD_SIZE", 5))
                       )
     trainer.fit(model, dataloader)
     # new_path = ckpt_dir_path + \
@@ -211,7 +211,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
                           model=model,
                           state_dict_type="sharded",
                       ),
-                      num_nodes=2
+                      num_nodes=int(os.environ.get("WORLD_SIZE", 5))
                       )
     trainer.fit(model, dataloader, ckpt_path=ckpt_restore_path)
 

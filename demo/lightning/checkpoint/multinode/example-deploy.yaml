@@ -28,26 +28,26 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 10    # Equal to the number of VMs per slice
-          completions: 10    # Same as the above.
+          parallelism: 5    # Equal to the number of VMs per slice
+          completions: 5    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             spec:
               schedulerName: default-scheduler
               restartPolicy: Never
-                
+
               priorityClassName: medium
               hostNetwork: true
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: checkpoint-gpu
-                image: gcr.io/my-project/my-container
-
+              - name: yashsha-container
+                image: gcr.io/gcs-tess/yashsha-container
+                # Remove below value if running this on CPU.
                 resources:
                   limits:
                     nvidia.com/gpu: 1
-                
+
                 env: 
                 - name: REPLICATED_JOB_NAME
                   valueFrom:
@@ -62,9 +62,9 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "10"
+                  value: "5"
                 - name: WORLD_SIZE
-                  value: "10"
+                  value: "5"
 
                 - name: JOBSET_NAME
                   value: "my-job-run"
@@ -79,15 +79,13 @@ spec:
                 - name: CKPT_RESTORE_PATH
                   value: "gs://my-bucket/checkpoint-path/"
                 - name: PJRT_DEVICE
-                  value: "CUDA"
+                  value: "CPU"
                 - name: NCCL_SOCKET_IFNAME
                   value: "eth0"
                 - name: NCCL_DEBUG
                   value: "WARN"
                 - name: NUM_LAYERS
-                  value: "1000"
-                - name: TRAIN_STRATEGY
-                  value: "fsdp"
+                  value: "5"
                 - name: ACCELERATOR
                   value: "gpu"
 
