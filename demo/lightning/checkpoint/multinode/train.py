@@ -114,7 +114,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         # Load metadata (anything not a module or optimizer)
         new_path = path / _METADATA_FILENAME
         metadata = None
-        with self.fs.create_stream(path=new_path, mode='rb') as metadata_file:
+        with self.reader.fs.create_stream(path=new_path, mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
 
