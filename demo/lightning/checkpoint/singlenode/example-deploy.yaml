@@ -99,4 +99,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/demo/lightning/checkpoint/train.py;
+                  python3 -u /app/demo/lightning/checkpoint/singlenode/train.py;
