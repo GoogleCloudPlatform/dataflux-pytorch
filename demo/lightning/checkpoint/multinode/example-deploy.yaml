@@ -28,14 +28,14 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 2    # Equal to the number of VMs per slice
-          completions: 2    # Same as the above.
+          parallelism: 5    # Equal to the number of VMs per slice
+          completions: 5    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             spec:
               schedulerName: default-scheduler
               restartPolicy: Never
-                
+
               priorityClassName: medium
               hostNetwork: true
               dnsPolicy: ClusterFirstWithHostNet
@@ -43,11 +43,11 @@ spec:
               containers:
               - name: checkpoint-gpu
                 image: gcr.io/my-project/my-container
-
+                # Remove below value if running this on CPU.
                 resources:
                   limits:
                     nvidia.com/gpu: 1
-                
+
                 env: 
                 - name: REPLICATED_JOB_NAME
                   valueFrom:
@@ -62,10 +62,10 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "2"
+                  value: "5"
                 - name: WORLD_SIZE
-                  value: "2"
-                
+                  value: "5"
+
                 - name: JOBSET_NAME
                   value: "my-job-run"
                 - name: COORDINATOR_ADDRESS
@@ -76,19 +76,19 @@ spec:
                   value: "my-project"
                 - name: CKPT_DIR_PATH
                   value: "gs://my-bucket/checkpoint-path/"
+                - name: CKPT_RESTORE_PATH
+                  value: "gs://my-bucket/checkpoint-path/"
                 - name: PJRT_DEVICE
-                  value: "CUDA"
+                  value: "CPU"
                 - name: NCCL_SOCKET_IFNAME
                   value: "eth0"
                 - name: NCCL_DEBUG
                   value: "WARN"
                 - name: NUM_LAYERS
-                  value: "100"
-                - name: TRAIN_STRATEGY
-                  value: "fsdp"
+                  value: "5"
                 - name: ACCELERATOR
                   value: "gpu"
-  
+
                 ports:
                 - containerPort: 8471
                 - containerPort: 8080
@@ -99,4 +99,5 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/demo/lightning/checkpoint/train.py;
+                  python3 -u /app/demo/lightning/checkpoint/multinode/train.py;
+

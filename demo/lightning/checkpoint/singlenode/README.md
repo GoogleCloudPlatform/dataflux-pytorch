@@ -18,7 +18,7 @@ The code in this folder provides a training demo for checkpointing with PyTorch 
     * If running on a GPU, you also must set `PJRT_DEVICE` to `CUDA`. 
   * `TRAIN_STRATEGY`: Set to `fsdp` to use the FSDP strategy. The default is `ddp`. If using FSDP, you must use GPUs
 4. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
-3. Run the binary: `python3 -m demo.lightning.checkpoint.train`
+3. Run the binary: `python3 -m demo.lightning.checkpoint.singlenode.train`
 
 ## Running on GKE
 
@@ -37,5 +37,5 @@ Make sure to update the container name in the yaml config file to match the one 
 ### Run the workload on GKE
 
 1. Connect to your GKE cluster: `gcloud container clusters get-credentials <CLUSTER_NAME> --region=<COMPUTE_REGION>`
-2. Make a copy of `demo/lightning/checkpoint/example-deploy.yaml` and update the placeholders and environment variables as needed
-3. Run `kubectl -f apply <path-to-your-yaml-file>`
+2. Make a copy of `demo/lightning/checkpoint/singlenode/example-deploy.yaml` and update the placeholders and environment variables as needed
+3. Run `kubectl apply -f <path-to-your-yaml-file>`
