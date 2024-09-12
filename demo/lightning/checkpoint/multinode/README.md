@@ -15,6 +15,12 @@ The code in this folder provides a training demo for multi node checkpointing wi
   * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints
   * `ACCELERATOR`: Set to `gpu` if running on a GPU, or `cpu` if running on a CPU (default)
     * If running on a GPU, you also must set `PJRT_DEVICE` to `CPU`.
+  * `MIN_EPOCHS_SAVE`: Minimum epochs for which training should run during first training loop which saves checkpoint. Defaults to None. For detailed explaination of min_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#min-epochs).
+  * `MIN_EPOCHS_RESTORE`: Minimum epochs for which training should run during second training loop which restores checkpoint. Defaults to None.
+  * `MAX_EPOCHS_SAVE` : Maximum epochs for which training should run during first training loop, which saves checkpoint. Defaults to None. For detailed explanation of max_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-epochs).
+  * `MAX_EPOCHS_RESTORE` : Maximum epochs for which training should run during second training loop, which restores checkpoint. Defaults to None.
+  * `MAX_STEPS_SAVE`: Maximum number of steps for which training can run during first trainig loop. Defaults to None (no limit). For more infomration on max_steps see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-steps).
+  * `MAX_STEPS_RESTORE`: Maximum number of steps for which training can run during second trainig loop. Defaults to None (no limit). 
 3. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
 4. Run the binary: `python3 -m demo.lightning.checkpoint.multinode.train`
 

@@ -175,12 +175,15 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
         enable_version_counter=True,
     )
     accelerator = os.environ.get("ACCELERATOR", "cpu")
+    min_epochs_save = os.environ.get("MIN_EPOCHS_SAVE", None)
+    max_epochs_save = os.environ.get("MAX_EPOCHS_SAVE", None)
+    max_steps_save = os.environ.get("MAX_STEPS_SAVE", -1)
     trainer = Trainer(default_root_dir=ckpt_dir_path,
                       plugins=[],
                       callbacks=[checkpoint_callback],
-                      min_epochs=4,
-                      max_epochs=5,
-                      max_steps=3,
+                      min_epochs=min_epochs_save,
+                      max_epochs=max_epochs_save,
+                      max_steps=max_steps_save,
                       accelerator=accelerator,
                       strategy=DatafluxFSDPStrategy(
                           path=ckpt_dir_path,
@@ -194,14 +197,17 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
     trainer.fit(model, dataloader)
 
     print("Restoring checkpoints ...")
+    min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", None)
+    max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", None)
+    max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", -1)
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 2)))
     trainer = Trainer(default_root_dir=ckpt_dir_path,
                       plugins=[],
                       callbacks=[],
-                      min_epochs=4,
-                      max_epochs=5,
-                      max_steps=3,
+                      min_epochs=min_epochs_restore,
+                      max_epochs=max_epochs_restore,
+                      max_steps=max_steps_restore,
                       accelerator=accelerator,
                       strategy=DatafluxFSDPStrategy(
                           path=ckpt_restore_path,
