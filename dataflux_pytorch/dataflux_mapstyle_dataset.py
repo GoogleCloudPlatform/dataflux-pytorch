@@ -20,9 +20,11 @@ import os
 import warnings
 
 import dataflux_core
-from dataflux_pytorch._helper import _get_missing_permissions
+from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
 from torch.utils import data
+
+from dataflux_pytorch._helper import _get_missing_permissions
 
 MODIFIED_RETRY = DEFAULT_RETRY.with_deadline(100000.0).with_delay(
     initial=1.0, multiplier=1.5, maximum=30.0)
@@ -117,8 +119,8 @@ class DataFluxMapStyleDataset(data.Dataset):
             data_format_fn: A function that formats the downloaded bytes to the desired format.
                 If not specified, the default formatting function leaves the data as-is.
             storage_client: The google.cloud.storage.Client object initiated with sufficient permission
-                to access the project and the bucket. If not specified, it will be created
-                during initialization.
+                to access the project and the bucket. If not specified, one will be created
+                when needed.
 
         Returns:
             None.
@@ -136,8 +138,11 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
         self.config = config
-        # If composed download is enabled, check if the client has permissions to create and delete the composed object.
-        if self.config.max_composite_object_size != 0:
+        # If composed download is enabled an a storage_client was provided,
+        # check if the client has permissions to create and delete the
+        # composed object.
+        if storage_client is not None \
+                and self.config.max_composite_object_size != 0:
             missing_perm = _get_missing_permissions(
                 storage_client=self.storage_client,
                 bucket_name=self.bucket_name,
@@ -161,7 +166,7 @@ class DataFluxMapStyleDataset(data.Dataset):
     def __getitem__(self, idx):
         return self.data_format_fn(
             dataflux_core.download.download_single(
-                storage_client=self.storage_client,
+                storage_client=self._get_or_create_storage_client(),
                 bucket_name=self.bucket_name,
                 object_name=self.objects[idx][0],
                 retry_config=self.config.download_retry_config,
@@ -174,7 +179,7 @@ class DataFluxMapStyleDataset(data.Dataset):
                 project_name=self.project_name,
                 bucket_name=self.bucket_name,
                 objects=[self.objects[idx] for idx in indices],
-                storage_client=self.storage_client,
+                storage_client=self._get_or_create_storage_client(),
                 dataflux_download_optimization_params=self.
                 dataflux_download_optimization_params,
                 threads=self.config.threads_per_process,
@@ -196,7 +201,7 @@ class DataFluxMapStyleDataset(data.Dataset):
                     prefix=self.config.prefix,
                     retry_config=self.config.list_retry_config,
                 )
-                lister.client = self.storage_client
+                lister.client = self._get_or_create_storage_client()
                 listed_objects = lister.run()
 
             except Exception as e:
@@ -214,3 +219,16 @@ class DataFluxMapStyleDataset(data.Dataset):
         # raised an exception.
         else:
             raise error
+
+    def _get_or_create_storage_client(self):
+        """Provide initialized storage client or construct one.
+
+        Some environments do not support pickling client objects (#58), so
+        storage_client is an optional parameter. If the dataset was
+        initialized without a storage client, construct and provide one for
+        use.
+        """
+        if self.storage_client is not None:
+            return self.storage_client
+        else:
+            return storage.Client(project=self.project_name)

@@ -14,14 +14,15 @@
  limitations under the License.
  """
 
-import pickle
 import multiprocessing
+import pickle
 import unittest
 from unittest import mock
 
+from google.cloud import storage
+
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch import dataflux_mapstyle_dataset
-from google.cloud import storage
 
 
 class ListingTestCase(unittest.TestCase):
@@ -96,6 +97,67 @@ class ListingTestCase(unittest.TestCase):
             self.want_objects,
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
+
+    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    def test_init_without_storage_client(self, mock_dataflux_core):
+        """Tests the DataFluxMapStyleDataset can be initiated without storage_client."""
+        # Arrange.
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.run.return_value = self.want_objects
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller)
+
+        # Act.
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            # Ensure the dataset can be constructed without setting storage_client.
+            # storage_client=self.storage_client,
+        )
+
+        # Assert.
+        self.assertEqual(
+            ds.objects,
+            self.want_objects,
+            f"got listed objects {ds.objects}, want {self.want_objects}",
+        )
+
+        # Ensure the dataset can be constructed without setting storage_client (#58).
+        self.assertIsNone(
+            ds.storage_client,
+            "storage_client was unexpectedly constructed on init.")
+
+    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    def test_init_without_storage_client_constructed_when_needed(
+            self, mock_dataflux_core):
+        """Tests the DataFluxMapStyleDataset can be initiated without storage_client."""
+        # Arrange.
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.run.return_value = self.want_objects
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller)
+
+        # Act.
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            # Ensure the dataset can be constructed without setting storage_client.
+            # storage_client=self.storage_client,
+        )
+
+        # Assert.
+        # Ensure the dataset can be constructed without setting storage_client.
+        self.assertIsNone(
+            ds.storage_client,
+            "storage_client was unexpectedly constructed on init.")
+        # Accessing a dataset item calls download_single.
+        self.assertIsNotNone(ds[0])
+        self.assertEqual(
+            mock_dataflux_core.download.download_single.call_count, 1)
+        # Verify download_single was called with a storage_client.
+        self.assertIsInstance(
+            mock_dataflux_core.download.download_single.mock_calls[0].
+            kwargs['storage_client'], storage.Client)
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
     def test_init_retry_exception_passes(self, mock_dataflux_core):
