@@ -80,6 +80,18 @@ spec:
                   value: "gs://my-bucket/checkpoint-path/"
                 - name: PJRT_DEVICE
                   value: "CPU"
+                - name: MIN_EPOCHS_SAVE
+                  value: 4
+                - name: MAX_EPOCHS_SAVE
+                  value: 5
+                - name: MAX_STEPS_SAVE
+                  value: 3
+                - name: MIN_EPOCHS_RESTORE
+                  value: 4
+                - name: MAX_EPOCHS_RESTORE
+                  value: 5
+                - name: MAX_STEPS_RESTORE
+                  value: 3
                 - name: NCCL_SOCKET_IFNAME
                   value: "eth0"
                 - name: NCCL_DEBUG

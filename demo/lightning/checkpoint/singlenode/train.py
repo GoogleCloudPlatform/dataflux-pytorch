@@ -84,12 +84,15 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
     )
     strategy = os.environ.get("TRAIN_STRATEGY", "ddp")
     accelerator = os.environ.get("ACCELERATOR", "cpu")
+    min_epochs = os.environ.get("MIN_EPOCHS", 4)
+    max_epochs = os.environ.get("MAX_EPOCHS", 5)
+    max_steps = os.environ.get("MAX_STEPS", 3)
     trainer = Trainer(default_root_dir=ckpt_dir_path,
                       plugins=[dataflux_ckpt],
                       callbacks=[checkpoint_callback],
-                      min_epochs=4,
-                      max_epochs=5,
-                      max_steps=3,
+                      min_epochs=min_epochs,
+                      max_epochs=max_epochs,
+                      max_steps=max_steps,
                       accelerator=accelerator,
                       strategy=strategy,
                       num_nodes=int(os.environ.get("WORLD_SIZE", 1)))

@@ -78,6 +78,12 @@ spec:
                   value: "gs://my-bucket/checkpoint-path/"
                 - name: PJRT_DEVICE
                   value: "CUDA"
+                - name: MIN_EPOCHS
+                  value: 4
+                - name: MAX_EPOCHS
+                  value: 5
+                - name: MAX_STEPS
+                  value: 3
                 - name: NCCL_SOCKET_IFNAME
                   value: "eth0"
                 - name: NCCL_DEBUG
