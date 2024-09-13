@@ -122,7 +122,7 @@ class ListingTestCase(unittest.TestCase):
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
 
-        # Ensure the dataset can be constructed without setting storage_client (#58).
+        # Ensure the dataset can be constructed without setting storage_client.
         self.assertIsNone(
             ds.storage_client,
             "storage_client was unexpectedly constructed on init.")

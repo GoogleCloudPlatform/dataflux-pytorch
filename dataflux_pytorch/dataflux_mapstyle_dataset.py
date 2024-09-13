@@ -138,11 +138,10 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
         self.config = config
-        # If composed download is enabled an a storage_client was provided,
+        # If composed download is enabled and a storage_client was provided,
         # check if the client has permissions to create and delete the
         # composed object.
-        if storage_client is not None \
-                and self.config.max_composite_object_size != 0:
+        if storage_client is not None and self.config.max_composite_object_size:
             missing_perm = _get_missing_permissions(
                 storage_client=self.storage_client,
                 bucket_name=self.bucket_name,
@@ -223,12 +222,11 @@ class DataFluxMapStyleDataset(data.Dataset):
     def _get_or_create_storage_client(self):
         """Provide initialized storage client or construct one.
 
-        Some environments do not support pickling client objects (#58), so
+        Some environments do not support pickling client objects, so
         storage_client is an optional parameter. If the dataset was
         initialized without a storage client, construct and provide one for
         use.
         """
         if self.storage_client is not None:
             return self.storage_client
-        else:
-            return storage.Client(project=self.project_name)
+        return storage.Client(project=self.project_name)
