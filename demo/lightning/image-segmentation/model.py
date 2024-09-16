@@ -15,6 +15,7 @@
  """
 
 import torch
+import time
 import lightning.pytorch as pl
 from unet3d import Unet3D
 from losses import DiceCELoss
@@ -26,6 +27,7 @@ class Unet3DLightning(pl.LightningModule):
         super().__init__()
         self.flags = flags
         self.benchmark = flags.benchmark
+        self.step_time = flags.step_time
         self.model = Unet3D(1,
                             3,
                             normalization=flags.normalization,
@@ -58,6 +60,7 @@ class Unet3DLightning(pl.LightningModule):
         if self.benchmark:
             # Returning None will break distributed training, so
             # return a scalar of value 1 that represents loss to skip training.
+            time.sleep(self.step_time)
             return torch.tensor(1, dtype=float, requires_grad=True)
         predictions = self.model(images)
         loss = self.loss_fn(predictions, labels)
