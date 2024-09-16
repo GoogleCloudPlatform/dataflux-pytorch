@@ -200,7 +200,8 @@ class DataFluxMapStyleDataset(data.Dataset):
                     prefix=self.config.prefix,
                     retry_config=self.config.list_retry_config,
                 )
-                lister.client = self._get_or_create_storage_client()
+                if self.storage_client is not None:
+                    lister.client = self.storage_client
                 listed_objects = lister.run()
 
             except Exception as e:
