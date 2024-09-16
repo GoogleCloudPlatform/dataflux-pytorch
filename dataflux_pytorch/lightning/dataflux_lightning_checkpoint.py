@@ -8,6 +8,7 @@ from dataflux_core import user_agent
 from google.cloud import storage
 from lightning.pytorch.plugins.io import CheckpointIO
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
+from dataflux_pytorch.lightning.multipart import upload_chunks_concurrently_from_bytesio as upload
 
 
 class DatafluxLightningCheckpoint(CheckpointIO):
@@ -24,17 +25,19 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             self.storage_client = storage.Client(project=self.project_name, )
         user_agent.add_dataflux_user_agent(self.storage_client)
 
-    def save_checkpoint(
-        self,
-        checkpoint: Dict[str, Any],
-        path: Union[str, Path],
-        storage_options: Optional[Any] = None,
-    ) -> None:
+    def save_checkpoint(self,
+                        checkpoint: Dict[str, Any],
+                        path: Union[str, Path],
+                        storage_options: Optional[Any] = None,
+                        enable_multipart: bool = False) -> None:
         bucket_name, key = parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
-        with blob.open("wb", ignore_flush=True) as blobwriter:
-            torch.save(checkpoint, blobwriter)
+        fb = io.BytesIO()
+        # with blob.open("wb", ignore_flush=True) as blobwriter:
+        #     torch.save(checkpoint, blobwriter)
+        torch.save(checkpoint, fb)
+        upload(fb, blob)
 
     def load_checkpoint(
         self,
