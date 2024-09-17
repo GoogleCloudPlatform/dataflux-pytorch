@@ -27,6 +27,7 @@ class GCSFileSystem(FileSystemBase):
     @contextmanager
     def create_stream(self, path: Union[str, os.PathLike],
                       mode: str) -> Generator[io.IOBase, None, None]:
+
         bucket, path = parse_gcs_path(path)
         if mode == "wb":  # write mode.
             with self.storage_client.bucket(bucket).blob(path).open(
