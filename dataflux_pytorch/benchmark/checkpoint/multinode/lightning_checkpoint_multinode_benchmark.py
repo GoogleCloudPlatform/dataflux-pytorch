@@ -234,8 +234,6 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
     trainer.fit(model, dataloader)
     if torch.distributed.get_rank() == 0:
         print("##################################")
-        print(" Save Checkpoints ")
-        print(dataflux_strategy.save_checkpoints_duration)
         print(" Mean of save checkpoints")
         print(statistics.mean(dataflux_strategy.save_checkpoints_duration))
         print("##################################")
