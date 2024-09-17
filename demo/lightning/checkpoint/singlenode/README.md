@@ -10,18 +10,18 @@ The code in this folder provides a training demo for checkpointing with PyTorch 
 ## Running locally
 
 1. Set the environment variables required to run the demo. These include:
-  * `PROJECT`: The GCP project you are using
-  * `CKPT_DIR_PATH`: The full path of the directory in which to save checkpoints, in the format `gs://<bucket>/<directory>/`
-2. Set the optional environment variables, if desired:
-  * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints
-  * `ACCELERATOR`: Set to `gpu` if running on a GPU, or `cpu` if running on a CPU (default)
-    * If running on a GPU, you also must set `PJRT_DEVICE` to `CUDA`. 
-  * `TRAIN_STRATEGY`: Set to `fsdp` to use the FSDP strategy. The default is `ddp`. If using FSDP, you must use GPUs
-  * `MIN_EPOCHS`: Minimum epochs for which training should run. Defaults to 4. For detailed explaination of min_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#min-epochs).
-  * `MAX_EPOCHS` : Maximum epochs for which training should run. Defaults to 5. For detailed explanation of max_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-epochs).
-  * `MAX_STEPS`: Maximum number of steps for which training can run. Defaults to 3. For more infomration on max_steps see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-steps).
-4. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
-3. Run the binary: `python3 -m demo.lightning.checkpoint.singlenode.train`
+   * `PROJECT`: The GCP project you are using
+   * `CKPT_DIR_PATH`: The full path of the directory in which to save checkpoints, in the format `gs://<bucket>/<directory>/`
+1. Set the optional environment variables, if desired:
+   * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints
+   * `ACCELERATOR`: Set to `gpu` if running on a GPU, or `cpu` if running on a CPU (default)
+   * If running on a GPU, you also must set `PJRT_DEVICE` to `CUDA`. 
+   * `TRAIN_STRATEGY`: Set to `fsdp` to use the FSDP strategy. The default is `ddp`. If using FSDP, you must use GPUs
+   * `MIN_EPOCHS`: Minimum epochs for which training should run. Defaults to 4. For detailed explaination of min_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#min-epochs).
+   * `MAX_EPOCHS` : Maximum epochs for which training should run. Defaults to 5. For detailed explanation of max_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-epochs).
+   * `MAX_STEPS`: Maximum number of steps for which training can run. Defaults to 3. For more infomration on max_steps see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-steps).
+1. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
+1. Run the binary: `python3 -m demo.lightning.checkpoint.singlenode.train`
 
 ## Running on GKE
 
