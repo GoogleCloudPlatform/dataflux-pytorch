@@ -28,8 +28,8 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 5    # Equal to the number of VMs per slice
-          completions: 5    # Same as the above.
+          parallelism: 15    # Equal to the number of VMs per slice
+          completions: 15    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             spec:
@@ -62,9 +62,9 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "5"
+                  value: "15"
                 - name: WORLD_SIZE
-                  value: "5"
+                  value: "15"
 
                 - name: JOBSET_NAME
                   value: "yashsha-checkpoint"
@@ -75,9 +75,9 @@ spec:
                 - name: PROJECT
                   value: "gcs-tess"
                 - name: CKPT_DIR_PATH
-                  value: "gs://yashsha-benchmarks/"
+                  value: "gs://yashsha-benchmarks-us-west1/"
                 - name: CKPT_RESTORE_PATH
-                  value: "gs://yashsha-benchmarks/lightning_logs/version_0/checkpoints/"
+                  value: "gs://yashsha-benchmarks-us-west1/lightning_logs/version_0/checkpoints/"
                 - name: PJRT_DEVICE
                   value: "CPU"
                 - name: NCCL_SOCKET_IFNAME
@@ -85,7 +85,7 @@ spec:
                 - name: NCCL_DEBUG
                   value: "WARN"
                 - name: NUM_LAYERS
-                  value: "100"
+                  value: "1000"
                 - name: ACCELERATOR
                   value: "gpu"
 

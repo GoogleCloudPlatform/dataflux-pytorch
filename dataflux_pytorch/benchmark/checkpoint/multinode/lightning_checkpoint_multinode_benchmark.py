@@ -194,6 +194,7 @@ def init_processes():
 
 
 def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_path: str = ""):
+    torch.cuda.empty_cache()
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
     dataset = WikiText2()
@@ -218,9 +219,9 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
         state_dict_type="sharded",
     )
     accelerator = os.environ.get("ACCELERATOR", "gpu")
-    min_epochs_save = os.environ.get("MIN_EPOCHS_SAVE", 8)
-    max_epochs_save = os.environ.get("MAX_EPOCHS_SAVE", 10)
-    max_steps_save = os.environ.get("MAX_STEPS_SAVE", 3)
+    min_epochs_save = os.environ.get("MIN_EPOCHS_SAVE", 4)
+    max_epochs_save = os.environ.get("MAX_EPOCHS_SAVE", 5)
+    max_steps_save = os.environ.get("MAX_STEPS_SAVE", 5)
     trainer = Trainer(default_root_dir=ckpt_dir_path,
                       plugins=[],
                       callbacks=[checkpoint_callback],
@@ -229,7 +230,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
                       max_steps=max_steps_save,
                       accelerator=accelerator,
                       strategy=dataflux_strategy,
-                      num_nodes=int(os.environ.get("WORLD_SIZE", 5))
+                      num_nodes=int(os.environ.get("WORLD_SIZE", 15))
                       )
     trainer.fit(model, dataloader)
     if torch.distributed.get_rank() == 0:
@@ -238,12 +239,19 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
         print(statistics.mean(dataflux_strategy.save_checkpoints_duration))
         print("##################################")
 
-    min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 8)
-    max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 10)
-    max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", 3)
+    min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
+    max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
+    max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", 5)
 
     load_checkpoints_collection = []
     for i in range(max_steps_restore):
+        torch.cuda.empty_cache()
+        checkpoint_callback = ModelCheckpoint(
+            save_top_k=1 if save_only_latest else -1,
+            every_n_train_steps=0,
+            filename="checkpoint-{epoch:02d}-{step:02d}",
+            enable_version_counter=True,
+        )
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 2)))
         new_path = ckpt_restore_path + \
@@ -257,13 +265,13 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
         )
         trainer = Trainer(default_root_dir=ckpt_dir_path,
                           plugins=[],
-                          callbacks=[],
+                          callbacks=[checkpoint_callback],
                           min_epochs=min_epochs_restore,
                           max_epochs=max_epochs_restore,
                           max_steps=max_steps_restore,
                           accelerator=accelerator,
                           strategy=dataflux_strategy,
-                          num_nodes=int(os.environ.get("WORLD_SIZE", 5))
+                          num_nodes=int(os.environ.get("WORLD_SIZE", 15))
                           )
         trainer.fit(model, dataloader, ckpt_path=new_path)
         load_checkpoints_collection.append(
