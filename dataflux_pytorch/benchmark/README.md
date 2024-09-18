@@ -44,11 +44,18 @@ export DATAFLUX_CKPT=1
 
 ### Running
 
-Run the script.
+To run with experimental multipart upload performance improvements, use the `--enable-multipart` flag. This flag leverages parallel upload to dramatically improve the upload speed of checkpoint saves.
+
+```shell
+python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --enable-multipart
+```
+
+To run the script without multipart upload, simply omit the flag.
 
 ```shell
 python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py
 ```
+
 
 The time will print out and the checkpoints can be viewed in GCS at the location passed in. A sample output is shown below.
 

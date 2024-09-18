@@ -1,3 +1,18 @@
+"""
+ Copyright 2024 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ """
 import io
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
@@ -8,6 +23,7 @@ from dataflux_core import user_agent
 from google.cloud import storage
 from lightning.pytorch.plugins.io import CheckpointIO
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
+from dataflux_pytorch.multipart_upload.multipart import upload_chunks_concurrently_from_bytesio as upload
 
 
 class DatafluxLightningCheckpoint(CheckpointIO):
@@ -17,9 +33,11 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self,
         project_name: str,
         storage_client: Optional[storage.Client] = None,
+        enable_multipart: bool = False,
     ):
         self.project_name = project_name
         self.storage_client = storage_client
+        self.enable_multipart = enable_multipart
         if not storage_client:
             self.storage_client = storage.Client(project=self.project_name, )
         user_agent.add_dataflux_user_agent(self.storage_client)
@@ -33,8 +51,13 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_name, key = parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
-        with blob.open("wb", ignore_flush=True) as blobwriter:
-            torch.save(checkpoint, blobwriter)
+        if self.enable_multipart:
+            fb = io.BytesIO()
+            torch.save(checkpoint, fb)
+            upload(fb, blob)
+        else:
+            with blob.open("wb", ignore_flush=True) as blobwriter:
+                torch.save(checkpoint, blobwriter)
 
     def load_checkpoint(
         self,
