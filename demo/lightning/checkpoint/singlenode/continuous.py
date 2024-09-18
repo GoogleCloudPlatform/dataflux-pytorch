@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument("--max-epochs", type=int, default=5)
     parser.add_argument("--max-steps", type=int, default=3)
     parser.add_argument("--num-workers", type=int, default=1)
-    parser.add_argument("--num-layers", type=int, default=1000)
+    parser.add_argument("--num-layers", type=int, default=10)
     return parser.parse_args()
 
 
