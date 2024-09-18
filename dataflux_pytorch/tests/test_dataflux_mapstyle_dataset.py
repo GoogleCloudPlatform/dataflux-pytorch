@@ -21,7 +21,7 @@ from unittest import mock
 
 from google.cloud import storage
 
-from dataflux_client_python.dataflux_core.tests import fake_gcs
+from dataflux_core.tests import fake_gcs
 from dataflux_pytorch import dataflux_mapstyle_dataset
 
 
@@ -369,6 +369,34 @@ class ListingTestCase(unittest.TestCase):
                     data_format_fn=self.data_format_fn,
                     storage_client=client,
                 )
+
+    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    def test_list_GCS_blobs_with_spawn_multiprocess(self, mock_dataflux_core):
+        """Tests the _list_GCS_blobs_with_retry doesn't initialize client before calling dataflux_core.fast_list.ListingController when multiprcessing start method is spawn."""
+
+        # Arrange.
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.client = None
+        mock_listing_controller.run.return_value = self.want_objects
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller)
+
+        # Act.
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            data_format_fn=self.data_format_fn,
+            storage_client=None,
+        )
+
+        if (multiprocessing.get_start_method(allow_none=False)
+                != dataflux_mapstyle_dataset.FORK):
+            self.assertEqual(
+                mock_listing_controller.client,
+                None,
+                f"got client for fast_list{ds.config.max_composite_object_size}, want None",
+            )
 
     def test_init_without_perm(self):
         """Tests that the DataFluxIterableDataset returns permission error when create and delete permissions are missing."""
