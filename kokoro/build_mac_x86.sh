@@ -22,7 +22,7 @@ cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
 
 function setup_virtual_envs() {
     echo Setting up Python virtual environment.
-    sudo apt install -y python3.8-venv
+    pyenv install 3.8 python3.8-venv
     python3 -m venv venv
     source venv/bin/activate
 }
@@ -41,9 +41,6 @@ function run_git_commands() {
 function install_requirements() {
     echo Installing requirements.
     pip install -r requirements.txt
-
-    echo Installing python3-pip.
-    sudo apt-get -y install python3-pip
 
     echo Installing required dependencies.
     pip install .
