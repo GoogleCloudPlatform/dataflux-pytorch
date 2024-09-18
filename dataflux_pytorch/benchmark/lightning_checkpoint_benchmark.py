@@ -1,3 +1,19 @@
+"""
+ Copyright 2024 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ """
+import argparse
 import os
 import time
 from typing import Tuple
@@ -39,6 +55,14 @@ class LightningTransformer(LightningModule):
     def train_dataloader(self) -> DataLoader:
         dataset = WikiText2()
         return DataLoader(dataset)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--enable-multipart",
+                        action="store_true",
+                        default=False)
+    return parser.parse_args()
 
 
 def main(project: str,
@@ -84,12 +108,14 @@ def main(project: str,
     if steps < 1:
         raise ValueError("Steps need to greater than 0.")
 
+    args = parse_args()
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
     model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=layers)
     ckpt = TorchCheckpointIO()
     if dataflux_ckpt:
-        ckpt = DatafluxLightningCheckpoint(project_name=project)
+        ckpt = DatafluxLightningCheckpoint(
+            project_name=project, enable_multipart=args.enable_multipart)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
