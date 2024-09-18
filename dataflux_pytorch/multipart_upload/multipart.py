@@ -273,7 +273,7 @@ class _BufferViewXMLMPUPart(XMLMPUPart):
 
 
 def _buffer_view_upload_part(
-    maybe_pickled_client,
+    client,
     url,
     upload_id,
     view,
@@ -284,16 +284,7 @@ def _buffer_view_upload_part(
     headers,
     retry,
 ):
-    """Helper function that runs inside a thread or subprocess to upload a part.
-
-    `maybe_pickled_client` is either a Client (for threads) or a specially
-    pickled Client (for processes) because the default pickling mangles Client
-    objects."""
-
-    if isinstance(maybe_pickled_client, Client):
-        client = maybe_pickled_client
-    else:
-        client = pickle.loads(maybe_pickled_client)
+    """Helper function that runs inside a thread to upload a part."""
     part = _BufferViewXMLMPUPart(
         url,
         upload_id,
