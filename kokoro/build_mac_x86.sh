@@ -50,7 +50,7 @@ function install_requirements() {
 }
 
 function run_unit_tests() {
-    echo Running unit tests.
+    echo "Running unit tests on MacOS (x86)."
     python3 -m pytest dataflux_pytorch/tests -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/unit_tests/sponge_log.xml" --log-cli-level=DEBUG
 }
 
