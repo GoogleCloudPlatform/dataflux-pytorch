@@ -1,3 +1,18 @@
+"""
+ Copyright 2024 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ """
 import concurrent.futures
 
 from google.api_core import exceptions
@@ -21,7 +36,7 @@ from google.resumable_media.requests.upload import XMLMPUPart
 from google.resumable_media.common import DataCorruption
 
 TM_DEFAULT_CHUNK_SIZE = 32 * 1024 * 1024
-DEFAULT_MAX_WORKERS = 16
+DEFAULT_MAX_WORKERS = 8
 
 # Constants to be passed in as `worker_type`.
 PROCESS = "process"
@@ -127,7 +142,7 @@ def upload_chunks_concurrently_from_bytesio(
 
     :raises: :exc:`concurrent.futures.TimeoutError` if deadline is exceeded.
     """
-    print("INITIATING MULTIPART UPLOAD ------------------------------")
+
     bucket = blob.bucket
     client = blob.client
     transport = blob._get_transport(client)
@@ -248,7 +263,7 @@ class _BufferViewXMLMPUPart(XMLMPUPart):
 
         MPU_PART_QUERY_TEMPLATE = "?partNumber={part}&uploadId={upload_id}"
 
-        payload = bytes(self._view[self._start:self._end + 1])
+        payload = bytes(self._view[self._start:self._end])
 
         self._checksum_object = _helpers._get_checksum_object(
             self._checksum_type)
