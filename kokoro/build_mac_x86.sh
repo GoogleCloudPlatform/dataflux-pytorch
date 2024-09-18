@@ -23,8 +23,8 @@ cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
 function setup_virtual_envs() {
     echo Setting up Python virtual environment.
     pyenv install 3.8
-    python3 -m venv venv
-    source venv/bin/activate
+    pyenv virtualenv 3.8 venv
+    pyenv activate venv
 }
 
 function run_git_commands() {
