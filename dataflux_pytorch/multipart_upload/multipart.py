@@ -72,10 +72,6 @@ def upload_chunks_concurrently_from_bytesio(
     rules, or refer to the XML API documentation linked above to learn more
     about how to list and delete individual downloads.
 
-    Using this feature with multiple threads is unlikely to improve upload
-    performance under normal circumstances due to Python interpreter threading
-    behavior. The default is therefore to use processes instead of threads.
-
     ACL information cannot be sent with this function and should be set
     separately with :class:`ObjectACL` methods.
 
