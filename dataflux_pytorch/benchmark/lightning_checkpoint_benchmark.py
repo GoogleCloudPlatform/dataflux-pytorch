@@ -59,18 +59,21 @@ class LightningTransformer(LightningModule):
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--project", type=str)
+    parser.add_argument("--ckpt-dir-path", type=str)
+    parser.add_argument("--save-only-latest",
+                        action="store_true",
+                        default=False)
+    parser.add_argument("--dataflux-ckpt", action="store_true", default=False)
+    parser.add_argument("--layers", type=int, default=100)
+    parser.add_argument("--steps", type=int, default=5)
     parser.add_argument("--enable-multipart",
                         action="store_true",
                         default=False)
     return parser.parse_args()
 
 
-def main(project: str,
-         ckpt_dir_path: str,
-         save_only_latest: bool,
-         dataflux_ckpt: bool,
-         layers: int = 100,
-         steps: int = 5):
+def main():
     """Checkpoints a PyTorch Ligthning demo model to GCS using gcsfs or DatafluxLightningCheckpoint.
 
     This function utilizes PyTorch Lightning to checkpoint the WikiText2 dataset. It
@@ -84,49 +87,36 @@ def main(project: str,
 
       Run DatafluxLightningCheckpoint over 10 steps:
 
-      project = 'test-project'
-      ckpt_dir_path = 'gs://bucket-name/path/to/dir/'
-      save_only_latest = False
-      dataflux_ckpt = True
-      layers = 1000
-      steps = 10
-
-      main(project=project, save_only_latest=save_onlylatest,
-      dataflux_ckpt=dataflux_ckpt, layers=layers, steps=steps)
+      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --save_only_latest --dataflux_ckpt --layers=1000 --steps=10
 
       Run gcsfs over 10 steps:
 
-      ckpt_dir_path = 'gs://bucket-name/path/to/dir/'
-      save_only_latest = False
-      dataflux_ckpt = False
-      layers = 1000
-      steps = 10
+      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --layers=1000 --steps=10
 
-      main(project=project, save_only_latest=save_onlylatest,
-      dataflux_ckpt=dataflux_ckpt, layers=layers, steps=steps)
     """
-    if steps < 1:
+    args = parse_args()
+    if args.steps < 1:
         raise ValueError("Steps need to greater than 0.")
 
-    args = parse_args()
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
-    model = LightningTransformer(vocab_size=dataset.vocab_size, nlayers=layers)
+    model = LightningTransformer(vocab_size=dataset.vocab_size,
+                                 nlayers=args.layers)
     ckpt = TorchCheckpointIO()
-    if dataflux_ckpt:
+    if args.dataflux_ckpt:
         ckpt = DatafluxLightningCheckpoint(
-            project_name=project, enable_multipart=args.enable_multipart)
+            project_name=args.project, enable_multipart=args.enable_multipart)
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
     checkpoint_callback = ModelCheckpoint(
-        save_top_k=1 if save_only_latest else -1,
+        save_top_k=1 if args.save_only_latest else -1,
         every_n_train_steps=1,
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
     )
     trainer = Trainer(
-        default_root_dir=ckpt_dir_path,
+        default_root_dir=args.ckpt_dir_path,
         plugins=[ckpt],
         callbacks=[checkpoint_callback],
         min_epochs=4,
@@ -137,32 +127,20 @@ def main(project: str,
     trainer.fit(model, dataloader)
 
     start = time.time()
-    for i in range(steps):
-        trainer.save_checkpoint(os.path.join(ckpt_dir_path, f'ckpt_{i}.ckpt'))
+    for i in range(args.steps):
+        trainer.save_checkpoint(
+            os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
     print("Average time to save one checkpoint: " +
-          str((end - start) / steps) + " seconds")
+          str((end - start) / args.steps) + " seconds")
     start = time.time()
-    for i in range(steps):
+    for i in range(args.steps):
         data = ckpt.load_checkpoint(
-            os.path.join(ckpt_dir_path, f'ckpt_{i}.ckpt'))
+            os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
     print("Average time to load one checkpoint: " +
-          str((end - start) / steps) + " seconds")
+          str((end - start) / args.steps) + " seconds")
 
 
 if __name__ == "__main__":
-
-    DEFAULT_LAYERS = 100
-    DEFAULT_STEPS = 5
-    layers = int(os.getenv("LAYERS", DEFAULT_LAYERS))
-    steps = int(os.getenv("STEPS", DEFAULT_STEPS))
-
-    main(
-        os.getenv("PROJECT"),
-        os.getenv("CKPT_DIR_PATH"),
-        os.getenv("SAVE_ONLY_LATEST") == "1",
-        os.getenv("DATAFLUX_CKPT") == "1",
-        layers,
-        steps,
-    )
+    main()

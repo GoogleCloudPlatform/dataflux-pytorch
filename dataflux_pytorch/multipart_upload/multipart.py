@@ -38,10 +38,6 @@ from google.resumable_media.common import DataCorruption
 TM_DEFAULT_CHUNK_SIZE = 32 * 1024 * 1024
 DEFAULT_MAX_WORKERS = 8
 
-# Constants to be passed in as `worker_type`.
-PROCESS = "process"
-THREAD = "thread"
-
 
 def upload_chunks_concurrently_from_bytesio(
     bytesio,
