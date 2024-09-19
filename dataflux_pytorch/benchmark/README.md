@@ -20,26 +20,27 @@ gcloud config set project {PROJECT_ID}
 
 Then set the command line variables.
 
-`--ckpt_dir_path` is the location of where to save the checkpoints. `--steps` is the number of steps the model will take (the number of checkpoints created will be the same). The default value for `--steps` is 5. The benchmark will run `save_checkpoint` repeatedly and produce the average at the end, then run `load_checkpoint` on all the saved checkpoints and produce the average.
+`--ckpt_dir_path`: the location of where to save the checkpoints. 
+`--steps`: the number of steps the model will take (the number of checkpoints created will be the same). The default value for `--steps` is 5. The benchmark will run `save_checkpoint` repeatedly and produce the average at the end, then run `load_checkpoint` on all the saved checkpoints and produce the average.
 
-You can also optionally change the size of the model. The `--layers` argument will be passed into `nn.Transformer` for `num_encoder_layers` and `num_decoder_layers`. The default value for `--layers` is 100.
+`--layers`: you can also optionally change the size of the model. The `--layers` argument will be passed into `nn.Transformer` for `num_encoder_layers` and `num_decoder_layers`. The default value for `--layers` is 100.
 
 ### Dataflux Lightning Checkpoint
 
-If you are benchmarking Dataflux Lightning Checkpoint, save information regarding your project and make sure to enable the `--dataflux_ckpt` flag.
+`--no-dataflux-ckpt`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
 
 ### Running
 
-To run with experimental multipart upload performance improvements, use the `--enable-multipart` flag. This flag leverages parallel upload to dramatically improve the upload speed of checkpoint saves.
+`--enable-multipart`: To run with experimental multipart upload performance improvements. This flag leverages parallel upload to dramatically improve the upload speed of checkpoint saves.
 
 ```shell
-python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --enable-multipart --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --dataflux-ckpt --layers=10 --steps=5
+python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --enable-multipart --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
 ```
 
 To run the script without multipart upload, simply omit the flag.
 
 ```shell
-python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --dataflux-ckpt --layers=10 --steps=5
+python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
 ```
 
 

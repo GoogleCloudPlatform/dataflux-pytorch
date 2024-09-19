@@ -64,7 +64,9 @@ def parse_args():
     parser.add_argument("--save-only-latest",
                         action="store_true",
                         default=False)
-    parser.add_argument("--dataflux-ckpt", action="store_true", default=False)
+    parser.add_argument("--no-dataflux-ckpt",
+                        action="store_true",
+                        default=False)
     parser.add_argument("--layers", type=int, default=100)
     parser.add_argument("--steps", type=int, default=5)
     parser.add_argument("--enable-multipart",
@@ -87,11 +89,11 @@ def main():
 
       Run DatafluxLightningCheckpoint over 10 steps:
 
-      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --save_only_latest --dataflux_ckpt --layers=1000 --steps=10
+      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --save_only_latest --layers=1000 --steps=10
 
       Run gcsfs over 10 steps:
 
-      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --layers=1000 --steps=10
+      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --layers=1000 --steps=10 --no-dataflux-ckpt
 
     """
     args = parse_args()
@@ -102,10 +104,10 @@ def main():
     dataloader = DataLoader(dataset, num_workers=1)
     model = LightningTransformer(vocab_size=dataset.vocab_size,
                                  nlayers=args.layers)
-    ckpt = TorchCheckpointIO()
-    if args.dataflux_ckpt:
-        ckpt = DatafluxLightningCheckpoint(
-            project_name=args.project, enable_multipart=args.enable_multipart)
+    ckpt = DatafluxLightningCheckpoint(project_name=args.project,
+                                       enable_multipart=args.enable_multipart)
+    if args.no_dataflux_ckpt:
+        ckpt = TorchCheckpointIO()
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.

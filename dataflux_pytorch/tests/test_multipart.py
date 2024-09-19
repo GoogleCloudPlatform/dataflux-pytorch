@@ -21,7 +21,7 @@ class MultipartUploadTestCase(unittest.TestCase):
         mock_request = mock.Mock(request.Request)
         mock_request.status_code = 200
         mock_request.headers = {"etag": 12345}
-        mock_client._http.requesmock_client._http.requestt.return_value = mock_request
+        mock_client._http.request.return_value = mock_request
         mock_bucket.name = "test_bucket"
         fake_metadata = {"name": "test/test-multipart-upload"}
         mock_blob._get_upload_arguments.return_value = [{
