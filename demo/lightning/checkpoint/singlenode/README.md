@@ -20,8 +20,13 @@ The code in this folder provides a training demo for checkpointing with PyTorch 
    * `MIN_EPOCHS`: Minimum epochs for which training should run. Defaults to 4. For detailed explaination of min_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#min-epochs).
    * `MAX_EPOCHS` : Maximum epochs for which training should run. Defaults to 5. For detailed explanation of max_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-epochs).
    * `MAX_STEPS`: Maximum number of steps for which training can run. Defaults to 3. For more infomration on max_steps see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-steps).
+   * `ASYNC_CHECKPOINT`: Set to any non-empty value to use [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) for saving checkpoint data without blocking training. See the warning below.
 1. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
 1. Run the binary: `python3 -m demo.lightning.checkpoint.singlenode.train`
+
+
+> [!WARNING]
+> According to the documentation, [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) is currently an experimental feature.
 
 ## Running on GKE
 
