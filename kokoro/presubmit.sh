@@ -49,6 +49,9 @@ function install_requirements() {
 
     echo Installing required dependencies.
     pip install .
+
+    echo Installing checkpointing requirements
+    pip install -r ./dataflux_pytorch/benchmark/requirements.txt
 }
 
 function run_unit_tests() {
