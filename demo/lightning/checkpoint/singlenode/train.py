@@ -76,6 +76,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
 
     async_checkpoint = bool(os.environ.get("ASYNC_CHECKPOINT", False))
     if async_checkpoint:
+        print("NOTE: AsyncCheckpointIO is enabled.")
         dataflux_ckpt = DatafluxLightningAsyncCheckpoint(project_name=project)
     else:
         dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project)

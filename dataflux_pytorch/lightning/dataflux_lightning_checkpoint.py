@@ -15,19 +15,20 @@
  """
 import io
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
-import os
 from dataflux_core import user_agent
 from google.cloud import storage
-from lightning.pytorch.plugins.io import CheckpointIO
+from lightning.pytorch.plugins.io import AsyncCheckpointIO, CheckpointIO
+
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
-from dataflux_pytorch.multipart_upload.multipart import upload_chunks_concurrently_from_bytesio as upload
+from dataflux_pytorch.multipart_upload.multipart import \
+    upload_chunks_concurrently_from_bytesio as upload
 
 
-class DatafluxLightningCheckpoint(CheckpointIO):
-    """A checkpoint manager for GCS using the :class:'CheckpointIO' interface"""
+class DatafluxLightningCheckpointBase:
+    """A base class implementation of the Dataflux Lightning Checkpoint manager for GCS."""
 
     def __init__(
         self,
@@ -83,3 +84,35 @@ class DatafluxLightningCheckpoint(CheckpointIO):
 
     def teardown(self, ) -> None:
         pass
+
+
+class DatafluxLightningCheckpoint(DatafluxLightningCheckpointBase,
+                                  CheckpointIO):
+    """A checkpoint manager for GCS using the :class:'CheckpointIO' interface"""
+
+    def __init__(
+        self,
+        project_name: str,
+        storage_client: Optional[storage.Client] = None,
+        enable_multipart: bool = False,
+    ):
+        super().__init__(project_name,
+                         storage_client=storage_client,
+                         enable_multipart=enable_multipart)
+
+
+class DatafluxLightningAsyncCheckpoint(DatafluxLightningCheckpointBase,
+                                       AsyncCheckpointIO):
+    """A checkpoint manager for GCS using the :class:'AsyncCheckpointIO' interface"""
+
+    def __init__(
+        self,
+        project_name: str,
+        storage_client: Optional[storage.Client] = None,
+        enable_multipart: bool = False,
+    ):
+        super().__init__(project_name,
+                         storage_client=storage_client,
+                         enable_multipart=enable_multipart)
+        # AsyncCheckpointIO is not an abstract base class, so it must be initialized.
+        super(AsyncCheckpointIO, self).__init__()

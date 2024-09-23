@@ -1,6 +1,5 @@
-from .dataflux_lightning_async_checkpoint import \
-    DatafluxLightningAsyncCheckpoint
-from .dataflux_lightning_checkpoint import DatafluxLightningCheckpoint
+from .dataflux_lightning_checkpoint import (DatafluxLightningAsyncCheckpoint,
+                                            DatafluxLightningCheckpoint)
 from .gcs_filesystem import (GCSDistributedReader, GCSDistributedWriter,
                              GCSFileSystem)
 
