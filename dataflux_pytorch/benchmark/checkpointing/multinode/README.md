@@ -22,22 +22,34 @@ gcloud config set project {PROJECT_ID}
 
 You will need to set the following environment variables in order for the benchmarking code to run properly. 
 1. Set the environment variables required to run the demo. These include:
+  
   * `PROJECT`: The GCP project you are using
+  
   * `CKPT_DIR_PATH`: The full path of the directory in which to save checkpoints, in the format `gs://<bucket>/<directory>/`
+
 2. Set the optional environment variables, if desired:
-  * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints
+  
+  * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints. Defaults to 10.
+  
   * `ACCELERATOR`: Set to `gpu` if running on a GPU, or `cpu` if running on a CPU (default)
     * If running on a GPU, you also must set `PJRT_DEVICE` to `CPU`.
+  
   * `MIN_EPOCHS_SAVE`: Minimum epochs for which training should run during first training loop which saves checkpoint. Defaults to 4. For detailed explaination of min_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#min-epochs).
+  
   * `MIN_EPOCHS_RESTORE`: Minimum epochs for which training should run during second training loop which restores checkpoint. Defaults to 4.
+  
   * `MAX_EPOCHS_SAVE` : Maximum epochs for which training should run during first training loop, which saves checkpoint. Defaults to 5. For detailed explanation of max_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-epochs).
+  
   * `MAX_EPOCHS_RESTORE` : Maximum epochs for which training should run during second training loop, which restores checkpoint. Defaults to 5.
+  
   * `MAX_STEPS_SAVE`: Maximum number of steps for which training can run during first trainig loop. Defaults to 5. For more infomration on max_steps see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-steps).
+  
   * `MAX_STEPS_RESTORE`: Maximum number of steps for which training can run during second trainig loop. Defaults to 5. 
 
 
 ### Installing Requirements:
- Install the requirements using following command `pip install -r dataflux_pytorch/benchmark/checkpointing/requirements.txt`; `pip install .`
+ 
+* Install the requirements using following command `pip install -r dataflux_pytorch/benchmark/checkpointing/requirements.txt`; `pip install .`
 
 
 ### Checkpointing Strategy: 
@@ -51,5 +63,6 @@ You will need to set the following environment variables in order for the benchm
 To run the script use the following command. 
 
 ```shell
+python dataflux_pytorch/benchmark/checkpointing/multinode/train.py
 python dataflux_pytorch/benchmark/checkpointing/multinode/train.py
 ```
