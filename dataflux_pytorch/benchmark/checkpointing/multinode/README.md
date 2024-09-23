@@ -31,7 +31,7 @@ Then set the command line variables.
 To run the script use the following command. 
 
 ```shell
-python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
+python dataflux_pytorch/benchmark/checkpointing/multinode/train.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
 ```
 
 Optionally you can pass, min_epochs, max_epochs and max_steps for save & restore.
