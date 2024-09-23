@@ -27,7 +27,7 @@ from dataflux_pytorch.multipart_upload.multipart import \
     upload_chunks_concurrently_from_bytesio as upload
 
 
-class DatafluxLightningCheckpointBase:
+class DatafluxLightningCheckpoint(CheckpointIO):
     """A base class implementation of the Dataflux Lightning Checkpoint manager for GCS."""
 
     def __init__(
@@ -86,23 +86,7 @@ class DatafluxLightningCheckpointBase:
         pass
 
 
-class DatafluxLightningCheckpoint(DatafluxLightningCheckpointBase,
-                                  CheckpointIO):
-    """A checkpoint manager for GCS using the :class:'CheckpointIO' interface"""
-
-    def __init__(
-        self,
-        project_name: str,
-        storage_client: Optional[storage.Client] = None,
-        enable_multipart: bool = False,
-    ):
-        super().__init__(project_name,
-                         storage_client=storage_client,
-                         enable_multipart=enable_multipart)
-
-
-class DatafluxLightningAsyncCheckpoint(DatafluxLightningCheckpointBase,
-                                       AsyncCheckpointIO):
+class DatafluxLightningAsyncCheckpoint(AsyncCheckpointIO):
     """A checkpoint manager for GCS using the :class:'AsyncCheckpointIO' interface"""
 
     def __init__(
@@ -111,8 +95,7 @@ class DatafluxLightningAsyncCheckpoint(DatafluxLightningCheckpointBase,
         storage_client: Optional[storage.Client] = None,
         enable_multipart: bool = False,
     ):
-        super().__init__(project_name,
-                         storage_client=storage_client,
-                         enable_multipart=enable_multipart)
-        # AsyncCheckpointIO is not an abstract base class, so it must be initialized.
-        super(AsyncCheckpointIO, self).__init__()
+        super().__init__(
+            DatafluxLightningCheckpoint(project_name,
+                                        storage_client=storage_client,
+                                        enable_multipart=enable_multipart))
