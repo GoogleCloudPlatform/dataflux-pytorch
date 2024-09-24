@@ -136,7 +136,7 @@ def main():
         trainer.save_checkpoint(
             os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
-    if args.clear-kernel-cache:
+    if args.clear_kernel_cache:
         print("Clearing kernel cache...")
         os.system("sync && sudo sysctl -w vm.drop_caches=3")
     print("Average time to save one checkpoint: " +
