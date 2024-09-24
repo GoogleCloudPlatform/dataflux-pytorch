@@ -29,13 +29,13 @@ from torch.nn import Module
 
 class DatafluxFSDPStrategy(FSDPStrategy):
 
-    def __init__(self, path, project_name, storage_client, model, **kwargs):
+    def __init__(self, path, project_name, storage_client, model, enable_multipart, **kwargs):
         super().__init__(**kwargs)
         self.writer = GCSDistributedWriter(path, project_name, storage_client)
         self.reader = GCSDistributedReader(
             path, project_name, storage_client)
         self.checkpoint_io = DatafluxLightningCheckpoint(
-            project_name, storage_client)
+            project_name=project_name, storage_client=storage_client, enable_multipart=enable_multipart)
         self.model = model
         self.storage_client = storage.Client(project=project_name)
         user_agent.add_dataflux_user_agent(self.storage_client)
@@ -138,6 +138,12 @@ def parse_args():
     parser.add_argument("--enable-multipart",
                         action="store_true",
                         default=False)
+    parser.add_argument("--min-epochs-save", type=int, default=4)
+    parser.add_argument("--max-epochs-save", type=int, default=5)
+    parser.add_argument("--max-steps-save", type=int, default=5)
+    parser.add_argument("--min-epochs-restore", type=int, default=4)
+    parser.add_argument("--max-epochs-restore", type=int, default=5)
+    parser.add_argument("--max-steps-restore", type=int, default=5)
     return parser.parse_args()
 
 
@@ -206,41 +212,34 @@ def main():
         storage_client=None,
         model=model,
         state_dict_type="sharded",
+        enable_multipart=args.enable_multipart,
     )
-    accelerator = os.environ.get("ACCELERATOR", "gpu")
-    min_epochs_save = os.environ.get("MIN_EPOCHS_SAVE", 4)
-    max_epochs_save = os.environ.get("MAX_EPOCHS_SAVE", 5)
-    max_steps_save = os.environ.get("MAX_STEPS_SAVE", 5)
+
     trainer = Trainer(default_root_dir=args.ckpt_dir_path,
                       plugins=[],
                       callbacks=[checkpoint_callback],
-                      min_epochs=min_epochs_save,
-                      max_epochs=max_epochs_save,
-                      max_steps=max_steps_save,
-                      accelerator=accelerator,
+                      min_epochs=args.min_epochs_save,
+                      max_epochs=args.max_epochs_save,
+                      max_steps=args.max_steps_save,
+                      accelerator="gpu",
                       strategy=dataflux_strategy,
                       devices=4,
                       num_nodes=1,
                       )
     trainer.fit(model, dataloader)
     start = time.time()
-    for i in range(max_steps_save):
+    for i in range(args.max_steps_save):
         trainer.save_checkpoint(os.path.join(
             args.ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
     end = time.time()
     if torch.distributed.get_rank() == 0:
         print("##################################")
-        print(" Mean of save checkpoints")
         print("Average time to save one checkpoint: " +
-              str((end - start) / max_steps_save) + " seconds")
+              str((end - start) / args.max_steps_save) + " seconds")
         print("##################################")
 
-    min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
-    max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
-    max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", 5)
-
     load_checkpoint = []
-    for i in range(max_steps_restore):
+    for i in range(args.max_steps_restore):
         checkpoint_callback = ModelCheckpoint(
             save_top_k=1 if args.save_only_latest else -1,
             every_n_train_steps=0,
@@ -256,14 +255,15 @@ def main():
             storage_client=None,
             model=model,
             state_dict_type="sharded",
+            enable_multipart=args.enable_multipart,
         )
         trainer = Trainer(default_root_dir=args.ckpt_dir_path,
                           plugins=[],
                           callbacks=[checkpoint_callback],
-                          min_epochs=min_epochs_restore,
-                          max_epochs=max_epochs_restore,
-                          max_steps=max_steps_restore,
-                          accelerator=accelerator,
+                          min_epochs=args.min_epochs_restore,
+                          max_epochs=args.max_epochs_restore,
+                          max_steps=args.max_steps_restore,
+                          accelerator=args.accelerator,
                           strategy=dataflux_strategy,
                           devices=4,
                           num_nodes=1,
@@ -276,10 +276,8 @@ def main():
 
     if torch.distributed.get_rank() == 0:
         print("##################################")
-        print(" Mean of Load checkpoints")
         print("Average time to load one checkpoint: " +
               str(statistics.mean(load_checkpoint)) + " seconds")
-    #     print(statistics.mean(dataflux_strategy.save_checkpoints_duration))
         print("##################################")
 
 
