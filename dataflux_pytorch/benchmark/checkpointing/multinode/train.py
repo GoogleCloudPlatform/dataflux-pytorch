@@ -39,8 +39,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         self.model = model
         self.storage_client = storage.Client(project=project_name)
         user_agent.add_dataflux_user_agent(self.storage_client)
-        # self.save_checkpoints_duration = []
-        # self.load_checkpoints_duration = 0
+
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
 
@@ -82,7 +81,6 @@ class DatafluxFSDPStrategy(FSDPStrategy):
 
     def load_checkpoint(self, checkpoint_path):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        # start_time = time.time()
         path = Path(self.broadcast(checkpoint_path))
 
         assert self.model is not None
@@ -293,5 +291,4 @@ class DemoTransformer(LightningTransformer):
 
 
 if __name__ == "__main__":
-
     main()
