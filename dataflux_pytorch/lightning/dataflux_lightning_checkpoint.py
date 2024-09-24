@@ -28,7 +28,7 @@ from dataflux_pytorch.multipart_upload.multipart import \
 
 
 class DatafluxLightningCheckpoint(CheckpointIO):
-    """A base class implementation of the Dataflux Lightning Checkpoint manager for GCS."""
+    """A checkpoint manager for GCS using the :class:'CheckpointIO' interface"""
 
     def __init__(
         self,
