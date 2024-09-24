@@ -166,6 +166,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", type=str)
     parser.add_argument("--ckpt-dir-path", type=str)
+    parser.add_argument("--ckpt_restore_path", type=str)
     parser.add_argument("--save-only-latest",
                         action="store_true",
                         default=False)
@@ -218,7 +219,7 @@ def init_processes():
     configure_master_addr()
 
 
-def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_path: str = ""):
+def main():
     args = parse_args()
     if args.steps < 1:
         raise ValueError("Steps need to greater than 0.")
@@ -240,8 +241,8 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
         enable_version_counter=True,
     )
     dataflux_strategy = DatafluxFSDPStrategy(
-        path=ckpt_dir_path,
-        project_name=project,
+        path=args.ckpt_dir_path,
+        project_name=args.project,
         storage_client=None,
         model=model,
         state_dict_type="sharded",
@@ -265,7 +266,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
     start = time.time()
     for i in range(max_steps_save):
         trainer.save_checkpoint(os.path.join(
-            ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
+            args.ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
     end = time.time()
     if torch.distributed.get_rank() == 0:
         print("##################################")
@@ -281,22 +282,22 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
     load_checkpoint = []
     for i in range(max_steps_restore):
         checkpoint_callback = ModelCheckpoint(
-            save_top_k=1 if save_only_latest else -1,
+            save_top_k=1 if args.save_only_latest else -1,
             every_n_train_steps=0,
             filename="checkpoint-{epoch:02d}-{step:02d}",
             enable_version_counter=True,
         )
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-        new_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
+        new_path = os.path.join(args.ckpt_restore_path, f'ckpt_{i}.ckpt/')
         dataflux_strategy = DatafluxFSDPStrategy(
             path=new_path,
-            project_name=project,
+            project_name=args.project,
             storage_client=None,
             model=model,
             state_dict_type="sharded",
         )
-        trainer = Trainer(default_root_dir=ckpt_dir_path,
+        trainer = Trainer(default_root_dir=args.ckpt_dir_path,
                           plugins=[],
                           callbacks=[checkpoint_callback],
                           min_epochs=min_epochs_restore,
@@ -335,9 +336,4 @@ class DemoTransformer(LightningTransformer):
 
 if __name__ == "__main__":
 
-    main(
-        "gcs-tess",
-        "gs://yashsha-benchmarks-us-central1",
-        False,
-        "gs://yashsha-benchmarks-us-central1/checkpoints/",
-    )
+    main()
