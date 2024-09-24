@@ -263,7 +263,7 @@ def main():
                           min_epochs=args.min_epochs_restore,
                           max_epochs=args.max_epochs_restore,
                           max_steps=args.max_steps_restore,
-                          accelerator=args.accelerator,
+                          accelerator="gpu",
                           strategy=dataflux_strategy,
                           devices=4,
                           num_nodes=1,
