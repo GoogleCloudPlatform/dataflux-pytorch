@@ -15,6 +15,7 @@
  """
 import argparse
 import os
+import sys
 import time
 from typing import Tuple
 
@@ -136,7 +137,8 @@ def main():
         trainer.save_checkpoint(
             os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
-    if args.clear_kernel_cache:
+    # command to clear kernel cache only works on MacOs and Linux.
+    if args.clear_kernel_cache and sys.platform in ["darwin", "linux", "linux2", "linux3"]:
         print("Clearing kernel cache...")
         os.system("sync && sudo sysctl -w vm.drop_caches=3")
     print("Average time to save one checkpoint: " +
