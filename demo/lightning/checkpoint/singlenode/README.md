@@ -24,8 +24,13 @@ The code in this folder provides a training demo for checkpointing with PyTorch 
 1. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
 1. Run the binary: `python3 -m demo.lightning.checkpoint.singlenode.train`
 
+#### AsyncCheckpointIO
 
-> [!WARNING]
+GPU utilization is optimized when using [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) by making non-blocking `save_checkpoint` calls during training. The image below shows an example training run demonstrating the difference AsyncCheckpointIO can make when large checkpoint saves would cause blocking network calls while uploading large checkpoint files. By using AsyncCheckpointIO, `save_checkpoint` calls are executed by a Threadpool and do not block training while the large checkpoint files are being uploaded. 
+
+![image](https://github.com/user-attachments/assets/094f9dc5-cd79-438d-bae7-202d420b8f62)
+
+> [!Warning]
 > According to the documentation, [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) is currently an experimental feature.
 
 ## Running on GKE
