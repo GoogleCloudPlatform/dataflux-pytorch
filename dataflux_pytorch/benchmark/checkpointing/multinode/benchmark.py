@@ -48,47 +48,22 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                         checkpoint,
                         filepath,
                         storage_options=None) -> None:
-        start_time = time.time()
         if storage_options is not None:
             raise TypeError(
                 "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
                 " `FSDPStrategy` does not use the `CheckpointIO`.")
-
         path = Path(self.broadcast(filepath))
-        print(
-            f'\n ### Rank = [{self.global_rank}] Time taken for broadcasting path {str(time.time()-start_time)}')
         converted_state = {"model": checkpoint.pop("state_dict")}
         converted_state.update({
             f"optimizer_{idx}": optim_state
             for idx, optim_state in enumerate(
                 checkpoint.pop("optimizer_states", []))
         })
-        print(
-            f' ### Rank = [{self.global_rank}] CONVERTED STATE UPDATE time" {str(time.time()-start_time)}')
-        new_start = time.time()
         save(converted_state, checkpoint_id=path, storage_writer=self.writer)
-        print(
-            f' ### Rank = [{self.global_rank}] SAVE TIME"  {str(time.time()-new_start)}')
-        new2_start = time.time()
+
         if self.global_rank == 0:
             self.checkpoint_io.save_checkpoint(checkpoint,
                                                path / _METADATA_FILENAME)
-        print(
-            f' ### Rank = [{self.global_rank}] Save Metadata time  {str(time.time()-new2_start)}')
-        # end_time = time.time()
-        # duration = end_time - start_time
-        # Create tensor directly on the device
-        # duration = torch.tensor(duration, device=self.device)
-        # gathered_durations = [torch.zeros_like(torch.tensor(
-        #     duration)) for _ in range(torch.distributed.get_world_size())]
-        # torch.distributed.all_gather(
-        #     gathered_durations, torch.tensor(duration))
-        # if self.global_rank == 0:
-        # total_save_duration = torch.max(
-        #     torch.stack(gathered_durations)).item()
-        # self.save_checkpoints_duration.append(total_save_duration)
-        # print(
-        #     f"\n  Total checkpoint saving time across all nodes: {total_save_duration:.4f} seconds\n")
 
     def get_sharded_state_dict_context(self, module: Module) -> Generator[None, None, None]:
 
@@ -144,21 +119,6 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         metadata = None
         with self.reader.fs.create_stream(path=new_path, mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
-        # end_time = time.time()
-        # duration = end_time-start_time
-        # Create tensor directly on the device
-        # duration = torch.tensor(duration, device=self.device)
-        # gathered_durations = [torch.zeros_like(torch.tensor(
-        #     duration)) for _ in range(torch.distributed.get_world_size())]
-        # torch.distributed.all_gather(
-        #     gathered_durations, torch.tensor(duration))
-        # if self.global_rank == 0:
-        #     # Use max to account for any stragglers
-        #     total_load_duration = torch.max(
-        #         torch.stack(gathered_durations)).item()
-        #     self.load_checkpoints_duration = total_load_duration
-        #     print(
-        #         f"\n Total checkpoint loading time across all nodes: {total_load_duration:.4f} seconds\n")
         return metadata
 
 
