@@ -25,6 +25,11 @@ Then set the command line variables.
 
 `--layers`: you can also optionally change the size of the model. The `--layers` argument will be passed into `nn.Transformer` for `num_encoder_layers` and `num_decoder_layers`. The default value for `--layers` is 100.
 
+`--clear-kernel-cache`: this is an optional argument which when set clears kernel cache after saving the checkpoints. If benchmarking local filesystems or storage solutions that expose a filesystem interface (such as gcsfuse), this argument _must be set_ in order to get more accurate performance measurements. 
+
+> [!NOTE]  
+> The benchmarking script might have to be run as sudo if `--clear-kernel-cache` is set. It has no effect on machines that are not running on Linux or MacOS. 
+
 ### Dataflux Lightning Checkpoint
 
 `--no-dataflux-ckpt`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
