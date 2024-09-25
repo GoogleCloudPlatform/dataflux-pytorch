@@ -34,20 +34,15 @@ Then set the command line variables.
 
 `--no-dataflux-ckpt`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
 
+`--disable-multipart`: This flag will disable multipart upload performance improvements. In most cases this will dramatically reduce the upload speed of checkpoint saves and is not recommended.
+
 ### Running
 
-`--enable-multipart`: To run with experimental multipart upload performance improvements. This flag leverages parallel upload to dramatically improve the upload speed of checkpoint saves.
-
-```shell
-python dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --enable-multipart --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
-```
-
-To run the script without multipart upload, simply omit the flag.
+To execute this demo, run a command like the following:
 
 ```shell
 python dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
 ```
-
 
 The time will print out and the checkpoints can be viewed in GCS at the location passed in. A sample output is shown below.
 
