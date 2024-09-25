@@ -83,8 +83,8 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         blob = bucket_client.blob(key)
         blob.delete()
 
-    # def teardown(self, ) -> None:
-    #     pass
+    def teardown(self, ) -> None:
+        pass
 
 
 class DatafluxLightningAsyncCheckpoint(AsyncCheckpointIO):
