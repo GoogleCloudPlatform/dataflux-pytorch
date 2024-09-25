@@ -45,7 +45,7 @@ python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --enable-mul
 To run the script without multipart upload, simply omit the flag.
 
 ```shell
-python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
+python dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
 ```
 
 
