@@ -21,6 +21,7 @@ import torch
 from dataflux_core import user_agent
 from google.cloud import storage
 from lightning.pytorch.plugins.io import AsyncCheckpointIO, CheckpointIO
+from typing_extensions import override
 
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
 from dataflux_pytorch.multipart_upload.multipart import \
@@ -82,8 +83,8 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         blob = bucket_client.blob(key)
         blob.delete()
 
-    def teardown(self, ) -> None:
-        pass
+    # def teardown(self, ) -> None:
+    #     pass
 
 
 class DatafluxLightningAsyncCheckpoint(AsyncCheckpointIO):
@@ -99,3 +100,11 @@ class DatafluxLightningAsyncCheckpoint(AsyncCheckpointIO):
             DatafluxLightningCheckpoint(project_name,
                                         storage_client=storage_client,
                                         enable_multipart=enable_multipart))
+
+    @override
+    def teardown(self) -> None:
+        # Ensure the DatafluxLightningCheckpoint teardown method gets called
+        # in addition to the AsyncCheckpointIO teardown method.
+        if getattr(super(), 'checkpoint_io', None) is not None:
+            super().checkpoint_io.teardown()
+        super().teardown()
