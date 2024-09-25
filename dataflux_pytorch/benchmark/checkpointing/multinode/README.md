@@ -64,5 +64,4 @@ To run the script use the following command.
 
 ```shell
 python dataflux_pytorch/benchmark/checkpointing/multinode/train.py
-python dataflux_pytorch/benchmark/checkpointing/multinode/train.py
 ```
