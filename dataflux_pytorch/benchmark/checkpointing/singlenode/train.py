@@ -73,8 +73,8 @@ def parse_args():
     parser.add_argument("--enable-multipart",
                         action="store_true",
                         default=False)
-    parser.add_argument("--clear-kernel-cache", 
-                        action="store_true", 
+    parser.add_argument("--clear-kernel-cache",
+                        action="store_true",
                         default=False)
     return parser.parse_args()
 
@@ -93,11 +93,11 @@ def main():
 
       Run DatafluxLightningCheckpoint over 10 steps:
 
-      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --save_only_latest --layers=1000 --steps=10
+      python3 train.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --save_only_latest --layers=1000 --steps=10
 
       Run gcsfs over 10 steps:
 
-      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --layers=1000 --steps=10 --no-dataflux-ckpt
+      python3 train.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --layers=1000 --steps=10 --no-dataflux-ckpt
 
     """
     args = parse_args()
