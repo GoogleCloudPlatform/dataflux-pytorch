@@ -67,7 +67,7 @@ function run_benchmarks(){
     echo Running image-segmentation benchmark.
     python3 -u ./demo/lightning/image-segmentation/train.py --local --benchmark --gcp_project=dataflux-project --gcs_bucket=dataflux-demo-public --images_prefix=image-segmentation-dataset/images --labels_prefix=image-segmentation-dataset/labels --num_nodes=1 --num_devices=5 --epochs=2;
     echo Running single node checkpointing benchmark.
-    python3 -u ./dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --enable-multipart --project=dataflux-project --ckpt-dir-path=gs://df-ckpt-presubmit/ --layers=1000 --steps=5
+    python3 -u ./dataflux_pytorch/benchmark/checkpointing/multinode/train.py --enable-multipart --project=dataflux-project --ckpt-dir-path=gs://df-ckpt-presubmit/ --layers=1000 --steps=5
 }
 
 setup_virtual_envs
