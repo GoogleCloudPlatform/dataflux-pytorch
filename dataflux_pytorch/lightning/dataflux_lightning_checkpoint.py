@@ -15,15 +15,17 @@
  """
 import io
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
-import os
 from dataflux_core import user_agent
 from google.cloud import storage
-from lightning.pytorch.plugins.io import CheckpointIO
+from lightning.pytorch.plugins.io import AsyncCheckpointIO, CheckpointIO
+from typing_extensions import override
+
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
-from dataflux_pytorch.multipart_upload.multipart import upload_chunks_concurrently_from_bytesio as upload
+from dataflux_pytorch.multipart_upload.multipart import \
+    upload_chunks_concurrently_from_bytesio as upload
 
 
 class DatafluxLightningCheckpoint(CheckpointIO):
@@ -83,3 +85,26 @@ class DatafluxLightningCheckpoint(CheckpointIO):
 
     def teardown(self, ) -> None:
         pass
+
+
+class DatafluxLightningAsyncCheckpoint(AsyncCheckpointIO):
+    """A checkpoint manager for GCS using the :class:'AsyncCheckpointIO' interface"""
+
+    def __init__(
+        self,
+        project_name: str,
+        storage_client: Optional[storage.Client] = None,
+        disable_multipart: bool = False,
+    ):
+        super().__init__(
+            DatafluxLightningCheckpoint(project_name,
+                                        storage_client=storage_client,
+                                        disable_multipart=disable_multipart))
+
+    @override
+    def teardown(self) -> None:
+        # Ensure the DatafluxLightningCheckpoint teardown method gets called
+        # in addition to the AsyncCheckpointIO teardown method.
+        if getattr(super(), 'checkpoint_io', None) is not None:
+            super().checkpoint_io.teardown()
+        super().teardown()
