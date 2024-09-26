@@ -63,6 +63,8 @@ def main(project: str,
         trainer.save_checkpoint(
             os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
     end = time.time()
+    if torch.distributed.get_rank() == 0:
+        print("Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     avg_save_time = (end - start) / max_steps_save
     min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
     max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
@@ -101,6 +103,9 @@ def main(project: str,
         start = time.time()
         trainer.strategy.load_checkpoint(new_path)
         end = time.time()
+
+        if torch.distributed.get_rank() == 0:
+            print("Loaded checkpoint from {new_path}.")
         load_checkpoint_times.append(end - start)
 
     if torch.distributed.get_rank() == 0:
