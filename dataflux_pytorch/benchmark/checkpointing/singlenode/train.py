@@ -70,11 +70,11 @@ def parse_args():
                         default=False)
     parser.add_argument("--layers", type=int, default=100)
     parser.add_argument("--steps", type=int, default=5)
-    parser.add_argument("--enable-multipart",
+    parser.add_argument("--disable-multipart",
                         action="store_true",
                         default=False)
-    parser.add_argument("--clear-kernel-cache", 
-                        action="store_true", 
+    parser.add_argument("--clear-kernel-cache",
+                        action="store_true",
                         default=False)
     return parser.parse_args()
 
@@ -93,11 +93,11 @@ def main():
 
       Run DatafluxLightningCheckpoint over 10 steps:
 
-      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --save_only_latest --layers=1000 --steps=10
+      python3 train.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --save_only_latest --layers=1000 --steps=10
 
       Run gcsfs over 10 steps:
 
-      python3 lightning_checkpoint_benchmark.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --layers=1000 --steps=10 --no-dataflux-ckpt
+      python3 train.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --layers=1000 --steps=10 --no-dataflux-ckpt
 
     """
     args = parse_args()
@@ -108,8 +108,8 @@ def main():
     dataloader = DataLoader(dataset, num_workers=1)
     model = LightningTransformer(vocab_size=dataset.vocab_size,
                                  nlayers=args.layers)
-    ckpt = DatafluxLightningCheckpoint(project_name=args.project,
-                                       enable_multipart=args.enable_multipart)
+    ckpt = DatafluxLightningCheckpoint(
+        project_name=args.project, disable_multipart=args.disable_multipart)
     if args.no_dataflux_ckpt:
         ckpt = TorchCheckpointIO()
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
@@ -138,7 +138,9 @@ def main():
             os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
     # command to clear kernel cache only works on MacOs and Linux.
-    if args.clear_kernel_cache and sys.platform in ["darwin", "linux", "linux2", "linux3"]:
+    if args.clear_kernel_cache and sys.platform in [
+            "darwin", "linux", "linux2", "linux3"
+    ]:
         print("Clearing kernel cache...")
         os.system("sync && sudo sysctl -w vm.drop_caches=3")
     print("Average time to save one checkpoint: " +

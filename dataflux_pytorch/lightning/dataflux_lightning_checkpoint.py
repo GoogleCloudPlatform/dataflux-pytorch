@@ -35,11 +35,11 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         self,
         project_name: str,
         storage_client: Optional[storage.Client] = None,
-        enable_multipart: bool = False,
+        disable_multipart: bool = False,
     ):
         self.project_name = project_name
         self.storage_client = storage_client
-        self.enable_multipart = enable_multipart
+        self.disable_multipart = disable_multipart
         if not storage_client:
             self.storage_client = storage.Client(project=self.project_name, )
         user_agent.add_dataflux_user_agent(self.storage_client)
@@ -53,13 +53,13 @@ class DatafluxLightningCheckpoint(CheckpointIO):
         bucket_name, key = parse_gcs_path(path)
         bucket_client = self.storage_client.bucket(bucket_name)
         blob = bucket_client.blob(key)
-        if self.enable_multipart:
+        if self.disable_multipart:
+            with blob.open("wb", ignore_flush=True) as blobwriter:
+                torch.save(checkpoint, blobwriter)
+        else:
             fb = io.BytesIO()
             torch.save(checkpoint, fb)
             upload(fb, blob)
-        else:
-            with blob.open("wb", ignore_flush=True) as blobwriter:
-                torch.save(checkpoint, blobwriter)
 
     def load_checkpoint(
         self,
