@@ -77,6 +77,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
 
 ### Checkpoint Save
 
+> [!NOTE]  
+> These numbers are not yet updated to reflect the performance improvements from multipart upload.
+
 <table>
   <tr>
    <td style="background-color: #d9d2e9"><strong>Checkpoint Type</strong>
