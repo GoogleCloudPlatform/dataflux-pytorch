@@ -67,9 +67,9 @@ def main(project: str,
     if torch.distributed.get_rank() == 0:
         print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     avg_save_time = (end - start) / max_steps_save
-    min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
-    max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
-    max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", 3)
+    min_epochs_restore = int(os.environ.get("MIN_EPOCHS_RESTORE", 4))
+    max_epochs_restore = int(os.environ.get("MAX_EPOCHS_RESTORE", 5))
+    max_steps_restore = int(os.environ.get("MAX_STEPS_RESTORE", 3))
     load_checkpoint_times = []
     for i in range(max_steps_restore):
         checkpoint_callback = ModelCheckpoint(
