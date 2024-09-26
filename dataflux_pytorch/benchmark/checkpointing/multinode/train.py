@@ -64,7 +64,7 @@ def main(project: str,
             os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
     end = time.time()
     if torch.distributed.get_rank() == 0:
-        print("Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
+        print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     avg_save_time = (end - start) / max_steps_save
     min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
     max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
@@ -105,7 +105,7 @@ def main(project: str,
         end = time.time()
 
         if torch.distributed.get_rank() == 0:
-            print("Loaded checkpoint from {new_path}.")
+            print(f"Loaded checkpoint from {new_path}.")
         load_checkpoint_times.append(end - start)
 
     if torch.distributed.get_rank() == 0:
