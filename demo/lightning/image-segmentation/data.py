@@ -50,11 +50,9 @@ class Unet3DDataModule(pl.LightningDataModule):
             )
             self.train_sampler = None
             if self.args.num_workers > 1:
-                self.train_sampler = DistributedSampler(
-                    self.train_dataset,
-                    seed=self.args.seed,
-                    drop_last=True
-                )
+                self.train_sampler = DistributedSampler(self.train_dataset,
+                                                        seed=self.args.seed,
+                                                        drop_last=True)
 
     def train_dataloader(self):
         return DataLoader(
