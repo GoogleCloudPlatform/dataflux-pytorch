@@ -74,6 +74,8 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 2)))
 
+    # The ASYNC_CHECKPOINT flag will use the async checkpoint wrapper to
+    # enable saving checkpoint data without blocking training.
     async_checkpoint = bool(os.environ.get("ASYNC_CHECKPOINT", False))
     if async_checkpoint:
         print("NOTE: AsyncCheckpointIO is enabled.")
