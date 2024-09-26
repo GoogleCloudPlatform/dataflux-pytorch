@@ -7,13 +7,15 @@ import statistics
 
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos import (
-    WikiText2)
+from lightning.pytorch.demos import (WikiText2)
 import torch.distributed
 from torch.utils.data import DataLoader
 
 
-def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_path: str = ""):
+def main(project: str,
+         ckpt_dir_path: str,
+         save_only_latest: bool,
+         ckpt_restore_path: str = ""):
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
     torch.cuda.empty_cache()
@@ -42,32 +44,29 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
     max_epochs_save = os.environ.get("MAX_EPOCHS_SAVE", 5)
     max_steps_save = os.environ.get("MAX_STEPS_SAVE", 3)
 
-    trainer = Trainer(default_root_dir=ckpt_dir_path,
-                      plugins=[],
-                      callbacks=[checkpoint_callback],
-                      min_epochs=min_epochs_save,
-                      max_epochs=max_epochs_save,
-                      max_steps=max_steps_save,
-                      accelerator="gpu",
-                      strategy=dataflux_strategy,
-                      devices=1,
-                      num_nodes=15,
-                      )
+    trainer = Trainer(
+        default_root_dir=ckpt_dir_path,
+        plugins=[],
+        callbacks=[checkpoint_callback],
+        min_epochs=min_epochs_save,
+        max_epochs=max_epochs_save,
+        max_steps=max_steps_save,
+        accelerator="gpu",
+        strategy=dataflux_strategy,
+        devices=1,
+        num_nodes=15,
+    )
     trainer.fit(model, dataloader)
     start = time.time()
     for i in range(max_steps_save):
-        trainer.save_checkpoint(os.path.join(
-            ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
+        trainer.save_checkpoint(
+            os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
     end = time.time()
-    if torch.distributed.get_rank() == 0:
-        print("##################################")
-        print("Average time to save one checkpoint: " +
-              str((end - start) / max_steps_save) + " seconds")
-        print("##################################")
+    avg_save_time = (end - start) / max_steps_save
     min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
     max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
     max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", 3)
-    load_checkpoint = []
+    load_checkpoint_times = []
     for i in range(max_steps_restore):
         checkpoint_callback = ModelCheckpoint(
             save_top_k=1 if save_only_latest else -1,
@@ -85,27 +84,31 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
             model=model,
             state_dict_type="sharded",
         )
-        trainer = Trainer(default_root_dir=ckpt_dir_path,
-                          plugins=[],
-                          callbacks=[checkpoint_callback],
-                          min_epochs=min_epochs_restore,
-                          max_epochs=max_epochs_restore,
-                          max_steps=max_steps_restore,
-                          accelerator="gpu",
-                          strategy=dataflux_strategy,
-                          devices=1,
-                          num_nodes=15,
-                          )
+        trainer = Trainer(
+            default_root_dir=ckpt_dir_path,
+            plugins=[],
+            callbacks=[checkpoint_callback],
+            min_epochs=min_epochs_restore,
+            max_epochs=max_epochs_restore,
+            max_steps=max_steps_restore,
+            accelerator="gpu",
+            strategy=dataflux_strategy,
+            devices=1,
+            num_nodes=15,
+        )
         trainer.fit(model, dataloader, ckpt_path=new_path)
         start = time.time()
         trainer.strategy.load_checkpoint(new_path)
         end = time.time()
-        load_checkpoint.append(end-start)
+        load_checkpoint_times.append(end - start)
 
     if torch.distributed.get_rank() == 0:
+        avg_load_time = statistics.mean(load_checkpoint_times)
         print("##################################")
-        print("Average time to load one checkpoint: " +
-              str(statistics.mean(load_checkpoint)) + " seconds")
+        print("Average time to save one checkpoint: " + str(avg_save_time) +
+              " seconds")
+        print("Average time to load one checkpoint: " + str(avg_load_time) +
+              " seconds")
         print("##################################")
 
 
