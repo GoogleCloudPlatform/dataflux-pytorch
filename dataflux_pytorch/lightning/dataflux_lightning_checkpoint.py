@@ -94,12 +94,12 @@ class DatafluxLightningAsyncCheckpoint(AsyncCheckpointIO):
         self,
         project_name: str,
         storage_client: Optional[storage.Client] = None,
-        enable_multipart: bool = False,
+        disable_multipart: bool = False,
     ):
         super().__init__(
             DatafluxLightningCheckpoint(project_name,
                                         storage_client=storage_client,
-                                        enable_multipart=enable_multipart))
+                                        disable_multipart=disable_multipart))
 
     @override
     def teardown(self) -> None:
