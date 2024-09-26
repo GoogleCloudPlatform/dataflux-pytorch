@@ -15,7 +15,7 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: yashsha-checkpoint
+  name: my-job-run
   labels:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
@@ -24,7 +24,7 @@ spec:
   failurePolicy:
     maxRestarts: 0
   replicatedJobs:
-    - name: yashsha-ckpt
+    - name: checkpoint-job
       replicas: 1
       template:
         spec:
@@ -41,8 +41,8 @@ spec:
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: yashsha-container
-                image: gcr.io/gcs-tess/yashsha-container
+              - name: my-container
+                image: gcr.io/my-project/my-container
 
                 resources:
                   limits:
@@ -67,7 +67,7 @@ spec:
                   value: "15"
 
                 - name: JOBSET_NAME
-                  value: "yashsha-checkpoint"
+                  value: "my-job-run"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
@@ -75,9 +75,9 @@ spec:
                 - name: PROJECT
                   value: "gcs-tess"
                 - name: CKPT_DIR_PATH
-                  value: "gs://yashsha-benchmarks-us-west1/"
+                  value: "gs://my-bucket/checkpoint-path/"
                 - name: CKPT_RESTORE_PATH
-                  value: "gs://yashsha-benchmarks-us-west1/checkpoints/"
+                  value: "gs://my-bucket/checkpoint-path/"
                 - name: PJRT_DEVICE
                   value: "CPU"
                 - name: NCCL_SOCKET_IFNAME
