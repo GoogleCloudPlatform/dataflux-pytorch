@@ -40,9 +40,10 @@ def main(project: str,
         model=model,
         state_dict_type="sharded",
     )
-    min_epochs_save = os.environ.get("MIN_EPOCHS_SAVE", 4)
-    max_epochs_save = os.environ.get("MAX_EPOCHS_SAVE", 5)
-    max_steps_save = os.environ.get("MAX_STEPS_SAVE", 3)
+    min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
+    max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
+    max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
+    num_nodes = int(os.environ.get("WORLD_SIZE", 4))
 
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
@@ -54,7 +55,7 @@ def main(project: str,
         accelerator="gpu",
         strategy=dataflux_strategy,
         devices=1,
-        num_nodes=15,
+        num_nodes=num_nodes,
     )
     trainer.fit(model, dataloader)
     start = time.time()
@@ -94,7 +95,7 @@ def main(project: str,
             accelerator="gpu",
             strategy=dataflux_strategy,
             devices=1,
-            num_nodes=15,
+            num_nodes=num_nodes,
         )
         trainer.fit(model, dataloader, ckpt_path=new_path)
         start = time.time()
