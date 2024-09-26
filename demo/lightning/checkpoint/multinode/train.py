@@ -175,31 +175,31 @@ def main(rank: int, world_size: int, project: str, ckpt_dir_path: str, save_only
 
     trainer.fit(model, dataloader)
 
-    print("Restoring checkpoints ...")
-    min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
-    max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
-    max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", 3)
+    # print("Restoring checkpoints ...")
+    # min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
+    # max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
+    # max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", 3)
 
-    model = DemoTransformer(vocab_size=dataset.vocab_size,
-                            nlayers=int(os.environ.get("NUM_LAYERS", 2)))
-    trainer = Trainer(
-        default_root_dir=ckpt_dir_path,
-        plugins=[],
-        callbacks=[],
-        min_epochs=min_epochs_restore,
-        max_epochs=max_epochs_restore,
-        max_steps=max_steps_restore,
-        accelerator=accelerator,
-        strategy=DatafluxFSDPStrategy(
-            path=ckpt_restore_path,
-            project_name=project,
-            storage_client=None,
-            model=model,
-            state_dict_type="sharded",
-        ),
-        num_nodes=world_size
-    )
-    trainer.fit(model, dataloader, ckpt_path=ckpt_restore_path)
+    # model = DemoTransformer(vocab_size=dataset.vocab_size,
+    #                         nlayers=int(os.environ.get("NUM_LAYERS", 2)))
+    # trainer = Trainer(
+    #     default_root_dir=ckpt_dir_path,
+    #     plugins=[],
+    #     callbacks=[],
+    #     min_epochs=min_epochs_restore,
+    #     max_epochs=max_epochs_restore,
+    #     max_steps=max_steps_restore,
+    #     accelerator=accelerator,
+    #     strategy=DatafluxFSDPStrategy(
+    #         path=ckpt_restore_path,
+    #         project_name=project,
+    #         storage_client=None,
+    #         model=model,
+    #         state_dict_type="sharded",
+    #     ),
+    #     num_nodes=world_size
+    # )
+    # trainer.fit(model, dataloader, ckpt_path=ckpt_restore_path)
 
 
 class DemoTransformer(LightningTransformer):
@@ -209,6 +209,6 @@ class DemoTransformer(LightningTransformer):
 
 
 if __name__ == "__main__":
-    world_size = 2  # Number of simulated nodes
+    world_size = 4  # Number of simulated nodes
     mp.spawn(main, args=(world_size, "gcs-tess", "gs://yashsha-us-east1-d/", os.getenv(
-        "SAVE_ONLY_LATEST") == "1", "gs://yashsha-us-east1-d/"), nprocs=world_size, join=True)
+        "SAVE_ONLY_LATEST") == "1", "gs://yashsha-us-east1-d/checkpoints/"), nprocs=world_size, join=True)
