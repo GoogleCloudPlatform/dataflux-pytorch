@@ -58,6 +58,7 @@ def main(project: str,
         num_nodes=num_nodes,
     )
     trainer.fit(model, dataloader)
+    print(f"Saving checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     start = time.time()
     for i in range(max_steps_save):
         trainer.save_checkpoint(
