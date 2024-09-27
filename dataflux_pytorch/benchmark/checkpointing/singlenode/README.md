@@ -140,9 +140,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #d9d9d9">Default
    </td>
-   <td style="background-color: #d9d9d9">1000
+   <td style="background-color: #d9d9d9">1,000
    </td>
-   <td style="background-color: #d9d9d9">2500
+   <td style="background-color: #d9d9d9">2,500
    </td>
    <td style="background-color: #d9d9d9">25.61
    </td>
@@ -152,37 +152,37 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #f3f3f3">Dataflux
    </td>
-   <td style="background-color: #f3f3f3">1000
+   <td style="background-color: #f3f3f3">1,000
    </td>
-   <td style="background-color: #f3f3f3">2,634
+   <td style="background-color: #f3f3f3">2,500
    </td>
    <td style="background-color: #f3f3f3">6.25
    </td>
-   <td style="background-color: #f3f3f3">421.47
+   <td style="background-color: #f3f3f3">400.00
    </td>
   </tr>
   <tr>
    <td style="background-color: #d9d9d9">Default
    </td>
-   <td style="background-color: #d9d9d9">10000
+   <td style="background-color: #d9d9d9">10,000
    </td>
-   <td style="background-color: #d9d9d9">25,861
+   <td style="background-color: #d9d9d9">24,200
    </td>
    <td style="background-color: #d9d9d9">757.10
    </td>
-   <td style="background-color: #d9d9d9">34.16
+   <td style="background-color: #d9d9d9">31.96
    </td>
   </tr>
   <tr>
    <td style="background-color: #f3f3f3">Dataflux
    </td>
-   <td style="background-color: #f3f3f3">10000
+   <td style="background-color: #f3f3f3">10,000
    </td>
-   <td style="background-color: #f3f3f3">25,861
+   <td style="background-color: #f3f3f3">24,200
    </td>
    <td style="background-color: #f3f3f3">64.50
    </td>
-   <td style="background-color: #f3f3f3">400.95
+   <td style="background-color: #f3f3f3">375.19
    </td>
   </tr>
 </table>
@@ -253,9 +253,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #d9d9d9">Default
    </td>
-   <td style="background-color: #d9d9d9">1000
+   <td style="background-color: #d9d9d9">1,000
    </td>
-   <td style="background-color: #d9d9d9">2500
+   <td style="background-color: #d9d9d9">2,500
    </td>
    <td style="background-color: #d9d9d9">186.57
    </td>
@@ -267,7 +267,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">1000
    </td>
-   <td style="background-color: #f3f3f3">2500
+   <td style="background-color: #f3f3f3">2,500
    </td>
    <td style="background-color: #f3f3f3">14.77
    </td>
@@ -277,25 +277,25 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #d9d9d9">Default
    </td>
-   <td style="background-color: #d9d9d9">10000
+   <td style="background-color: #d9d9d9">10,000
    </td>
-   <td style="background-color: #d9d9d9">25,861
+   <td style="background-color: #d9d9d9">24,200
    </td>
    <td style="background-color: #d9d9d9">2093.52
    </td>
-   <td style="background-color: #d9d9d9">12.35
+   <td style="background-color: #d9d9d9">11.56
    </td>
   </tr>
   <tr>
    <td style="background-color: #f3f3f3">Dataflux
    </td>
-   <td style="background-color: #f3f3f3">10000
+   <td style="background-color: #f3f3f3">10,000
    </td>
-   <td style="background-color: #f3f3f3">25,861
+   <td style="background-color: #f3f3f3">24,200
    </td>
    <td style="background-color: #f3f3f3">113.14
    </td>
-   <td style="background-color: #f3f3f3">228.58
+   <td style="background-color: #f3f3f3">213.89
    </td>
   </tr>
 </table>
