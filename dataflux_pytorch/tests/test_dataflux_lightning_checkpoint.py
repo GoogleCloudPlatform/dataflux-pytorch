@@ -18,10 +18,9 @@ class LightningCheckpointTestCase(unittest.TestCase):
         self.object_name = "testObject"
 
         client = fake_gcs.Client()
-        self.ckpt = DatafluxLightningCheckpoint(
-            project_name=self.project_name,
-            storage_client=client,
-        )
+        self.ckpt = DatafluxLightningCheckpoint(project_name=self.project_name,
+                                                storage_client=client,
+                                                disable_multipart=True)
         self.bucket = fake_gcs.Bucket("fake_bucket")
 
     def test_invalid_string_path_save(self):
