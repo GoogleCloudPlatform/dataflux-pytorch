@@ -103,19 +103,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3">Dataflux (non-multipart)
-   </td>
-   <td style="background-color: #f3f3f3">10
-   </td>
-   <td style="background-color: #f3f3f3">75.6
-   </td>
-   <td style="background-color: #f3f3f3">0.74
-   </td>
-   <td style="background-color: #f3f3f3">102.16
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux (multipart)
+   <td style="background-color: #f3f3f3">Dataflux
    </td>
    <td style="background-color: #f3f3f3">10
    </td>
@@ -138,19 +126,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #d9d9d9">103.98
    </td>
   </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux (non-multipart)
-   </td>
-   <td style="background-color: #f3f3f3">100
-   </td>
-   <td style="background-color: #f3f3f3">298
-   </td>
-   <td style="background-color: #f3f3f3">2.97
-   </td>
-   <td style="background-color: #f3f3f3">100.33
-   </td>
-  </tr>
-   <td style="background-color: #f3f3f3">Dataflux (multipart)
+   <td style="background-color: #f3f3f3">Dataflux
    </td>
    <td style="background-color: #f3f3f3">100
    </td>
@@ -174,19 +150,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3">Dataflux (non-multipart)
-   </td>
-   <td style="background-color: #f3f3f3">1000
-   </td>
-   <td style="background-color: #f3f3f3">2500
-   </td>
-   <td style="background-color: #f3f3f3">24.17
-   </td>
-   <td style="background-color: #f3f3f3">103.43
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux (multipart)
+   <td style="background-color: #f3f3f3">Dataflux
    </td>
    <td style="background-color: #f3f3f3">1000
    </td>
@@ -210,19 +174,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3">Dataflux (non-multipart)
-   </td>
-   <td style="background-color: #f3f3f3">10000
-   </td>
-   <td style="background-color: #f3f3f3">25,861
-   </td>
-   <td style="background-color: #f3f3f3">264.15
-   </td>
-   <td style="background-color: #f3f3f3">97.90
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux (multipart)
+   <td style="background-color: #f3f3f3">Dataflux
    </td>
    <td style="background-color: #f3f3f3">10000
    </td>
