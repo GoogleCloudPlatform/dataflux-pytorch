@@ -40,9 +40,10 @@ def main(project: str,
         model=model,
         state_dict_type="sharded",
     )
-    min_epochs_save = os.environ.get("MIN_EPOCHS_SAVE", 4)
-    max_epochs_save = os.environ.get("MAX_EPOCHS_SAVE", 5)
-    max_steps_save = os.environ.get("MAX_STEPS_SAVE", 3)
+    min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
+    max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
+    max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
+    num_nodes = int(os.environ.get("WORLD_SIZE", 4))
 
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
@@ -54,18 +55,21 @@ def main(project: str,
         accelerator="gpu",
         strategy=dataflux_strategy,
         devices=1,
-        num_nodes=15,
+        num_nodes=num_nodes,
     )
     trainer.fit(model, dataloader)
+    print(f"Saving checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     start = time.time()
     for i in range(max_steps_save):
         trainer.save_checkpoint(
             os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
     end = time.time()
+    if torch.distributed.get_rank() == 0:
+        print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     avg_save_time = (end - start) / max_steps_save
-    min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
-    max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
-    max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", 3)
+    min_epochs_restore = int(os.environ.get("MIN_EPOCHS_RESTORE", 4))
+    max_epochs_restore = int(os.environ.get("MAX_EPOCHS_RESTORE", 5))
+    max_steps_restore = int(os.environ.get("MAX_STEPS_RESTORE", 3))
     load_checkpoint_times = []
     for i in range(max_steps_restore):
         checkpoint_callback = ModelCheckpoint(
@@ -94,12 +98,15 @@ def main(project: str,
             accelerator="gpu",
             strategy=dataflux_strategy,
             devices=1,
-            num_nodes=15,
+            num_nodes=num_nodes,
         )
         trainer.fit(model, dataloader, ckpt_path=new_path)
         start = time.time()
         trainer.strategy.load_checkpoint(new_path)
         end = time.time()
+
+        if torch.distributed.get_rank() == 0:
+            print(f"Loaded checkpoint from {new_path}.")
         load_checkpoint_times.append(end - start)
 
     if torch.distributed.get_rank() == 0:
