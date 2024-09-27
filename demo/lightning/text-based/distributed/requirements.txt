@@ -2,3 +2,4 @@ torch
 gcs-torch-dataflux
 transformers
 pyarrow
+fsspec[gcsfs]
