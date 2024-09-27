@@ -77,18 +77,15 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
 
 ### Checkpoint Save
 
-> [!NOTE]  
-> These numbers are not yet updated to reflect the performance improvements from multipart upload.
-
 <table>
   <tr>
    <td style="background-color: #d9d2e9"><strong>Checkpoint Type</strong>
    </td>
    <td style="background-color: #d9d2e9"><strong>Layers</strong>
    </td>
-   <td style="background-color: #d9d2e9"><strong>Checkpoint Size (MB) per step</strong>
+   <td style="background-color: #d9d2e9"><strong>Checkpoint File Size (MB)</strong>
    </td>
-   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Save Time</strong>
+   <td style="background-color: #d9d2e9"><strong>Avg Checkpoint Save Time</strong>
    </td>
    <td style="background-color: #d9d2e9"><strong>Write Throughput (MB/s)</strong>
    </td>
@@ -106,7 +103,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3">Dataflux
+   <td style="background-color: #f3f3f3">Dataflux (non-multipart)
    </td>
    <td style="background-color: #f3f3f3">10
    </td>
@@ -115,6 +112,18 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #f3f3f3">0.74
    </td>
    <td style="background-color: #f3f3f3">102.16
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux (multipart)
+   </td>
+   <td style="background-color: #f3f3f3">10
+   </td>
+   <td style="background-color: #f3f3f3">79.19
+   </td>
+   <td style="background-color: #f3f3f3">0.56
+   </td>
+   <td style="background-color: #f3f3f3">141.41
    </td>
   </tr>
   <tr>
@@ -130,7 +139,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3">Dataflux
+   <td style="background-color: #f3f3f3">Dataflux (non-multipart)
    </td>
    <td style="background-color: #f3f3f3">100
    </td>
@@ -139,6 +148,17 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #f3f3f3">2.97
    </td>
    <td style="background-color: #f3f3f3">100.33
+   </td>
+  </tr>
+   <td style="background-color: #f3f3f3">Dataflux (multipart)
+   </td>
+   <td style="background-color: #f3f3f3">100
+   </td>
+   <td style="background-color: #f3f3f3">311.46
+   </td>
+   <td style="background-color: #f3f3f3">1.03
+   </td>
+   <td style="background-color: #f3f3f3">302.39
    </td>
   </tr>
   <tr>
@@ -154,7 +174,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3">Dataflux
+   <td style="background-color: #f3f3f3">Dataflux (non-multipart)
    </td>
    <td style="background-color: #f3f3f3">1000
    </td>
@@ -163,6 +183,54 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #f3f3f3">24.17
    </td>
    <td style="background-color: #f3f3f3">103.43
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux (multipart)
+   </td>
+   <td style="background-color: #f3f3f3">1000
+   </td>
+   <td style="background-color: #f3f3f3">2,634
+   </td>
+   <td style="background-color: #f3f3f3">6.25
+   </td>
+   <td style="background-color: #f3f3f3">421.47
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9">Default
+   </td>
+   <td style="background-color: #d9d9d9">10000
+   </td>
+   <td style="background-color: #d9d9d9">25,861
+   </td>
+   <td style="background-color: #d9d9d9">757.10
+   </td>
+   <td style="background-color: #d9d9d9">34.16
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux (non-multipart)
+   </td>
+   <td style="background-color: #f3f3f3">10000
+   </td>
+   <td style="background-color: #f3f3f3">25,861
+   </td>
+   <td style="background-color: #f3f3f3">264.15
+   </td>
+   <td style="background-color: #f3f3f3">97.90
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux (multipart)
+   </td>
+   <td style="background-color: #f3f3f3">10000
+   </td>
+   <td style="background-color: #f3f3f3">25,861
+   </td>
+   <td style="background-color: #f3f3f3">64.50
+   </td>
+   <td style="background-color: #f3f3f3">400.95
    </td>
   </tr>
 </table>
@@ -252,6 +320,30 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #f3f3f3">14.77
    </td>
    <td style="background-color: #f3f3f3">169.26
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9">Default
+   </td>
+   <td style="background-color: #d9d9d9">10000
+   </td>
+   <td style="background-color: #d9d9d9">25,861
+   </td>
+   <td style="background-color: #d9d9d9">2093.52
+   </td>
+   <td style="background-color: #d9d9d9">12.35
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux
+   </td>
+   <td style="background-color: #f3f3f3">10000
+   </td>
+   <td style="background-color: #f3f3f3">25,861
+   </td>
+   <td style="background-color: #f3f3f3">113.14
+   </td>
+   <td style="background-color: #f3f3f3">228.58
    </td>
   </tr>
 </table>
