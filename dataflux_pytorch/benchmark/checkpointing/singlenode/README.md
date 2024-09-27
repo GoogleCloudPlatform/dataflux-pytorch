@@ -77,18 +77,15 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
 
 ### Checkpoint Save
 
-> [!NOTE]  
-> These numbers are not yet updated to reflect the performance improvements from multipart upload.
-
 <table>
   <tr>
    <td style="background-color: #d9d2e9"><strong>Checkpoint Type</strong>
    </td>
    <td style="background-color: #d9d2e9"><strong>Layers</strong>
    </td>
-   <td style="background-color: #d9d2e9"><strong>Checkpoint Size (MB) per step</strong>
+   <td style="background-color: #d9d2e9"><strong>Checkpoint File Size (MB)</strong>
    </td>
-   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Save Time</strong>
+   <td style="background-color: #d9d2e9"><strong>Avg Checkpoint Save Time</strong>
    </td>
    <td style="background-color: #d9d2e9"><strong>Write Throughput (MB/s)</strong>
    </td>
@@ -112,9 +109,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">75.6
    </td>
-   <td style="background-color: #f3f3f3">0.74
+   <td style="background-color: #f3f3f3">0.56
    </td>
-   <td style="background-color: #f3f3f3">102.16
+   <td style="background-color: #f3f3f3">135.00
    </td>
   </tr>
   <tr>
@@ -129,24 +126,23 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #d9d9d9">103.98
    </td>
   </tr>
-  <tr>
    <td style="background-color: #f3f3f3">Dataflux
    </td>
    <td style="background-color: #f3f3f3">100
    </td>
    <td style="background-color: #f3f3f3">298
    </td>
-   <td style="background-color: #f3f3f3">2.97
+   <td style="background-color: #f3f3f3">1.03
    </td>
-   <td style="background-color: #f3f3f3">100.33
+   <td style="background-color: #f3f3f3">289.32
    </td>
   </tr>
   <tr>
    <td style="background-color: #d9d9d9">Default
    </td>
-   <td style="background-color: #d9d9d9">1000
+   <td style="background-color: #d9d9d9">1,000
    </td>
-   <td style="background-color: #d9d9d9">2500
+   <td style="background-color: #d9d9d9">2,500
    </td>
    <td style="background-color: #d9d9d9">25.61
    </td>
@@ -156,13 +152,37 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #f3f3f3">Dataflux
    </td>
-   <td style="background-color: #f3f3f3">1000
+   <td style="background-color: #f3f3f3">1,000
    </td>
-   <td style="background-color: #f3f3f3">2500
+   <td style="background-color: #f3f3f3">2,500
    </td>
-   <td style="background-color: #f3f3f3">24.17
+   <td style="background-color: #f3f3f3">6.25
    </td>
-   <td style="background-color: #f3f3f3">103.43
+   <td style="background-color: #f3f3f3">400.00
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9">Default
+   </td>
+   <td style="background-color: #d9d9d9">10,000
+   </td>
+   <td style="background-color: #d9d9d9">24,200
+   </td>
+   <td style="background-color: #d9d9d9">757.10
+   </td>
+   <td style="background-color: #d9d9d9">31.96
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux
+   </td>
+   <td style="background-color: #f3f3f3">10,000
+   </td>
+   <td style="background-color: #f3f3f3">24,200
+   </td>
+   <td style="background-color: #f3f3f3">64.50
+   </td>
+   <td style="background-color: #f3f3f3">375.19
    </td>
   </tr>
 </table>
@@ -233,9 +253,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #d9d9d9">Default
    </td>
-   <td style="background-color: #d9d9d9">1000
+   <td style="background-color: #d9d9d9">1,000
    </td>
-   <td style="background-color: #d9d9d9">2500
+   <td style="background-color: #d9d9d9">2,500
    </td>
    <td style="background-color: #d9d9d9">186.57
    </td>
@@ -245,13 +265,37 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #f3f3f3">Dataflux
    </td>
-   <td style="background-color: #f3f3f3">1000
+   <td style="background-color: #f3f3f3">1,000
    </td>
-   <td style="background-color: #f3f3f3">2500
+   <td style="background-color: #f3f3f3">2,500
    </td>
    <td style="background-color: #f3f3f3">14.77
    </td>
    <td style="background-color: #f3f3f3">169.26
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9">Default
+   </td>
+   <td style="background-color: #d9d9d9">10,000
+   </td>
+   <td style="background-color: #d9d9d9">24,200
+   </td>
+   <td style="background-color: #d9d9d9">2,093.52
+   </td>
+   <td style="background-color: #d9d9d9">11.56
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux
+   </td>
+   <td style="background-color: #f3f3f3">10,000
+   </td>
+   <td style="background-color: #f3f3f3">24,200
+   </td>
+   <td style="background-color: #f3f3f3">113.14
+   </td>
+   <td style="background-color: #f3f3f3">213.89
    </td>
   </tr>
 </table>
