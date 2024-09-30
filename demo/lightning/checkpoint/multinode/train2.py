@@ -10,7 +10,7 @@ from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from pathlib import Path
 from google.cloud import storage
 
@@ -81,76 +81,67 @@ class DatafluxFSDPStrategy(DDPStrategy):
     def load_checkpoint(self, checkpoint_path):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
-
+        print(f" ## PATH in load_checkpoint ## {path}")
         assert self.model is not None
-        assert self.lightning_module is not None
+        # assert self.lightning_module is not None
 
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
 
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
-
+        print(" ### Got state dict ctx ### ")
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
             load(module_state, self.reader)
+            print(" ### Loaded Module ### ")
             self.model.load_state_dict(
-                module_state["model"], strict=self.lightning_module.strict_loading)
+                module_state["model"], strict=False)
+            print(" ### Loaded module state dict ")
+            # if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
 
-            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
-
-                for idx, optim in enumerate(self.optimizers):
-                    optim_key = f"optimizer_{idx}"
-                    optim_state = load_sharded_optimizer_state_dict(
-                        model_state_dict=module_state["model"],
-                        optimizer_key=optim_key,
-                        storage_reader=self.reader,
-                    )
-                    flattened_osd = FSDP.optim_state_dict_to_load(
-                        optim_state_dict=optim_state[optim_key],
-                        model=self.model,
-                        optim=optim,
-                    )
-                    optim.load_state_dict(flattened_osd)
+            for idx, optim in enumerate(self.optimizers):
+                optim_key = f"optimizer_{idx}"
+                optim_state = load_sharded_optimizer_state_dict(
+                    model_state_dict=module_state["model"],
+                    optimizer_key=optim_key,
+                    storage_reader=self.reader,
+                )
+                print("### Done with optim_state ###")
+                flattened_osd = FSDP.optim_state_dict_to_load(
+                    optim_state_dict=optim_state[optim_key],
+                    model=self.model,
+                    optim=optim,
+                )
+                print("### flattened OSD ###")
+                optim.load_state_dict(flattened_osd)
 
         # Load metadata (anything not a module or optimizer)
         new_path = path / _METADATA_FILENAME
+        print(f"### METADTA path = {new_path}")
         metadata = None
         with self.reader.fs.create_stream(path=new_path, mode='rb') as metadata_file:
+            print(" ### torch.load(metadata ###)")
             metadata = torch.load(metadata_file)
         return metadata
 
 
-def configure_master_addr():
-    """Get coordinator IP Address with retries"""
-    coordinator_address = socket.gethostname()
-    coordinator_ip_address = socket.gethostbyname(coordinator_address)
-
-    os.environ["MASTER_ADDR"] = coordinator_ip_address
-    os.environ["MASTER_PORT"] = "12345"
+class DemoTransformer(LightningTransformer):
+    def __init__(self, vocab_size: int = 33278, nlayers: int = 2) -> None:
+        super().__init__()
+        self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
 
 
-def init_processes(rank, world_size):
-    """Initializes the distributed environment."""
+def benchmark_strategy(rank, world_size, ckpt_dir_path, project):
+    """Benchmark save and load checkpoint."""
     os.environ['WORLD_SIZE'] = str(world_size)
     os.environ['RANK'] = str(rank)
     os.environ['NODE_RANK'] = str(rank)
-    configure_master_addr()
-    torch.distributed.init_process_group(
-        backend='gloo', rank=rank, world_size=world_size)
 
-
-def main(rank: int, world_size: int, project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_path: str = ""):
-
-    print(" ### Main start ###")
-    init_processes(rank, world_size)
-    print("### Init process done ###")
-
+    # Initialize dummy model and data
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
     print("### Loaded Data ###")
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=5)
-
-    print("## Model initalized ###")
 
     dataflux_strategy = DatafluxFSDPStrategy(
         path=ckpt_dir_path,
@@ -158,12 +149,19 @@ def main(rank: int, world_size: int, project: str, ckpt_dir_path: str, save_only
         storage_client=None,
         model=model,
     )
+
+    # Create a dummy checkpoint data
+    checkpoint_data = {
+        "state_dict": model.state_dict(),
+        "optimizer_states": []
+    }
+
     accelerator = os.environ.get("ACCELERATOR", "cpu")
     min_epochs_save = os.environ.get("MIN_EPOCHS_SAVE", 4)
     max_epochs_save = os.environ.get("MAX_EPOCHS_SAVE", 5)
     max_steps_save = os.environ.get("MAX_STEPS_SAVE", 3)
     checkpoint_callback = ModelCheckpoint(
-        save_top_k=1 if save_only_latest else -1,
+        save_top_k=-1,
         every_n_train_steps=1,
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
@@ -176,74 +174,28 @@ def main(rank: int, world_size: int, project: str, ckpt_dir_path: str, save_only
         max_epochs=max_epochs_save,
         max_steps=max_steps_save,
         accelerator=accelerator,
-        strategy=DDPStrategy(process_group_backend="gloo"),
+        strategy=dataflux_strategy,
         num_nodes=world_size,
     )
-    print(" ### Going to Rank 0 ###"+str(rank))
 
-    if rank == 0:
-        try:
-            trainer.fit(model, dataloader)
-            print("### Done with trainer.fit ###")
-        except Exception as e:
-            print(f"Error during training: {e}")
-            import traceback
-            traceback.print_exc()
-    # Synchronize all processes
-    print("### wait for synchronization ###")
-    torch.distributed.barrier()
-    print("### synchronization Done ###")
-    # Broadcast model weights from node 0 to all nodes.
-    # Broadcast model parameters from rank 0 to all other ranks
-    with FSDP.state_dict_type(model, StateDictType.FULL_STATE_DICT):
-        state_dict = model.state_dict()
-        for k, v in state_dict.items():
-            torch.distributed.broadcast(v, src=0)
-        model.load_state_dict(state_dict)
+    # Benchmark save_checkpoint
+    start_time = time.time()
+    print(f"### Rank {rank}: Starting to save checkpoint")
+    trainer.strategy.save_checkpoint(checkpoint_data, os.path.join(
+        ckpt_dir_path, f'checkpoints/ckpt_{rank}_0.ckpt/'))
+    save_time = time.time() - start_time
+    print(f"Rank {rank}: Time taken to SAVE checkpoint: {save_time:.4f} seconds")
 
-    start = time.time()
-    for i in range(max_steps_save):
-        trainer.save_checkpoint(os.path.join(
-            ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
-    end = time.time()
-    print(" ### Start to End: ", str(end-start))
-    torch.distributed.destroy_process_group()
-    # print("Restoring checkpoints ...")
-    # min_epochs_restore = os.environ.get("MIN_EPOCHS_RESTORE", 4)
-    # max_epochs_restore = os.environ.get("MAX_EPOCHS_RESTORE", 5)
-    # max_steps_restore = os.environ.get("MAX_STEPS_RESTORE", 3)
-
-    # model = DemoTransformer(vocab_size=dataset.vocab_size,
-    #                         nlayers=int(os.environ.get("NUM_LAYERS", 2)))
-    # trainer = Trainer(
-    #     default_root_dir=ckpt_dir_path,
-    #     plugins=[],
-    #     callbacks=[],
-    #     min_epochs=min_epochs_restore,
-    #     max_epochs=max_epochs_restore,
-    #     max_steps=max_steps_restore,
-    #     accelerator=accelerator,
-    #     strategy=DatafluxFSDPStrategy(
-    #         path=ckpt_restore_path,
-    #         project_name=project,
-    #         storage_client=None,
-    #         model=model,
-    #         state_dict_type="sharded",
-    #     ),
-    #     num_nodes=world_size
-    # )
-    # trainer.fit(model, dataloader, ckpt_path=ckpt_restore_path)
-
-
-class DemoTransformer(LightningTransformer):
-    def __init__(self, vocab_size: int = 33278, nlayers: int = 2) -> None:
-        super().__init__()
-        self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
+    # Benchmark load_checkpoint
+    start_time = time.time()
+    print(f"### Rank {rank}: Starting to load checkpoint")
+    trainer.strategy.load_checkpoint(os.path.join(
+        ckpt_dir_path, f'checkpoints/ckpt_{rank}_0.ckpt/'))
+    save_time = time.time() - start_time
+    print(f"Rank {rank}: Time taken to LOAD checkpoint: {save_time:.4f} seconds")
 
 
 if __name__ == "__main__":
-    world_size = 3  # Number of simulated nodes
-    mp.spawn(main, args=(world_size, "gcs-tess", "gs://yashsha-us-east1-d/", os.getenv(
-        "SAVE_ONLY_LATEST") == "1", "gs://yashsha-us-east1-d/checkpoints/"), nprocs=world_size, join=True)
-    # main(world_size, "gcs-tess", "gs://yashsha-us-east1-d/", os.getenv(
-    #     "SAVE_ONLY_LATEST") == "1", "gs://yashsha-us-east1-d/checkpoints/")
+    world_size = 1  # Number of simulated nodes
+    mp.spawn(benchmark_strategy, args=(world_size, "gs://yashsha-us-east1-d/", "gcs-tess"),
+             nprocs=world_size, join=True)
