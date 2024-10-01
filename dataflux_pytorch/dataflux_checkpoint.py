@@ -57,7 +57,10 @@ class DatafluxCheckpoint():
 
     def reader(self, object_name: str) -> BlobReader:
         blob = self.bucket.blob(object_name)
-        return blob.open("rb")
+        stream = BytesIO()
+        blob.download_to_file(stream)
+        stream.seek(0)
+        return stream
 
     def writer(self, object_name: str) -> BlobWriter:
         blob = self.bucket.blob(object_name)
