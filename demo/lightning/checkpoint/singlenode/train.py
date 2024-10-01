@@ -23,7 +23,8 @@ from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
 from torch.utils.data import DataLoader
 
-from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+from dataflux_pytorch.lightning import (DatafluxLightningAsyncCheckpoint,
+                                        DatafluxLightningCheckpoint)
 
 
 def configure_master_addr():
@@ -72,7 +73,16 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
 
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 2)))
-    dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project)
+
+    # The ASYNC_CHECKPOINT flag will use the async checkpoint wrapper to
+    # enable saving checkpoint data without blocking training.
+    async_checkpoint = bool(os.environ.get("ASYNC_CHECKPOINT", False))
+    if async_checkpoint:
+        print("NOTE: AsyncCheckpointIO is enabled.")
+        dataflux_ckpt = DatafluxLightningAsyncCheckpoint(project_name=project)
+    else:
+        dataflux_ckpt = DatafluxLightningCheckpoint(project_name=project)
+
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
@@ -84,9 +94,9 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool):
     )
     strategy = os.environ.get("TRAIN_STRATEGY", "ddp")
     accelerator = os.environ.get("ACCELERATOR", "cpu")
-    min_epochs = os.environ.get("MIN_EPOCHS", 4)
-    max_epochs = os.environ.get("MAX_EPOCHS", 5)
-    max_steps = os.environ.get("MAX_STEPS", 3)
+    min_epochs = int(os.environ.get("MIN_EPOCHS", 4))
+    max_epochs = int(os.environ.get("MAX_EPOCHS", 5))
+    max_steps = int(os.environ.get("MAX_STEPS", 3))
     trainer = Trainer(default_root_dir=ckpt_dir_path,
                       plugins=[dataflux_ckpt],
                       callbacks=[checkpoint_callback],

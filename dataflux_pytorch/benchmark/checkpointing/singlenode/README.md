@@ -18,49 +18,36 @@ First ensure you are running within a virtual python enviroment, make sure gclou
 gcloud config set project {PROJECT_ID}
 ```
 
-Then set the enviroment variables.
+Then set the command line variables.
 
-`CKPT_DIR_PATH` is the location of where to save the checkpoints. `STEPS` is the number of steps the model will take (the number of checkpoints created will be the same). The default value for `STEPS` is 5. The benchmark will run `save_checkpoint` repeatedly and produce the average at the end, then run `load_checkpoint` on all the saved checkpoints and produce the average.
+`--ckpt_dir_path`: the location of where to save the checkpoints. 
+`--steps`: the number of steps the model will take (the number of checkpoints created will be the same). The default value for `--steps` is 5. The benchmark will run `save_checkpoint` repeatedly and produce the average at the end, then run `load_checkpoint` on all the saved checkpoints and produce the average.
 
-```shell
-export CKPT_DIR_PATH=`gs://path/to/directory/`
-export STEPS=5
-```
+`--layers`: you can also optionally change the size of the model. The `--layers` argument will be passed into `nn.Transformer` for `num_encoder_layers` and `num_decoder_layers`. The default value for `--layers` is 100.
 
-You can also optionally change the size of the model. The `LAYERS` variable will be passed into `nn.Transformer` for `num_encoder_layers` and `num_decoder_layers`. The default value for `LAYERS` is 100.
+`--clear-kernel-cache`: this is an optional argument which when set clears kernel cache after saving the checkpoints. If benchmarking local filesystems or storage solutions that expose a filesystem interface (such as gcsfuse), this argument _must be set_ in order to get more accurate performance measurements. 
 
-```shell
-export LAYERS=1000
-```
+> [!NOTE]  
+> The benchmarking script might have to be run as sudo if `--clear-kernel-cache` is set. It has no effect on machines that are not running on Linux or MacOS. 
 
 ### Dataflux Lightning Checkpoint
 
-If you are benchmarking Dataflux Lightning Checkpoint, save information regarding your project and make sure to enable the flag by setting it to `1`.
+`--no-dataflux-ckpt`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
 
-```shell
-export PROJECT=`YOUR_PROJECT_NAME`
-export DATAFLUX_CKPT=1
-```
+`--disable-multipart`: This flag will disable multipart upload performance improvements. In most cases this will dramatically reduce the upload speed of checkpoint saves and is not recommended.
 
 ### Running
 
-To run with experimental multipart upload performance improvements, use the `--enable-multipart` flag. This flag leverages parallel upload to dramatically improve the upload speed of checkpoint saves.
+To execute this demo, run a command like the following:
 
 ```shell
-python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py --enable-multipart
+python dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
 ```
-
-To run the script without multipart upload, simply omit the flag.
-
-```shell
-python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py
-```
-
 
 The time will print out and the checkpoints can be viewed in GCS at the location passed in. A sample output is shown below.
 
 ```shell
-$ python dataflux_pytorch/benchmark/lightning_checkpoint_benchmark.py
+$ python dataflux_pytorch/benchmark/checkpointing/singlenode/train.py
 GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 HPU available: False, using: 0 HPUs
@@ -96,9 +83,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #d9d2e9"><strong>Layers</strong>
    </td>
-   <td style="background-color: #d9d2e9"><strong>Checkpoint Size (MB) per step</strong>
+   <td style="background-color: #d9d2e9"><strong>Checkpoint File Size (MB)</strong>
    </td>
-   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Save Time</strong>
+   <td style="background-color: #d9d2e9"><strong>Avg Checkpoint Save Time</strong>
    </td>
    <td style="background-color: #d9d2e9"><strong>Write Throughput (MB/s)</strong>
    </td>
@@ -122,9 +109,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    </td>
    <td style="background-color: #f3f3f3">75.6
    </td>
-   <td style="background-color: #f3f3f3">0.74
+   <td style="background-color: #f3f3f3">0.56
    </td>
-   <td style="background-color: #f3f3f3">102.16
+   <td style="background-color: #f3f3f3">135.00
    </td>
   </tr>
   <tr>
@@ -139,24 +126,23 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
    <td style="background-color: #d9d9d9">103.98
    </td>
   </tr>
-  <tr>
    <td style="background-color: #f3f3f3">Dataflux
    </td>
    <td style="background-color: #f3f3f3">100
    </td>
    <td style="background-color: #f3f3f3">298
    </td>
-   <td style="background-color: #f3f3f3">2.97
+   <td style="background-color: #f3f3f3">1.03
    </td>
-   <td style="background-color: #f3f3f3">100.33
+   <td style="background-color: #f3f3f3">289.32
    </td>
   </tr>
   <tr>
    <td style="background-color: #d9d9d9">Default
    </td>
-   <td style="background-color: #d9d9d9">1000
+   <td style="background-color: #d9d9d9">1,000
    </td>
-   <td style="background-color: #d9d9d9">2500
+   <td style="background-color: #d9d9d9">2,500
    </td>
    <td style="background-color: #d9d9d9">25.61
    </td>
@@ -166,13 +152,37 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #f3f3f3">Dataflux
    </td>
-   <td style="background-color: #f3f3f3">1000
+   <td style="background-color: #f3f3f3">1,000
    </td>
-   <td style="background-color: #f3f3f3">2500
+   <td style="background-color: #f3f3f3">2,500
    </td>
-   <td style="background-color: #f3f3f3">24.17
+   <td style="background-color: #f3f3f3">6.25
    </td>
-   <td style="background-color: #f3f3f3">103.43
+   <td style="background-color: #f3f3f3">400.00
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9">Default
+   </td>
+   <td style="background-color: #d9d9d9">10,000
+   </td>
+   <td style="background-color: #d9d9d9">24,200
+   </td>
+   <td style="background-color: #d9d9d9">757.10
+   </td>
+   <td style="background-color: #d9d9d9">31.96
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux
+   </td>
+   <td style="background-color: #f3f3f3">10,000
+   </td>
+   <td style="background-color: #f3f3f3">24,200
+   </td>
+   <td style="background-color: #f3f3f3">64.50
+   </td>
+   <td style="background-color: #f3f3f3">375.19
    </td>
   </tr>
 </table>
@@ -243,9 +253,9 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #d9d9d9">Default
    </td>
-   <td style="background-color: #d9d9d9">1000
+   <td style="background-color: #d9d9d9">1,000
    </td>
-   <td style="background-color: #d9d9d9">2500
+   <td style="background-color: #d9d9d9">2,500
    </td>
    <td style="background-color: #d9d9d9">186.57
    </td>
@@ -255,13 +265,37 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
   <tr>
    <td style="background-color: #f3f3f3">Dataflux
    </td>
-   <td style="background-color: #f3f3f3">1000
+   <td style="background-color: #f3f3f3">1,000
    </td>
-   <td style="background-color: #f3f3f3">2500
+   <td style="background-color: #f3f3f3">2,500
    </td>
    <td style="background-color: #f3f3f3">14.77
    </td>
    <td style="background-color: #f3f3f3">169.26
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #d9d9d9">Default
+   </td>
+   <td style="background-color: #d9d9d9">10,000
+   </td>
+   <td style="background-color: #d9d9d9">24,200
+   </td>
+   <td style="background-color: #d9d9d9">2,093.52
+   </td>
+   <td style="background-color: #d9d9d9">11.56
+   </td>
+  </tr>
+  <tr>
+   <td style="background-color: #f3f3f3">Dataflux
+   </td>
+   <td style="background-color: #f3f3f3">10,000
+   </td>
+   <td style="background-color: #f3f3f3">24,200
+   </td>
+   <td style="background-color: #f3f3f3">113.14
+   </td>
+   <td style="background-color: #f3f3f3">213.89
    </td>
   </tr>
 </table>
