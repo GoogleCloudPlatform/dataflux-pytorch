@@ -38,8 +38,19 @@ function run_git_commands() {
 }
 
 function install_requirements() {
-    echo Creating fake application default credentials.
-    touch $HOME/.config/gcloud/application_default_credentials.json
+    echo Creating fake application default credentials. 
+cat > $HOME/.config/gcloud/application_default_credentials.json << EOF
+{
+"account": "",
+"client_id": "",
+"client_secret": "",
+"quota_project_id": "",
+"refresh_token": "",
+"type": "authorized_user",
+"universe_domain": "googleapis.com"
+}
+EOF
+
     echo Installing requirements.
     pip install -r requirements.txt
 
