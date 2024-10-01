@@ -322,7 +322,7 @@ class IterableDatasetTestCase(unittest.TestCase):
     def test_init_with_spawn_multiprocess(self):
         """Tests the DataFluxIterableDataset returns pickling error for passing-in client when multiprcessing start method is spawn."""
         # Act.
-        client = fake_gcs.Client()
+        client = storage.Client(project=self.project_name)
         config = self.config
         config.max_composite_object_size = 0
         if (multiprocessing.get_start_method(allow_none=False)
