@@ -20,8 +20,26 @@ The code in this folder provides a training demo for checkpointing with PyTorch 
    * `MIN_EPOCHS`: Minimum epochs for which training should run. Defaults to 4. For detailed explaination of min_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#min-epochs).
    * `MAX_EPOCHS` : Maximum epochs for which training should run. Defaults to 5. For detailed explanation of max_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-epochs).
    * `MAX_STEPS`: Maximum number of steps for which training can run. Defaults to 3. For more infomration on max_steps see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-steps).
+   * `ASYNC_CHECKPOINT`: Set to any non-empty value to use [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) for saving checkpoint data without blocking training. See the warning below.
 1. Install requirements: `pip install -r demo/lightning/checkpoint/requirements.txt`; `pip install .`
 1. Run the binary: `python3 -m demo.lightning.checkpoint.singlenode.train`
+
+#### Using AsyncCheckpointIO
+
+GPU utilization is optimized when using [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) by making non-blocking `save_checkpoint` calls during training. The image below shows an example training run demonstrating the difference AsyncCheckpointIO can make when large checkpoint saves would cause blocking network calls while uploading large checkpoint files. By using AsyncCheckpointIO, `save_checkpoint` calls are executed by a Threadpool and do not block training while the large checkpoint files are being uploaded. 
+
+![image](https://github.com/user-attachments/assets/094f9dc5-cd79-438d-bae7-202d420b8f62)
+
+To leverage the benefits of [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) in your code, create your trainer checkpoint plugin using the following Dataflux library
+
+```python
+from dataflux_pytorch.lightning import DatafluxLightningAsyncCheckpoint
+
+dataflux_ckpt = DatafluxLightningAsyncCheckpoint(project_name=<PROJECT NAME>)
+```
+
+> [!Warning]
+> According to the documentation, [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) is currently an experimental feature.
 
 ## Running on GKE
 
