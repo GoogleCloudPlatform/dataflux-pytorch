@@ -188,6 +188,7 @@ This code is still being updated and improved, so all benchmark results are subj
 <table>
     <tr>
         <th rowspan=2> <pre>num_nodes</pre> </th>
+        <th rowspan=2> Steps per node </th>
         <th colspan=2> Max Egress Throughput </th>
         <th colspan=2> Max QPS </th>
     </tr>
@@ -199,6 +200,7 @@ This code is still being updated and improved, so all benchmark results are subj
     </tr>
     <tr>
         <td> 32 </td>
+        <td> 103</td>
         <td> 454.2 Gbps</td>
         <td> 503.8Gbps</td>
         <td> 619</td>
@@ -206,6 +208,7 @@ This code is still being updated and improved, so all benchmark results are subj
     </tr>
     <tr>
         <td> 64</td>
+        <td> 51</td>
         <td> 1.032 Tbps</td>
         <td> 1.067 Tbps</td>
         <td> 1358</td>
@@ -213,6 +216,7 @@ This code is still being updated and improved, so all benchmark results are subj
     </tr>
     <tr>
         <td> 128</td>
+        <td> 26</td>
         <td> 1.844 Tbps</td>
         <td> 1.261 Tbps</td>
         <td> 2439</td>
@@ -220,6 +224,7 @@ This code is still being updated and improved, so all benchmark results are subj
     </tr>
     <tr>
         <td> 256</td>
+        <td> 13</td>
         <td> 1.95 Tbps</td>
         <td> 1.832 Tbps</td>
         <td> 2648</td>
@@ -227,6 +232,7 @@ This code is still being updated and improved, so all benchmark results are subj
     </tr>
     <tr>
         <td>512</td>
+        <td> 6</td>
         <td> 1.907 Tbps</td>
         <td> 1.82 Tbps</td>
         <td> 2855</td>
@@ -234,6 +240,7 @@ This code is still being updated and improved, so all benchmark results are subj
     </tr>
     <tr>
         <td>1024</td>
+        <td> 3</td>
         <td> 1.823 Tbps</td>
         <td> 2.122 Tbps</td>
         <td> 3286</td>
