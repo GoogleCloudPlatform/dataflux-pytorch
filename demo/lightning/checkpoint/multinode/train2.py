@@ -1,7 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.distributed as dist
+import torch.nn as nn
+import torch.distributed as dist
 import torch.multiprocessing as mp
+import torch.distributed.checkpoint as dist_cp
+import os
+import time
 import torch.distributed.checkpoint as dist_cp
 import os
 import time
@@ -13,6 +18,8 @@ class SimpleModel(nn.Module):
         super(SimpleModel, self).__init__()
         self.fc1 = nn.Linear(size, size)
         self.fc2 = nn.Linear(size, size)
+        # Add dummy tensors
+        self.dummy_tensors = [torch.randn(size, size) for _ in range(6)]
 
     def forward(self, x):
         return self.fc2(torch.relu(self.fc1(x)))
@@ -41,23 +48,37 @@ def run_benchmark(rank, world_size, model_size):
 
     model = SimpleModel(model_size)
 
-    # Generate some dummy data and perform a forward pass
     dummy_input = torch.randn(100, model_size)
     _ = model(dummy_input)
 
-    # Get the full state dict
     full_state_dict = model.state_dict()
+    # Dummy tensors to increase the size of checkpoints.
+    for i, tensor in enumerate(model.dummy_tensors):
+        full_state_dict[f'dummy_tensor_{i}'] = tensor
 
-    # Distribute all tensors evenly across processes
+    # Distribute all tensors evenly across processes.
+    # (This ensures checkpoints have same size accross all the process).
     distributed_state_dict = {}
     for key, tensor in full_state_dict.items():
         split_tensor_chunk = split_tensor(tensor, world_size, rank)
         distributed_state_dict[f"{key}_shard_{rank}"] = split_tensor_chunk
 
-    # Synchronize before timing
     dist.barrier()
 
     start_time = time.time()
+    dist_cp.save_state_dict(
+        state_dict=distributed_state_dict,
+        storage_writer=GCSDistributedWriter(
+            "gs://yashsha-us-east1-d/", "gcs-tess", None),
+    )
+    dist.barrier()  # Ensure all processes have finished saving
+    end_time = time.time()
+
+    if rank == 0:
+        print(
+            f"Time taken to save checkpoint: {end_time - start_time:.4f} seconds")
+    # Benchmark loading
+    empty_state_dict = {}
     dist_cp.save_state_dict(
         state_dict=distributed_state_dict,
         storage_writer=GCSDistributedWriter(
@@ -84,11 +105,28 @@ def run_benchmark(rank, world_size, model_size):
             f"Time taken to load checkpoint: {end_time - start_time:.4f} seconds")
 
     cleanup()
+    _ = dist_cp.load_state_dict(empty_state_dict,
+                                storage_reader=GCSDistributedReader(
+                                    "gs://yashsha-us-east1-d/", "gcs-tess", None),
+                                )
+    dist.barrier()  # Ensure all processes have finished loading
+    end_time = time.time()
+
+    if rank == 0:
+        print(
+            f"Time taken to load checkpoint: {end_time - start_time:.4f} seconds")
+
+    cleanup()
 
 
 if __name__ == "__main__":
     world_size = 10  # Number of CPU cores to use
     model_size = 8000  # Size of the model (adjust as needed)
+
+    mp.set_start_method('spawn')
+    mp.spawn(run_benchmark, args=(world_size, model_size),
+    world_size=10  # Number of CPU cores to use
+    model_size=8000  # Size of the model (adjust as needed)
 
     mp.set_start_method('spawn')
     mp.spawn(run_benchmark, args=(world_size, model_size),
