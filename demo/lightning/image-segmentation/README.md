@@ -183,42 +183,61 @@ All benchmarks were run against 105000 150 MB images derived from the [KiTS19](h
 This code is still being updated and improved, so all benchmark results are subject to change.
 
 
-### Step Time = `0.03s`
+### Configured step time = `0.03s`
 
-`num_nodes` | `devices` | `batch_size` | Max Egress Throughput | Max QPS | Execution Time |
-------------|-----------|--------------|-----------------------|---------|----------------|
-32          |     1     |     32       |     503.8 Gbps                  |   692      |                |
-64          |     1     |     32       |   1.067 Tbps                    |    1458     |                |
-128         |     1     |     32       |      1.844 Tbps                 |     2439    |                |
-256         |     1     |     32       |         1.95 Tbps              |      2648   |                |
-512         |     1     |     32       |               1.907 Tbps        |     2855    |                |
-1024        |     1     |     32       |             2.122 Tbps          |        3286 |                |
-
-
-
-### Step Time = `0.20s`
-
-`num_nodes` | `devices` | `batch_size` | Max Egress Throughput | Max QPS | Execution Time |
-------------|-----------|--------------|-----------------------|---------|----------------|
-32          |     1     |     32       |        534.4 Gbps               |  729       |                |
-64          |     1     |     32       |         1.108 Tbps              |  1541       |                |
-128         |     1     |     32       |          1.877 Tbps             |   2364      |                |
-256         |     1     |     32       |              2.248 Tbps         |   3071      |                |
-512         |     1     |     32       |                1.552 Tbps       |    2692     |                |
-1024        |     1     |     32       |                  2.093 Tbps     |     3505    |                |
-
-
-### Step Time = `0.70s`
-`num_nodes` | `devices` | `batch_size` | Max Egress Throughput | Max QPS | Execution Time |
-------------|-----------|--------------|-----------------------|---------|----------------|
-32          |     1     |     32       |        519.4 Gbps               |  707       |                |
-64          |     1     |     32       |         1.078 Tbps              |     1538    |                |
-128         |     1     |     32       |        1.877 Tbps               |    2364     |                |
-256         |     1     |     32       |          1.934 Tbps             |     2901    |                |
-512         |     1     |     32       |           2.15 Tbps            |      3333   |                |
-1024        |     1     |     32       |                2.094 Tbps       |     3778    |                |
-
-
-
-
+<table>
+    <tr>
+        <th rowspan=2> `num_nodes` </th>
+        <th colspan=2> Max Egress Throughput </th>
+        <th colspan=2> Max QPS </th>
+    </tr>
+    <tr>
+        <th> Epoch 1</th>
+        <th> Epoch 2</th>
+        <th> Epoch 1</th>
+        <th> Epoch 2</th>
+    </tr>
+    <tr>
+        <td> 32 </td>
+        <td> 454.2 Gbps</td>
+        <td> 503.8Gbps</td>
+        <td> 619</td>
+        <td> 692</td>
+    </tr>
+    <tr>
+        <td> 64</td>
+        <td> 1.032 Tbps</td>
+        <td> 1.067 Tbps</td>
+        <td> 1358</td>
+        <td> 1458</td>
+    </tr>
+    <tr>
+        <td> 128</td>
+        <td> 1.844 Tbps</td>
+        <td> 1.261 Tbps</td>
+        <td> 2439</td>
+        <td> 1879</td>
+    </tr>
+    <tr>
+        <td> 256</td>
+        <td> 1.95 Tbps</td>
+        <td> 1.832 Tbps</td>
+        <td> 2648</td>
+        <td> 2220</td>
+    </tr>
+    <tr>
+        <td>512</td>
+        <td> 1.907 Tbps</td>
+        <td> 1.82 Tbps</td>
+        <td> 2855</td>
+        <td> 2133</td>
+    </tr>
+    <tr>
+        <td>1024</td>
+        <td> 1.823 Tbps</td>
+        <td> 2.122 Tbps</td>
+        <td> 3286</td>
+        <td> 2710</td>
+    </tr>
+</table>
 
