@@ -187,7 +187,7 @@ This code is still being updated and improved, so all benchmark results are subj
 
 <table>
     <tr>
-        <th rowspan=2> `num_nodes` </th>
+        <th rowspan=2> <pre>num_nodes</pre> </th>
         <th colspan=2> Max Egress Throughput </th>
         <th colspan=2> Max QPS </th>
     </tr>
