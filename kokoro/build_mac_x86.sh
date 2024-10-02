@@ -21,10 +21,7 @@ set -e
 cd "${KOKORO_ARTIFACTS_DIR}/github/dataflux-pytorch"
 
 function setup_virtual_envs() {
-    sudo apt-get -y update
-
     echo Setting up Python virtual environment.
-    sudo apt install -y python3.8-venv
     python3 -m venv venv
     source venv/bin/activate
 }
@@ -41,33 +38,32 @@ function run_git_commands() {
 }
 
 function install_requirements() {
-    echo Installing python3-pip.
-    sudo apt-get -y install python3-pip
+    echo Creating fake application default credentials. 
+cat > $HOME/.config/gcloud/application_default_credentials.json << EOF
+{
+"account": "",
+"client_id": "",
+"client_secret": "",
+"quota_project_id": "",
+"refresh_token": "",
+"type": "authorized_user",
+"universe_domain": "googleapis.com"
+}
+EOF
 
     echo Installing requirements.
     pip install -r requirements.txt
 
     echo Installing required dependencies.
     pip install .
-
-    echo Installing checkpointing requirements
-    pip install -r ./dataflux_pytorch/benchmark/requirements.txt
 }
 
 function run_unit_tests() {
-    echo Running unit tests.
+    echo "Running unit tests on MacOS (x86)."
     python3 -m pytest dataflux_pytorch/tests -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/unit_tests/sponge_log.xml" --log-cli-level=DEBUG
-}
-
-function run_integration_tests(){
-    echo Running basic integration test.
-    python3 -m pytest dataflux_pytorch/integration_tests/integration_test.py -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/integration_tests/sponge_log.xml" --log-cli-level=DEBUG
-    echo Running checkpoint integration test.
-    python3 dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --project=dataflux-project --ckpt-dir-path=gs://df-ckpt-presubmit/ --layers=10 --steps=5
 }
 
 setup_virtual_envs
 run_git_commands
 install_requirements
 run_unit_tests
-run_integration_tests
