@@ -93,7 +93,7 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
 
 ### Checkpoint Load
 
-| Checkpoint Type | Layers | Checkpoint File Size (MB) | Avg Checkpoint Save Time | Read Throughput (MB/s) |
+| Checkpoint Type | Layers | Checkpoint File Size (MB) | Avg Checkpoint Restore Time | Read Throughput (MB/s) |
 | --- | --- | --- | --- | --- |
 | Default   | 10      | 75.6    | 2.38      | 31.76   |
 | Dataflux  | 10      | 75.6    | 0.51      | 148.24  |
