@@ -79,7 +79,6 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
 
 ### Checkpoint Save
 
-
 | Checkpoint Type | Layers | Checkpoint File Size (MB) | Avg Checkpoint Save Time | Write Throughput (MB/s) |
 | --- | --- | --- | --- | --- |
 | Default   | 10      | 75.6    | 0.81    | 93.33   |
@@ -94,113 +93,13 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
 
 ### Checkpoint Load
 
-<table>
-  <tr>
-   <td style="background-color: #d9d2e9"><strong>Checkpoint Type</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Layers</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Checkpoint Size (MB) per step</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Restore Time</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Read Throughput (MB/s)</strong>
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">10
-   </td>
-   <td style="background-color: #d9d9d9">75.6
-   </td>
-   <td style="background-color: #d9d9d9">2.38
-   </td>
-   <td style="background-color: #d9d9d9">31.76
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">10
-   </td>
-   <td style="background-color: #f3f3f3">75.6
-   </td>
-   <td style="background-color: #f3f3f3">0.51
-   </td>
-   <td style="background-color: #f3f3f3">148.24
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">100
-   </td>
-   <td style="background-color: #d9d9d9">298
-   </td>
-   <td style="background-color: #d9d9d9">12.83
-   </td>
-   <td style="background-color: #d9d9d9">23.23
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">100
-   </td>
-   <td style="background-color: #f3f3f3">298
-   </td>
-   <td style="background-color: #f3f3f3">1.69
-   </td>
-   <td style="background-color: #f3f3f3">176.33
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">1,000
-   </td>
-   <td style="background-color: #d9d9d9">2,500
-   </td>
-   <td style="background-color: #d9d9d9">186.57
-   </td>
-   <td style="background-color: #d9d9d9">13.40
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">1,000
-   </td>
-   <td style="background-color: #f3f3f3">2,500
-   </td>
-   <td style="background-color: #f3f3f3">14.77
-   </td>
-   <td style="background-color: #f3f3f3">169.26
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">10,000
-   </td>
-   <td style="background-color: #d9d9d9">24,200
-   </td>
-   <td style="background-color: #d9d9d9">2,093.52
-   </td>
-   <td style="background-color: #d9d9d9">11.56
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">10,000
-   </td>
-   <td style="background-color: #f3f3f3">24,200
-   </td>
-   <td style="background-color: #f3f3f3">113.14
-   </td>
-   <td style="background-color: #f3f3f3">213.89
-   </td>
-  </tr>
-</table>
+| Checkpoint Type | Layers | Checkpoint File Size (MB) | Avg Checkpoint Save Time | Read Throughput (MB/s) |
+| --- | --- | --- | --- | --- |
+| Default   | 10      | 75.6    | 2.38      | 31.76   |
+| Dataflux  | 10      | 75.6    | 0.51      | 148.24  |
+| Default   | 100     | 298     | 1.69      | 176.33  |
+| Dataflux  | 100     | 298     | 1.03      | 289.32  |
+| Default   | 1,000   | 2,500   | 186.57    | 13.40   |
+| Dataflux  | 1,000   | 2,500   | 14.77     | 169.26  |
+| Default   | 10,000  | 24,200  | 2,093.52  | 11.56   |
+| Dataflux  | 10,000  | 24,200  | 113.14    | 213.89  |
