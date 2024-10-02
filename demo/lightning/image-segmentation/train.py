@@ -63,7 +63,7 @@ if __name__ == "__main__":
     callbacks = []
     if flags.benchmark:
         profiler = "simple"
-        callbacks = [EpochTimer()]
+        callbacks.append(EpochTimer())
 
     listing_start = time.time()
     train_data_loader = Unet3DDataModule(flags)
