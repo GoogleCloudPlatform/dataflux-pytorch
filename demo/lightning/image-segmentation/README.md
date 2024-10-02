@@ -173,17 +173,19 @@ _Note: the following instructions assume that you have Jobset and Kueue enabled 
 
 ## Benchmark Results
 
-The table below summarizes the benchmark results from our internal testing. All testing was performed on a multi-node CPU only cluster, backed by a bucket co-located in the same region (this is critical for maximizing dataloading performance). The test cluster was comprised of [n2-standard-64](https://cloud.google.com/compute/docs/general-purpose-machines#n2_machine_types) nodes with 180 GiB memory. The executions in the benchmarking effort features the following shared parameters:
+The table below summarizes the benchmark results from our internal testing. Specifically, the the maximum egress throughput and the maximum QPS observed on the bucket that held the dataset are recorded. The executions in the benchmarking effort features the following shared parameters:
 
-- num_devices: 1
-- batch_size: 32
+- num_devices: `1`
+- batch_size: `32`
+- prefetch_factor: `2`
+- num_epochs: `2`
 
-All benchmarks were run against 105000 150 MB images derived from the [KiTS19](https://github.com/neheller/kits19) dataset. 
+
+These benchmarks are simulated, meaning no actual training is performed during each step. Instead, the node sleeps for a set number of seconds. All benchmarks were run against a dataset with `105,000` images and their corresponding labels, each of which are about `150 MB` in size. These images and labels were derived from the [KiTS19](https://github.com/neheller/kits19) dataset. All testing was performed on a multi-node CPU only cluster, backed by a bucket co-located in the same region (this is critical for maximizing dataloading performance). The test cluster was comprised of [n2-standard-32](https://cloud.google.com/compute/docs/general-purpose-machines#n2_machine_types) nodes with `1285 GiB` of allocatable memory each. 
+
+For all runs here, the observed step time was approximately `1 second`. 
 
 This code is still being updated and improved, so all benchmark results are subject to change.
-
-
-### Configured step time = `0.03s`
 
 <table>
     <tr>
