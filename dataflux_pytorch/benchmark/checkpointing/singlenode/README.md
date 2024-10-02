@@ -32,7 +32,9 @@ Then set the command line variables.
 
 ### Dataflux Lightning Checkpoint
 
-`--no-dataflux-ckpt`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
+`--checkpoint=no-dataflux`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
+
+`--checkpoint=asynccheckpointio`: This flag will enable asynchronous calls to `save_checkpoint` which will optimize CPU/GPU utilization by making save calls non-blocking. 
 
 `--disable-multipart`: This flag will disable multipart upload performance improvements. In most cases this will dramatically reduce the upload speed of checkpoint saves and is not recommended.
 
