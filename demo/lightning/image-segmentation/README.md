@@ -200,7 +200,7 @@ This code is still being updated and improved, so all benchmark results are subj
     </tr>
     <tr>
         <td> 32 </td>
-        <td> 103</td>
+        <td> 102</td>
         <td> 454.2 Gbps</td>
         <td> 503.8Gbps</td>
         <td> 619</td>
@@ -216,7 +216,7 @@ This code is still being updated and improved, so all benchmark results are subj
     </tr>
     <tr>
         <td> 128</td>
-        <td> 26</td>
+        <td> 25</td>
         <td> 1.844 Tbps</td>
         <td> 1.261 Tbps</td>
         <td> 2439</td>
@@ -224,7 +224,7 @@ This code is still being updated and improved, so all benchmark results are subj
     </tr>
     <tr>
         <td> 256</td>
-        <td> 13</td>
+        <td> 12</td>
         <td> 1.95 Tbps</td>
         <td> 1.832 Tbps</td>
         <td> 2648</td>
