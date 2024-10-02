@@ -105,6 +105,9 @@ def main():
     args = parse_args()
     if args.steps < 1:
         raise ValueError("Steps need to greater than 0.")
+    if args.no_lightning and args.no_dataflux_ckpt:
+        raise ValueError(
+            "Cannot specify --no-dataflux-ckpt and --no-lightning, pick one.")
 
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
@@ -135,51 +138,38 @@ def main():
     trainer.fit(model, dataloader)
 
     if args.no_lightning:
-        # Create non-lightning checkpoint.
+        print("Executing checkpoint save/load without Lightning...")
         bucket_name, ckpt_path = path_utils.parse_gcs_path(args.ckpt_dir_path)
         ckpt = dataflux_checkpoint.DatafluxCheckpoint(
             project_name=args.project, bucket_name=bucket_name)
-        CKPT_PATH = ckpt_path if ckpt_path else "checkpoints/epoch0.ckpt"
-        start = time.time()
-        for i in range(args.steps):
+    start = time.time()
+    for i in range(args.steps):
+        if args.no_lightning:
+            CKPT_PATH = ckpt_path + f'checkpoint_{i}.ckpt' if ckpt_path else f'checkpoints/checkpoint_{i}.ckpt'
             with ckpt.writer(CKPT_PATH) as writer:
                 torch.save(model.state_dict(), writer)
-        end = time.time()
-        # command to clear kernel cache only works on MacOs and Linux.
-        if args.clear_kernel_cache and sys.platform in [
-                "darwin", "linux", "linux2", "linux3"
-        ]:
-            print("Clearing kernel cache...")
-            os.system("sync && sudo sysctl -w vm.drop_caches=3")
-        print("Average time to save one checkpoint: " +
-              str((end - start) / args.steps) + " seconds")
-        start = time.time()
-        for i in range(args.steps):
-            with ckpt.reader(CKPT_PATH) as reader:
-                read_state_dict = torch.load(reader)
-        end = time.time()
-        print("Average time to load one checkpoint: " +
-              str((end - start) / args.steps) + " seconds")
-    else:
-        start = time.time()
-        for i in range(args.steps):
+        else:
             trainer.save_checkpoint(
                 os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
-        end = time.time()
-        if args.clear_kernel_cache and sys.platform in [
-                "darwin", "linux", "linux2", "linux3"
-        ]:
-            print("Clearing kernel cache...")
-            os.system("sync && sudo sysctl -w vm.drop_caches=3")
-        print("Average time to save one checkpoint: " +
-              str((end - start) / args.steps) + " seconds")
-        start = time.time()
-        for i in range(args.steps):
+    end = time.time()
+    if args.clear_kernel_cache and sys.platform in [
+            "darwin", "linux", "linux2", "linux3"
+    ]:
+        print("Clearing kernel cache...")
+        os.system("sync && sudo sysctl -w vm.drop_caches=3")
+    print("Average time to save one checkpoint: " +
+          str((end - start) / args.steps) + " seconds")
+    start = time.time()
+    for i in range(args.steps):
+        if args.no_lightning:
+            with ckpt.reader(CKPT_PATH) as reader:
+                read_state_dict = torch.load(reader)
+        else:
             data = ckpt.load_checkpoint(
                 os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
-        end = time.time()
-        print("Average time to load one checkpoint: " +
-              str((end - start) / args.steps) + " seconds")
+    end = time.time()
+    print("Average time to load one checkpoint: " +
+          str((end - start) / args.steps) + " seconds")
 
 
 if __name__ == "__main__":
