@@ -204,7 +204,7 @@ This code is still being updated and improved, so all benchmark results are subj
         <td> 32 </td>
         <td> 102</td>
         <td> 454.2 Gbps</td>
-        <td> 503.8Gbps</td>
+        <td> 503.8 Gbps</td>
         <td> 619</td>
         <td> 692</td>
     </tr>
