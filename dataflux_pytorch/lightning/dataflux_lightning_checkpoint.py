@@ -56,8 +56,6 @@ class DatafluxLightningCheckpoint(CheckpointIO):
             torch.save(checkpoint, fb)
             upload(fb, blob)
         else:
-            print(
-                f"\n### From GCS Save checkpoint ### saving for key {key} and bucket name: {bucket_name} ###\n")
             with blob.open("wb", ignore_flush=True) as blobwriter:
                 torch.save(checkpoint, blobwriter)
 
