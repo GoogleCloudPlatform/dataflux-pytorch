@@ -120,9 +120,6 @@ def main():
     args = parse_args()
     if args.steps < 1:
         raise ValueError("Steps need to greater than 0.")
-    if args.no_lightning and args.no_dataflux_ckpt:
-        raise ValueError(
-            "Cannot specify --no-dataflux-ckpt and --no-lightning, pick one.")
 
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
