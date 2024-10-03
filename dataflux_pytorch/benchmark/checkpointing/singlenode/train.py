@@ -28,8 +28,15 @@ from lightning.pytorch.plugins.io import TorchCheckpointIO
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+from dataflux_pytorch import dataflux_checkpoint
 from dataflux_pytorch.lightning import (DatafluxLightningAsyncCheckpoint,
-                                        DatafluxLightningCheckpoint)
+                                        DatafluxLightningCheckpoint,
+                                        path_utils)
+
+DF_LIGHTNING = "df_lightning"
+ASYNC_DF_LIGHTNING = "async_df_lightning"
+NO_DF = "no_df"
+NO_LIGHTNING = "no_lightning"
 
 
 class BenchmarkDatafluxLightningAsyncCheckpoint(
@@ -84,8 +91,8 @@ def parse_args():
                         default=False)
     parser.add_argument(
         '--checkpoint',
-        choices=['checkpointio', 'asynccheckpointio', 'no-dataflux'],
-        default='checkpointio')
+        choices=[DF_LIGHTNING, ASYNC_DF_LIGHTNING, NO_DF, NO_LIGHTNING],
+        default=DF_LIGHTNING)
     return parser.parse_args()
 
 
@@ -120,14 +127,21 @@ def main():
                                  nlayers=args.layers)
 
     # Checkpoint strategy selection.
-    if args.checkpoint == 'checkpointio':
+    if args.checkpoint == DF_LIGHTNING:
+        print("Running with Dataflux Lightning...")
         ckpt = DatafluxLightningCheckpoint(project_name=args.project)
-    elif args.checkpoint == 'asynccheckpointio':
-        print("NOTE: AsyncCheckpointIO is enabled.")
+    elif args.checkpoint == ASYNC_DF_LIGHTNING:
+        print("Running with Dataflux Lightning AsyncCheckpointIO...")
         ckpt = BenchmarkDatafluxLightningAsyncCheckpoint(
             project_name=args.project)
-    elif args.checkpoint == 'no-dataflux':
+    elif args.checkpoint == NO_DF:
+        print("Running Lightning without Dataflux...")
         ckpt = TorchCheckpointIO()
+    elif args.checkpoint == NO_LIGHTNING:
+        print("Running without Lightning...")
+        # Dataflux Lightning Checkpoint is stil used here to provide an argument
+        # during construction of the trainer.
+        ckpt = DatafluxLightningCheckpoint(project_name=args.project)
     else:
         raise ValueError("Invalid choice for --checkpoint")
 
@@ -151,13 +165,22 @@ def main():
     )
     trainer.fit(model, dataloader)
 
+    if args.checkpoint == NO_LIGHTNING:
+        bucket_name, ckpt_path = path_utils.parse_gcs_path(args.ckpt_dir_path)
+        ckpt = dataflux_checkpoint.DatafluxCheckpoint(
+            project_name=args.project, bucket_name=bucket_name)
     # Measure save checkpoint.
     start = time.time()
     for i in range(args.steps):
-        trainer.save_checkpoint(
-            os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
+        if args.checkpoint == NO_LIGHTNING:
+            CKPT_PATH = ckpt_path + f'checkpoint_{i}.ckpt' if ckpt_path else f'checkpoints/checkpoint_{i}.ckpt'
+            with ckpt.writer(CKPT_PATH) as writer:
+                torch.save(model.state_dict(), writer)
+        else:
+            trainer.save_checkpoint(
+                os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
-    # command to clear kernel cache only works on MacOs and Linux.
+    # Command to clear kernel cache only works on MacOs and Linux.
     if args.clear_kernel_cache and sys.platform in [
             "darwin", "linux", "linux2", "linux3"
     ]:
@@ -169,8 +192,12 @@ def main():
     # Measure load checkpoint.
     start = time.time()
     for i in range(args.steps):
-        _ = ckpt.load_checkpoint(
-            os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
+        if args.checkpoint == NO_LIGHTNING:
+            with ckpt.reader(CKPT_PATH) as reader:
+                read_state_dict = torch.load(reader)
+        else:
+            _ = ckpt.load_checkpoint(
+                os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
     print("Average time to load one checkpoint: " +
           str((end - start) / args.steps) + " seconds")
