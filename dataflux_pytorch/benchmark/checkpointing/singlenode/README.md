@@ -32,9 +32,13 @@ Then set the command line variables.
 
 ### Dataflux Lightning Checkpoint
 
-`--checkpoint=no-dataflux`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
+`--checkpoint=df_lightning`: This flag will measure timings for Dataflux Pytorch Checkpointing with lightning. This is the default execution mode.
 
-`--checkpoint=asynccheckpointio`: This flag will enable asynchronous calls to `save_checkpoint` which will optimize CPU/GPU utilization by making save calls non-blocking. 
+`--checkpoint=no_df`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
+
+`--checkpoint=df_async_lightning`: This flag will enable asynchronous calls to `save_checkpoint` which will optimize CPU/GPU utilization by making save calls non-blocking. 
+
+`--checkpoint=no_lightning`: This flag will measure timings for Dataflux Pytorch Checkpointing without lightning.
 
 `--disable-multipart`: This flag will disable multipart upload performance improvements. In most cases this will dramatically reduce the upload speed of checkpoint saves and is not recommended.
 
