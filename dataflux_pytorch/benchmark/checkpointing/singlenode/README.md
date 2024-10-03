@@ -36,7 +36,7 @@ Then set the command line variables.
 
 `--checkpoint=no_df`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
 
-`--checkpoint=df_async_lightning`: This flag will enable asynchronous calls to `save_checkpoint` which will optimize CPU/GPU utilization by making save calls non-blocking. 
+`--checkpoint=async_df_lightning`: This flag will enable asynchronous calls to `save_checkpoint` which will optimize CPU/GPU utilization by making save calls non-blocking. 
 
 `--checkpoint=no_lightning`: This flag will measure timings for Dataflux Pytorch Checkpointing without lightning.
 
