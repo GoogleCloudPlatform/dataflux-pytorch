@@ -7,6 +7,18 @@ from data import Unet3DDataModule
 from arguments import PARSER
 
 
+class EpochTimer(pl.Callback):
+
+    def on_train_epoch_start(self, trainer, model):
+        self.epoch_start_time = time.time()
+
+    def on_train_epoch_end(self, trainer, model):
+        self.epoch_end_time = time.time()
+        print(
+            f"RANK-{trainer.global_rank}-EPOCH-{model.current_epoch}: {self.epoch_end_time - self.epoch_start_time}s"
+        )
+
+
 def configure_master_addr():
     """Get coordinator IP Address with retries"""
     coordinator_address = ""
@@ -48,15 +60,16 @@ if __name__ == "__main__":
     if not flags.local:
         init_processes()
     profiler = None
+    callbacks = []
     if flags.benchmark:
         profiler = "simple"
+        callbacks.append(EpochTimer())
 
     listing_start = time.time()
     train_data_loader = Unet3DDataModule(flags)
     listing_end = time.time()
     if flags.listing_only:
-        print(
-            f"Skipping training because you've set listing_only to True.")
+        print(f"Skipping training because you've set listing_only to True.")
     else:
         model = Unet3DLightning(flags)
         trainer = pl.Trainer(
@@ -66,6 +79,7 @@ if __name__ == "__main__":
             num_nodes=flags.num_nodes,
             strategy="ddp",
             profiler=profiler,
+            callbacks=callbacks,
         )
         trainer.fit(model=model, train_dataloaders=train_data_loader)
 
