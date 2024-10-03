@@ -170,3 +170,83 @@ _Note: the following instructions assume that you have Jobset and Kueue enabled 
    ```sh
    kubectl apply -f deploy.yaml
    ``` 
+
+## Benchmark Results
+
+The table below summarizes the benchmark results from our internal testing. Specifically, the the maximum egress throughput and the maximum QPS observed on the bucket that held the dataset are recorded. The executions in the benchmarking effort features the following shared parameters:
+
+- num_devices: `1`
+- batch_size: `32`
+- prefetch_factor: `2`
+- num_epochs: `2`
+
+
+These benchmarks are simulated, meaning no actual training is performed during each step. Instead, the node sleeps for a set number of seconds. All benchmarks were run against a dataset with `105,000` images and their corresponding labels, each of which are about `150 MB` in size. These images and labels were derived from the [KiTS19](https://github.com/neheller/kits19) dataset. All testing was performed on a multi-node CPU only cluster, backed by a bucket co-located in the same region (this is critical for maximizing dataloading performance). The test cluster was comprised of [n2-standard-32](https://cloud.google.com/compute/docs/general-purpose-machines#n2_machine_types) nodes with `128 GiB` of allocatable memory each. 
+
+For all runs here, the observed step time was approximately `1 second`. 
+
+This code is still being updated and improved, so all benchmark results are subject to change.
+
+<table>
+    <tr>
+        <th rowspan=2> <pre>num_nodes</pre> </th>
+        <th rowspan=2> Steps per node </th>
+        <th colspan=2> Max Egress Throughput </th>
+        <th colspan=2> Max QPS </th>
+    </tr>
+    <tr>
+        <th> Epoch 1</th>
+        <th> Epoch 2</th>
+        <th> Epoch 1</th>
+        <th> Epoch 2</th>
+    </tr>
+    <tr>
+        <td> 32 </td>
+        <td> 102</td>
+        <td> 454.2 Gbps</td>
+        <td> 503.8 Gbps</td>
+        <td> 619</td>
+        <td> 692</td>
+    </tr>
+    <tr>
+        <td> 64</td>
+        <td> 51</td>
+        <td> 1.032 Tbps</td>
+        <td> 1.067 Tbps</td>
+        <td> 1358</td>
+        <td> 1458</td>
+    </tr>
+    <tr>
+        <td> 128</td>
+        <td> 25</td>
+        <td> 1.844 Tbps</td>
+        <td> 1.261 Tbps</td>
+        <td> 2439</td>
+        <td> 1879</td>
+    </tr>
+    <tr>
+        <td> 256</td>
+        <td> 12</td>
+        <td> 1.95 Tbps</td>
+        <td> 1.832 Tbps</td>
+        <td> 2648</td>
+        <td> 2220</td>
+    </tr>
+    <tr>
+        <td>512</td>
+        <td> 6</td>
+        <td> 1.907 Tbps</td>
+        <td> 1.82 Tbps</td>
+        <td> 2855</td>
+        <td> 2133</td>
+    </tr>
+    <tr>
+        <td>1024</td>
+        <td> 3</td>
+        <td> 1.823 Tbps</td>
+        <td> 2.122 Tbps</td>
+        <td> 3286</td>
+        <td> 2710</td>
+    </tr>
+</table>
+
