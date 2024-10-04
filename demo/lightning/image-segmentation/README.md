@@ -5,6 +5,8 @@ If you are looking to benchmark data loading performance, pass `--benchmark` to 
 
 If you are looking to benchmark the listing performance only, pass `--listing_only` to `train.py`. Note that this will skip training altogether. Passing `--benchmark` along with `--listing_only` would have the same effect as passing just the latter.
 
+For both single-node and distributed demos, you can set the flag `--no_dataflux` to use fsspec/gcsfs to list and download files instead of Dataflux.
+
 
 1. `dataset.py`
 
@@ -249,4 +251,3 @@ This code is still being updated and improved, so all benchmark results are subj
         <td> 2710</td>
     </tr>
 </table>
-
