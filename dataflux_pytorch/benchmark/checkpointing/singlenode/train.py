@@ -46,6 +46,10 @@ class BenchmarkDatafluxLightningAsyncCheckpoint(
         # Prevent parent teardown from terminating the executor after fit.
         pass
 
+    def finalize(self, *args, **kwargs):
+        # Provide a different invocation of the teardown process.
+        super().teardown()
+
 
 class LightningTransformer(LightningModule):
 
@@ -188,6 +192,10 @@ def main():
         os.system("sync && sudo sysctl -w vm.drop_caches=3")
     print("Average time to save one checkpoint: " +
           str((end - start) / args.steps) + " seconds")
+
+    # If using async, call finalize to shut down the threadpool executor.
+    if args.checkpoint == 'asynccheckpointio':
+        ckpt.finalize()
 
     # Measure load checkpoint.
     start = time.time()
