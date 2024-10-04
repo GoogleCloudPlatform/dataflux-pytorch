@@ -70,7 +70,7 @@ class DatafluxCheckpoint():
 class DatafluxCheckpointBuffer(BytesIO):
     """Implements a BytesIO buffer that will flush to GCS.
 
-    This class overrides the flush function of BytesIO to perform
+    This class overrides the close function of BytesIO to perform
     an optimized multipart upload directly to a specified GCS bucket.
     """
 
@@ -83,6 +83,6 @@ class DatafluxCheckpointBuffer(BytesIO):
         self.blob = blob
         super().__init__()
 
-    def flush(self):
-        super().flush()
+    def close(self):
         upload(self, self.blob)
+        super().close()

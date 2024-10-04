@@ -7,6 +7,7 @@ from typing import Generator, Optional, Union, cast
 from dataflux_core import user_agent
 from google.cloud import storage
 from torch.distributed.checkpoint import FileSystemWriter, FileSystemReader
+from dataflux_pytorch.dataflux_checkpoint import DatafluxCheckpointBuffer
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
 
 
@@ -27,15 +28,15 @@ class GCSFileSystem():
     def create_stream(self, path: Union[str, os.PathLike],
                       mode: str) -> Generator[io.IOBase, None, None]:
         bucket, path = parse_gcs_path(path)
+        blob = self.storage_client.bucket(bucket).blob(path)
         if mode == "wb":  # write mode.
-            with self.storage_client.bucket(bucket).blob(path).open(
-                    "wb", ignore_flush=True) as stream:
-                yield cast(io.IOBase, stream)
+            with DatafluxCheckpointBuffer(blob) as stream:
+                yield stream
         elif mode == "rb":  # read mode.
-            bucket_client = self.storage_client.bucket(bucket)
-            blob = bucket_client.blob(path)
-            blob_data = blob.download_as_bytes()
-            yield io.BytesIO(blob_data)
+            stream = io.BytesIO()
+            blob.download_to_file(stream)
+            stream.seek(0)
+            yield stream
         else:
             raise ValueError(
                 "Invalid mode argument, create_stream only supports rb (read mode) & wb (write mode)"
