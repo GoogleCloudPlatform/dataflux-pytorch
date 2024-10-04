@@ -1,2 +1,3 @@
 scipy
 torchvision
+fsspec[gcsfs]

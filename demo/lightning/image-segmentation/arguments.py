@@ -193,3 +193,10 @@ PARSER.add_argument(
     type=str,
     default=False,
 )
+
+PARSER.add_argument(
+    "--no_dataflux",
+    dest="no_dataflux",
+    action="store_true",
+    default=False,
+)

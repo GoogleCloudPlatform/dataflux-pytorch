@@ -16,6 +16,9 @@
 
 import io
 import random
+
+import fsspec
+import gcsfs
 import numpy as np
 import scipy.ndimage
 from torch.utils.data import Dataset
@@ -27,8 +30,9 @@ class DatafluxPytTrain(Dataset):
 
     def __init__(
         self,
-        project_name,
-        bucket_name,
+        project_name: str,
+        bucket_name: str,
+        no_dataflux: bool,
         **kwargs,
     ):
 
@@ -42,41 +46,47 @@ class DatafluxPytTrain(Dataset):
         self.project_name = project_name
         self.bucket_name = bucket_name
 
-        self.images_dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-            project_name=self.project_name,
-            bucket_name=self.bucket_name,
-            config=dataflux_mapstyle_dataset.Config(
-                # This needs to be True to map images with labels
-                sort_listing_results=True,
-                prefix=kwargs["images_prefix"],
-            ),
-        )
+        image_prefix = kwargs["images_prefix"]
+        labels_prefix = kwargs["labels_prefix"]
+        if no_dataflux:
+            self.images_dataset = FsspecMapStyleDataset(
+                project_name=self.project_name,
+                bucket_name=self.bucket_name,
+                prefix=image_prefix)
+        else:
+            self.images_dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+                project_name=self.project_name,
+                bucket_name=self.bucket_name,
+                config=dataflux_mapstyle_dataset.Config(
+                    # This needs to be True to map images with labels
+                    sort_listing_results=True,
+                    prefix=image_prefix,
+                ),
+            )
 
-        self.labels_dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-            project_name=self.project_name,
-            bucket_name=self.bucket_name,
-            config=dataflux_mapstyle_dataset.Config(
-                # This needs to be True to map images with labels
-                sort_listing_results=True,
-                prefix=kwargs["labels_prefix"],
-            ),
-        )
+        if no_dataflux:
+            self.labels_dataset = FsspecMapStyleDataset(
+                project_name=self.project_name,
+                bucket_name=self.bucket_name,
+                prefix=labels_prefix)
+        else:
+            self.labels_dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+                project_name=self.project_name,
+                bucket_name=self.bucket_name,
+                config=dataflux_mapstyle_dataset.Config(
+                    # This needs to be True to map images with labels
+                    sort_listing_results=True,
+                    prefix=labels_prefix,
+                ),
+            )
 
     def __len__(self):
         return len(self.images_dataset)
 
     def __getitem__(self, idx):
-        image = np.load(
-            io.BytesIO(
-                self.images_dataset[idx],
-            ),
-        )
+        image = np.load(io.BytesIO(self.images_dataset[idx], ), )
 
-        label = np.load(
-            io.BytesIO(
-                self.labels_dataset[idx],
-            ),
-        )
+        label = np.load(io.BytesIO(self.labels_dataset[idx], ), )
 
         data = {"image": image, "label": label}
         data = self.rand_crop(data)
@@ -166,3 +176,27 @@ class RandBalancedCrop:
         image = image[:, low_x:high_x, low_y:high_y, low_z:high_z]
         label = label[:, low_x:high_x, low_y:high_y, low_z:high_z]
         return image, label, [low_x, high_x, low_y, high_y, low_z, high_z]
+
+
+class FsspecMapStyleDataset(Dataset):
+
+    def __init__(self, project_name: str, bucket_name: str, prefix: str):
+        self.project_name = project_name
+        fs = gcsfs.GCSFileSystem(project=project_name)
+        self.fs: gcsfs.GCSFileSystem = None
+        self.paths = sorted(fs.ls(f"gs://{bucket_name}/{prefix}/"))
+
+    def __len__(self):
+        return len(self.paths)
+
+    def __getitem__(self, idx):
+        if self.fs is None:
+            # See https://github.com/fsspec/gcsfs/issues/379#issuecomment-840463175
+            fsspec.asyn.iothread[0] = None
+            fsspec.asyn.loop[0] = None
+            self.fs = gcsfs.GCSFileSystem(project=self.project_name)
+        with self.fs.open("gs://" + self.paths[idx]) as obj:
+            return obj.read()
+
+    def __getitems__(self, indices):
+        return [self[idx] for idx in indices]

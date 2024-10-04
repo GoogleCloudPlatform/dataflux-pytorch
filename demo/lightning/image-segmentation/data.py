@@ -14,14 +14,14 @@
  limitations under the License.
  """
 
-import lightning.pytorch as pl
 import random
+
+import lightning.pytorch as pl
 import numpy as np
+from dataset import DatafluxPytTrain
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
-
-from dataset import DatafluxPytTrain
 
 
 class Unet3DDataModule(pl.LightningDataModule):
@@ -46,6 +46,7 @@ class Unet3DDataModule(pl.LightningDataModule):
             self.train_dataset = DatafluxPytTrain(
                 project_name=self.args.gcp_project,
                 bucket_name=self.args.gcs_bucket,
+                no_dataflux=self.args.no_dataflux,
                 **train_data_kwargs,
             )
             self.train_sampler = None
