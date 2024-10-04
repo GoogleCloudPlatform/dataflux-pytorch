@@ -6,7 +6,8 @@ from typing import Generator, Optional, Union, cast
 
 from dataflux_core import user_agent
 from google.cloud import storage
-from torch.distributed.checkpoint import FileSystemWriter, FileSystemReader
+from torch.distributed.checkpoint import FileSystemReader, FileSystemWriter
+
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
 
 
