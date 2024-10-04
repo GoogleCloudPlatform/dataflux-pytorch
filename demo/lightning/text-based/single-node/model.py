@@ -16,18 +16,19 @@
 
 import argparse
 import logging
-import torch
 import math
 
+import fsspec
 import lightning.pytorch as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
+import torch
+from torch import Tensor, nn, optim, utils
+from torch.nn.functional import pad
+from torch.utils import data
+from transformers import AutoTokenizer
 
 from dataflux_pytorch import dataflux_iterable_dataset as df_iter
-from torch import optim, nn, utils, Tensor
-from torch.utils import data
-from torch.nn.functional import pad
-from transformers import AutoTokenizer
 
 # This demo was built around the huggingface fineweb dataset.
 # Details of the dataset can be found at https://huggingface.co/datasets/HuggingFaceFW/fineweb/tree/main/sample/10BT
@@ -47,6 +48,7 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--limit-train-batches", type=int, default=None)
     parser.add_argument("--log-level", type=str, default="ERROR")
+    parser.add_argument("--no-dataflux", action="store_true", default=False)
     return parser.parse_args()
 
 
@@ -134,16 +136,28 @@ def format_data(raw_bytes):
 
 class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
 
-    def __init__(self, columns, batch_size, *args, **kwargs):
+    def __init__(self, columns, batch_size, no_dataflux, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.columns = columns
         self.batch_size = batch_size
         self.current_file = None
         self.columns = columns
+        self.no_dataflux = no_dataflux
         """
         A sublcass of the DatafluxIterableDataset, this dataset allows for the reading and batch
         distribution of a parquet file, where batch-size corresponds to rows of the parquet table.
         """
+
+    def fsspec_iter(self, objects):
+        """
+        Return a generator that reads the given objects using fsspec instead of Dataflux.
+        """
+        for obj in objects:
+            object_name = obj[0]
+            path = f"gs://{self.bucket_name}/{object_name}"
+            file = fsspec.open(path, mode="rb")
+            with file as f:
+                yield f.read()
 
     def __iter__(self):
         """
@@ -153,7 +167,10 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
         worker_info = data.get_worker_info()
         if worker_info is None:
             print("Single-process data loading detected", flush=True)
-            for bytes_content in df_iter.dataflux_core.download.dataflux_download_lazy(
+            if self.no_dataflux:
+                iterator = self.fsspec_iter(self.objects)
+            else:
+                iterator = df_iter.dataflux_core.download.dataflux_download_lazy(
                     project_name=self.project_name,
                     bucket_name=self.bucket_name,
                     objects=self.objects,
@@ -161,7 +178,8 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
                     dataflux_download_optimization_params=self.
                     dataflux_download_optimization_params,
                     retry_config=self.config.download_retry_config,
-            ):
+                )
+            for bytes_content in iterator:
                 table = self.data_format_fn(bytes_content)
                 for batch in table.iter_batches(batch_size=self.batch_size,
                                                 columns=self.columns):
@@ -174,7 +192,10 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
             worker_id = worker_info.id
             start = worker_id * per_worker
             end = min(start + per_worker, len(self.objects))
-            for bytes_content in df_iter.dataflux_core.download.dataflux_download_lazy(
+            if self.no_dataflux:
+                iterator = self.fsspec_iter(self.objects[start:end])
+            else:
+                iterator = df_iter.dataflux_core.download.dataflux_download_lazy(
                     project_name=self.project_name,
                     bucket_name=self.bucket_name,
                     objects=self.objects[start:end],
@@ -182,7 +203,8 @@ class ParquetIterableDataset(df_iter.DataFluxIterableDataset):
                     dataflux_download_optimization_params=self.
                     dataflux_download_optimization_params,
                     retry_config=self.config.download_retry_config,
-            ):
+                )
+            for bytes_content in iterator:
                 table = self.data_format_fn(bytes_content)
                 for batch in table.iter_batches(batch_size=self.batch_size,
                                                 columns=self.columns):
@@ -206,6 +228,7 @@ def main():
         bucket_name=args.bucket,
         config=config,
         data_format_fn=format_data,
+        no_dataflux=args.no_dataflux,
     )
 
     # Once our custom dataset is defined, it can be provided like any other dataset as an argument

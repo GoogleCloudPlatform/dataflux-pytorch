@@ -1,7 +1,9 @@
 # Parquet Demo Code
-The code examples in this directory demonstrate how dataflux can be used for text-based training alongside Pytorch-Lightning. To support this training, this example subclasses DataFluxIterableDataset for compatibility with parquet files from the HuggingFace FineWeb dataset.
+The code examples in this directory demonstrate how Dataflux can be used for text-based training alongside Pytorch-Lightning. To support this training, this example subclasses DataFluxIterableDataset for compatibility with parquet files from the HuggingFace FineWeb dataset.
 
 Please note that these demos are for educational and example purposes only, and have not been optimized for performance.
+
+For both single-node and distributed demos, you can set the flag `--no-dataflux` to use fsspec/gcsfs to download files instead of Dataflux. Dataflux will still be used for the up-front listing of files.
 
 ## Single Node
 The single node exmaple code here can be run on your local workstation with a command such as the following:
