@@ -184,7 +184,7 @@ The table below summarizes the benchmark results from our internal testing. Spec
 
 These benchmarks are simulated, meaning no actual training is performed during each step. Instead, the node sleeps for a set number of seconds. All benchmarks were run against a dataset with `105,000` images and their corresponding labels, each of which are about `150 MB` in size. These images and labels were derived from the [KiTS19](https://github.com/neheller/kits19) dataset. All testing was performed on a multi-node CPU only cluster, backed by a bucket co-located in the same region (this is critical for maximizing dataloading performance). The test cluster was comprised of [n2-standard-32](https://cloud.google.com/compute/docs/general-purpose-machines#n2_machine_types) nodes with `128 GiB` of allocatable memory each. 
 
-For all runs here, the observed step time was approximately `1 second`. 
+For all runs here, the observed step time was approximately `3 seconds`. 
 
 This code is still being updated and improved, so all benchmark results are subject to change.
 
