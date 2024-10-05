@@ -58,10 +58,9 @@ class CheckpointTestCase(unittest.TestCase):
 
     @mock.patch("dataflux_pytorch.dataflux_checkpoint.upload")
     def test_df_checkpoint_buffer_flush(self, mock_upload):
-        buffer = self.ckpt.writer(self.object_name)
-        buffer.flush()
-        buffer.flush()
-        self.assertEqual(mock_upload.call_count, 2)
+        with self.ckpt.writer(self.object_name) as buffer:
+            pass
+        self.assertEqual(mock_upload.call_count, 1)
 
 
 if __name__ == "__main__":
