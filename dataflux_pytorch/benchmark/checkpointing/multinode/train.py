@@ -98,13 +98,17 @@ def main(project: str,
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
         new_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
-        strategy = DatafluxFSDPStrategy(
-            path=new_path,
-            project_name=project,
-            storage_client=None,
-            model=model,
-            state_dict_type="sharded",
-        )
+        if args.strategy == DF_FSDP_STRATEGY:
+            strategy = DatafluxFSDPStrategy(
+                path=new_path,
+                project_name=project,
+                storage_client=None,
+                model=model,
+                state_dict_type="sharded",
+            )
+        else:
+            strategy = FSDPStrategy(path=ckpt_dir_path,
+                                    state_dict_type="sharded")
         trainer = Trainer(
             default_root_dir=ckpt_dir_path,
             plugins=[],
