@@ -28,7 +28,27 @@ from lightning.pytorch.plugins.io import TorchCheckpointIO
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+from dataflux_pytorch import dataflux_checkpoint
+from dataflux_pytorch.lightning import (DatafluxLightningAsyncCheckpoint,
+                                        DatafluxLightningCheckpoint,
+                                        path_utils)
+
+DF_LIGHTNING = "df_lightning"
+ASYNC_DF_LIGHTNING = "async_df_lightning"
+NO_DF = "no_df"
+NO_LIGHTNING = "no_lightning"
+
+
+class BenchmarkDatafluxLightningAsyncCheckpoint(
+        DatafluxLightningAsyncCheckpoint):
+
+    def teardown(self, *args, **kwargs):
+        # Prevent parent teardown from terminating the executor after fit.
+        pass
+
+    def finalize(self, *args, **kwargs):
+        # Provide a different invocation of the teardown process.
+        super().teardown()
 
 
 class LightningTransformer(LightningModule):
@@ -65,17 +85,18 @@ def parse_args():
     parser.add_argument("--save-only-latest",
                         action="store_true",
                         default=False)
-    parser.add_argument("--no-dataflux-ckpt",
-                        action="store_true",
-                        default=False)
     parser.add_argument("--layers", type=int, default=100)
     parser.add_argument("--steps", type=int, default=5)
-    parser.add_argument("--enable-multipart",
+    parser.add_argument("--disable-multipart",
                         action="store_true",
                         default=False)
     parser.add_argument("--clear-kernel-cache",
                         action="store_true",
                         default=False)
+    parser.add_argument(
+        '--checkpoint',
+        choices=[DF_LIGHTNING, ASYNC_DF_LIGHTNING, NO_DF, NO_LIGHTNING],
+        default=DF_LIGHTNING)
     return parser.parse_args()
 
 
@@ -97,7 +118,7 @@ def main():
 
       Run gcsfs over 10 steps:
 
-      python3 train.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --layers=1000 --steps=10 --no-dataflux-ckpt
+      python3 train.py --project=my-project --ckpt_dir_path=gs://bucket-name/path/to/dir/ --layers=1000 --steps=10 --checkpoint=no-dataflux
 
     """
     args = parse_args()
@@ -108,10 +129,26 @@ def main():
     dataloader = DataLoader(dataset, num_workers=1)
     model = LightningTransformer(vocab_size=dataset.vocab_size,
                                  nlayers=args.layers)
-    ckpt = DatafluxLightningCheckpoint(project_name=args.project,
-                                       enable_multipart=args.enable_multipart)
-    if args.no_dataflux_ckpt:
+
+    # Checkpoint strategy selection.
+    if args.checkpoint == DF_LIGHTNING:
+        print("Running with Dataflux Lightning...")
+        ckpt = DatafluxLightningCheckpoint(project_name=args.project)
+    elif args.checkpoint == ASYNC_DF_LIGHTNING:
+        print("Running with Dataflux Lightning AsyncCheckpointIO...")
+        ckpt = BenchmarkDatafluxLightningAsyncCheckpoint(
+            project_name=args.project)
+    elif args.checkpoint == NO_DF:
+        print("Running Lightning without Dataflux...")
         ckpt = TorchCheckpointIO()
+    elif args.checkpoint == NO_LIGHTNING:
+        print("Running without Lightning...")
+        # Dataflux Lightning Checkpoint is stil used here to provide an argument
+        # during construction of the trainer.
+        ckpt = DatafluxLightningCheckpoint(project_name=args.project)
+    else:
+        raise ValueError("Invalid choice for --checkpoint")
+
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
@@ -132,21 +169,43 @@ def main():
     )
     trainer.fit(model, dataloader)
 
+    if args.checkpoint == NO_LIGHTNING:
+        bucket_name, ckpt_path = path_utils.parse_gcs_path(args.ckpt_dir_path)
+        ckpt = dataflux_checkpoint.DatafluxCheckpoint(
+            project_name=args.project, bucket_name=bucket_name)
+    # Measure save checkpoint.
     start = time.time()
     for i in range(args.steps):
-        trainer.save_checkpoint(
-            os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
+        if args.checkpoint == NO_LIGHTNING:
+            CKPT_PATH = ckpt_path + f'checkpoint_{i}.ckpt' if ckpt_path else f'checkpoints/checkpoint_{i}.ckpt'
+            with ckpt.writer(CKPT_PATH) as writer:
+                torch.save(model.state_dict(), writer)
+        else:
+            trainer.save_checkpoint(
+                os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
-    # command to clear kernel cache only works on MacOs and Linux.
-    if args.clear_kernel_cache and sys.platform in ["darwin", "linux", "linux2", "linux3"]:
+    # Command to clear kernel cache only works on MacOs and Linux.
+    if args.clear_kernel_cache and sys.platform in [
+            "darwin", "linux", "linux2", "linux3"
+    ]:
         print("Clearing kernel cache...")
         os.system("sync && sudo sysctl -w vm.drop_caches=3")
     print("Average time to save one checkpoint: " +
           str((end - start) / args.steps) + " seconds")
+
+    # If using async, call finalize to shut down the threadpool executor.
+    if args.checkpoint == 'asynccheckpointio':
+        ckpt.finalize()
+
+    # Measure load checkpoint.
     start = time.time()
     for i in range(args.steps):
-        data = ckpt.load_checkpoint(
-            os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
+        if args.checkpoint == NO_LIGHTNING:
+            with ckpt.reader(CKPT_PATH) as reader:
+                read_state_dict = torch.load(reader)
+        else:
+            _ = ckpt.load_checkpoint(
+                os.path.join(args.ckpt_dir_path, f'ckpt_{i}.ckpt'))
     end = time.time()
     print("Average time to load one checkpoint: " +
           str((end - start) / args.steps) + " seconds")

@@ -14,14 +14,17 @@
  limitations under the License.
  """
 
+from io import BytesIO
 from typing import Optional
 
 from dataflux_core import user_agent
+from dataflux_pytorch.multipart_upload.multipart import \
+    upload_chunks_concurrently_from_bytesio as upload
 from google.cloud import storage
 from google.cloud.storage.fileio import BlobReader, BlobWriter
 
 
-class DatafluxCheckpoint:
+class DatafluxCheckpoint():
     """Implements the interface of saving and loading model checkpoints.
 
     The reader and writer return a BlobReader and BlobWriter respectively, which
@@ -54,8 +57,32 @@ class DatafluxCheckpoint:
 
     def reader(self, object_name: str) -> BlobReader:
         blob = self.bucket.blob(object_name)
-        return blob.open("rb")
+        stream = BytesIO()
+        blob.download_to_file(stream)
+        stream.seek(0)
+        return stream
 
     def writer(self, object_name: str) -> BlobWriter:
         blob = self.bucket.blob(object_name)
-        return blob.open("wb", ignore_flush=True)
+        return DatafluxCheckpointBuffer(blob)
+
+
+class DatafluxCheckpointBuffer(BytesIO):
+    """Implements a BytesIO buffer that will flush to GCS.
+
+    This class overrides the close function of BytesIO to perform
+    an optimized multipart upload directly to a specified GCS bucket.
+    """
+
+    def __init__(self, blob: "google.cloud.storage.blob.Blob"):
+        """Initializes the DatafluxCheckpointBuffer
+
+        Args:
+            blob: A GCS blob to which the checkpoint will be uploaded.
+        """
+        self.blob = blob
+        super().__init__()
+
+    def close(self):
+        upload(self, self.blob)
+        super().close()

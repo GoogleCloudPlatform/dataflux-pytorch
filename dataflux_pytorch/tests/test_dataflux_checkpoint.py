@@ -19,6 +19,7 @@ import unittest
 
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch import dataflux_checkpoint
+from unittest import mock
 
 
 class CheckpointTestCase(unittest.TestCase):
@@ -45,10 +46,21 @@ class CheckpointTestCase(unittest.TestCase):
 
     def test_writer(self):
         got_writer = self.ckpt.writer(self.object_name)
-        self.assertIsInstance(got_writer, fake_gcs.FakeBlobWriter)
+        self.assertIsInstance(got_writer,
+                              dataflux_checkpoint.DatafluxCheckpointBuffer)
         self.assertTrue(
             self.ckpt.storage_client._connection.user_agent.startswith(
                 "dataflux"))
+
+    def test_df_checkpoint_buffer_init(self):
+        buffer = self.ckpt.writer(self.object_name)
+        self.assertEqual(buffer.blob.name, self.object_name)
+
+    @mock.patch("dataflux_pytorch.dataflux_checkpoint.upload")
+    def test_df_checkpoint_buffer_flush(self, mock_upload):
+        with self.ckpt.writer(self.object_name) as buffer:
+            pass
+        self.assertEqual(mock_upload.call_count, 1)
 
 
 if __name__ == "__main__":

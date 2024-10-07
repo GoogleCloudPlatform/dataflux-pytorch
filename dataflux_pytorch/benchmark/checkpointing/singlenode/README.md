@@ -32,22 +32,23 @@ Then set the command line variables.
 
 ### Dataflux Lightning Checkpoint
 
-`--no-dataflux-ckpt`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
+`--checkpoint=df_lightning`: This flag will measure timings for Dataflux Pytorch Checkpointing with lightning. This is the default execution mode.
+
+`--checkpoint=no_df`: If you are not benchmarking Dataflux Lightning Checkpoint, this will disable dataflux checkpointing and use the default lightning checkpointing instead. 
+
+`--checkpoint=async_df_lightning`: This flag will enable asynchronous calls to `save_checkpoint` which will optimize CPU/GPU utilization by making save calls non-blocking. 
+
+`--checkpoint=no_lightning`: This flag will measure timings for Dataflux Pytorch Checkpointing without lightning.
+
+`--disable-multipart`: This flag will disable multipart upload performance improvements. In most cases this will dramatically reduce the upload speed of checkpoint saves and is not recommended.
 
 ### Running
 
-`--enable-multipart`: To run with experimental multipart upload performance improvements. This flag leverages parallel upload to dramatically improve the upload speed of checkpoint saves.
-
-```shell
-python dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --enable-multipart --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
-```
-
-To run the script without multipart upload, simply omit the flag.
+To execute this demo, run a command like the following:
 
 ```shell
 python dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
 ```
-
 
 The time will print out and the checkpoints can be viewed in GCS at the location passed in. A sample output is shown below.
 
@@ -82,178 +83,27 @@ Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing ac
 
 ### Checkpoint Save
 
-<table>
-  <tr>
-   <td style="background-color: #d9d2e9"><strong>Checkpoint Type</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Layers</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Checkpoint Size (MB) per step</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Save Time</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Write Throughput (MB/s)</strong>
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">10
-   </td>
-   <td style="background-color: #d9d9d9">75.6
-   </td>
-   <td style="background-color: #d9d9d9">0.81
-   </td>
-   <td style="background-color: #d9d9d9">93.33
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">10
-   </td>
-   <td style="background-color: #f3f3f3">75.6
-   </td>
-   <td style="background-color: #f3f3f3">0.74
-   </td>
-   <td style="background-color: #f3f3f3">102.16
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">100
-   </td>
-   <td style="background-color: #d9d9d9">298
-   </td>
-   <td style="background-color: #d9d9d9">2.87
-   </td>
-   <td style="background-color: #d9d9d9">103.98
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">100
-   </td>
-   <td style="background-color: #f3f3f3">298
-   </td>
-   <td style="background-color: #f3f3f3">2.97
-   </td>
-   <td style="background-color: #f3f3f3">100.33
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">1000
-   </td>
-   <td style="background-color: #d9d9d9">2500
-   </td>
-   <td style="background-color: #d9d9d9">25.61
-   </td>
-   <td style="background-color: #d9d9d9">97.61
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">1000
-   </td>
-   <td style="background-color: #f3f3f3">2500
-   </td>
-   <td style="background-color: #f3f3f3">24.17
-   </td>
-   <td style="background-color: #f3f3f3">103.43
-   </td>
-  </tr>
-</table>
+| Checkpoint Type | Layers | Checkpoint File Size (MB) | Avg Checkpoint Save Time | Write Throughput (MB/s) |
+| --- | --- | --- | --- | --- |
+| Default   | 10      | 75.6    | 0.81    | 93.33   |
+| Dataflux  | 10      | 75.6    | 0.56    | 135.00  |
+| Default   | 100     | 298     | 2.87    | 103.98  |
+| Dataflux  | 100     | 298     | 1.03    | 289.32  |
+| Default   | 1,000   | 2,500   | 25.61   | 97.61   |
+| Dataflux  | 1,000   | 2,500   | 6.25    | 400.00  |
+| Default   | 10,000  | 24,200  | 757.10  | 31.96   |
+| Dataflux  | 10,000  | 24,200  | 64.50   | 375.19  |
+
 
 ### Checkpoint Load
 
-<table>
-  <tr>
-   <td style="background-color: #d9d2e9"><strong>Checkpoint Type</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Layers</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Checkpoint Size (MB) per step</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Average Checkpoint Restore Time</strong>
-   </td>
-   <td style="background-color: #d9d2e9"><strong>Read Throughput (MB/s)</strong>
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">10
-   </td>
-   <td style="background-color: #d9d9d9">75.6
-   </td>
-   <td style="background-color: #d9d9d9">2.38
-   </td>
-   <td style="background-color: #d9d9d9">31.76
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">10
-   </td>
-   <td style="background-color: #f3f3f3">75.6
-   </td>
-   <td style="background-color: #f3f3f3">0.51
-   </td>
-   <td style="background-color: #f3f3f3">148.24
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">100
-   </td>
-   <td style="background-color: #d9d9d9">298
-   </td>
-   <td style="background-color: #d9d9d9">12.83
-   </td>
-   <td style="background-color: #d9d9d9">23.23
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">100
-   </td>
-   <td style="background-color: #f3f3f3">298
-   </td>
-   <td style="background-color: #f3f3f3">1.69
-   </td>
-   <td style="background-color: #f3f3f3">176.33
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #d9d9d9">Default
-   </td>
-   <td style="background-color: #d9d9d9">1000
-   </td>
-   <td style="background-color: #d9d9d9">2500
-   </td>
-   <td style="background-color: #d9d9d9">186.57
-   </td>
-   <td style="background-color: #d9d9d9">13.40
-   </td>
-  </tr>
-  <tr>
-   <td style="background-color: #f3f3f3">Dataflux
-   </td>
-   <td style="background-color: #f3f3f3">1000
-   </td>
-   <td style="background-color: #f3f3f3">2500
-   </td>
-   <td style="background-color: #f3f3f3">14.77
-   </td>
-   <td style="background-color: #f3f3f3">169.26
-   </td>
-  </tr>
-</table>
+| Checkpoint Type | Layers | Checkpoint File Size (MB) | Avg Checkpoint Restore Time | Read Throughput (MB/s) |
+| --- | --- | --- | --- | --- |
+| Default   | 10      | 75.6    | 2.38      | 31.76   |
+| Dataflux  | 10      | 75.6    | 0.51      | 148.24  |
+| Default   | 100     | 298     | 1.69      | 176.33  |
+| Dataflux  | 100     | 298     | 1.03      | 289.32  |
+| Default   | 1,000   | 2,500   | 186.57    | 13.40   |
+| Dataflux  | 1,000   | 2,500   | 14.77     | 169.26  |
+| Default   | 10,000  | 24,200  | 2,093.52  | 11.56   |
+| Dataflux  | 10,000  | 24,200  | 113.14    | 213.89  |
