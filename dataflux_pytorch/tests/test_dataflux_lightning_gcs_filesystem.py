@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 from typing import Any, Dict
 from pathlib import Path
 
@@ -7,14 +8,15 @@ from dataflux_pytorch.lightning.gcs_filesystem import GCSFileSystem
 
 
 class GCSFileSystemTestCase(unittest.TestCase):
+
     def setUp(self):
         super().setUp()
         self.project_name = "project_name"
         self.bucket_name = "fake_bucket"
         self.bucket = fake_gcs.Bucket("fake_bucket")
         self.client = fake_gcs.Client()
-        self.fake_gcs = GCSFileSystem(
-            project_name=self.project_name, storage_client=self.client)
+        self.fake_gcs = GCSFileSystem(project_name=self.project_name,
+                                      storage_client=self.client)
 
     def test_create_stream_invalid_path_string(self):
         path = "fake_bucket/checkpoint.ckpt"
@@ -29,12 +31,18 @@ class GCSFileSystemTestCase(unittest.TestCase):
             with self.fake_gcs.create_stream(path, "wb") as stream:
                 pass
 
-    def test_create_stream_valid_path_string_write_mode(self):
+    @mock.patch(
+        "dataflux_pytorch.lightning.gcs_filesystem.DatafluxCheckpointBuffer.close"
+    )
+    def test_create_stream_valid_path_string_write_mode(self, mock_close):
         path = f'gs://{self.bucket_name}/some-dir/'
         with self.fake_gcs.create_stream(path, "wb") as stream:
             pass
 
-    def test_create_stream_valid_path_object_write_mode(self):
+    @mock.patch(
+        "dataflux_pytorch.lightning.gcs_filesystem.DatafluxCheckpointBuffer.close"
+    )
+    def test_create_stream_valid_path_object_write_mode(self, mock_close):
         path = Path(f'gs://{self.bucket_name}/some-dir/')
         with self.fake_gcs.create_stream(path, "wb") as stream:
             pass
