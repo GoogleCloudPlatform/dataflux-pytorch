@@ -39,16 +39,51 @@ class BenchmarkStrategy(FSDPStrategy):
         self.model = model
 
     def save_checkpoint(self, checkpoint: Dict[str, torch.Tensor], filepath: str, storage_options: Optional[Dict] = None) -> None:
+        """
+        Saves the model's state dictionary to a specified file path in GCS. torch.distributed.checkpoint.save contains the core logic for saving model shards.
+        You can find the source code for FSDP.save_checkpoint
+        https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/fabric/strategies/fsdp.py#L492.
+        Args:
+            checkpoint (Dict[str, torch.Tensor]): The model's state dictionary containing tensor weights.
+            filepath (str): The path where the checkpoint will be saved.
+            storage_options (Optional[Dict]): Additional storage options (if any).
+
+        This method uses the GCS writer to save the checkpoint. It is essential for
+            maintaining the model's state across training sessions or for recovery after failure.
+        """
         dist_cp.save(state_dict=checkpoint, checkpoint_id=filepath,
                      storage_writer=self.writer)
 
     def load_checkpoint(self, checkpoint_path: str) -> None:
+        """
+        Loads a model's state dictionary from a specified checkpoint file in GCS. torch.distributed.checkpoint.load contains the core logic of loading sharded model weights.
+        You can find the source code for FSDP.load_checkpoint
+        https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/fabric/strategies/fsdp.py#L519.
+
+        Args:
+            checkpoint_path (str): The path to the checkpoint file to be loaded.
+
+        This method reads the checkpoint from GCS and updates the model's state dictionary.
+        It is crucial for restoring a model's state for continued training or inference.
+        Ensure that the model architecture matches the saved state dictionary.
+        """
         empty_state_dict = {}
         dist_cp.load(state_dict=empty_state_dict,
                      checkpoint_id=checkpoint_path, storage_reader=self.reader)
 
 
 class SimpleModel(nn.Module):
+    """
+    A simple fully connected neural network model with 2 layers.
+
+    It also generates dummy tensors to generate checkpoints of desired size.
+
+    Attributes:
+        fc1 (nn.Linear): The first linear layer.
+        fc2 (nn.Linear): The second linear layer.
+        dummy_tensors (List[torch.Tensor]): A list of dummy tensors used for padding.
+    """
+
     def __init__(self, size: int, padding_size: int) -> None:
         super(SimpleModel, self).__init__()
         self.fc1 = nn.Linear(size, size)
@@ -68,14 +103,15 @@ def parse_args() -> argparse.Namespace:
                         required=True, help="GCS project ID.")
     parser.add_argument("--ckpt-dir-path", type=str, required=True,
                         help="Path to GCS bucket for checkpoints.")
-    parser.add_argument("--model-size", type=int,
-                        default=100, help="Size of the model.")
+    parser.add_argument("--layer-size", type=int,
+                        default=100, help="Size of the each layer.")
     parser.add_argument("--clear-kernel-cache", action="store_true",
                         default=False, help="Clear kernel cache.")
     parser.add_argument("--sample-count", type=int, default=3,
                         help="Number of samples for benchmarking.")
     parser.add_argument("--padding-size", type=int, default=1000,
-                        help="Size of dummy tensors for padding, to control the size of the checkpoint.")
+                        help="Size of dummy tensors for padding, to control the size of the checkpoint.\
+                              Adds approximately 3MB per 100 units of padding size.")
     parser.add_argument("--world-size", type=int, required=True,
                         help="Number of processes in the distributed setup.")
     return parser.parse_args()
@@ -114,11 +150,27 @@ def split_tensor(tensor: torch.Tensor, world_size: int, rank: int) -> torch.Tens
 
 
 def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed_state_dict: Dict[str, torch.Tensor], filepath: str, sample_count: int, operation: str) -> list:
-    """Times save or load operations for checkpoints."""
+    """
+    Times the save or load operations for checkpoints.
+
+    Args:
+        benchmark_strategy (BenchmarkStrategy): The strategy for managing checkpoint operations.
+        distributed_state_dict (Dict[str, torch.Tensor]): The model's state dictionary split across processes.
+        filepath (str): The path to store/load checkpoints.
+        sample_count (int): The number of samples to benchmark.
+        operation (str): The operation to perform ('save' or 'load').
+
+    Returns:
+        list: A list of times taken for each operation in seconds.
+
+    This function facilitates performance evaluation of checkpoint saving/loading 
+    under distributed settings.
+    """
     times = []
     for i in range(sample_count):
         checkpoint_path = os.path.join(
             filepath, f'checkpoints/ckpt_{i}.ckpt')
+        dist.barrier()
         start_time = time.time()
         if operation == 'save':
             benchmark_strategy.save_checkpoint(
@@ -128,15 +180,16 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed
         end_time = time.time()
         times.append(end_time - start_time)
         dist.barrier()  # Synchronize processes
+        print(f"Completed iteration {i} for {operation} ...")
     return times
 
 
-def run_benchmark(rank, world_size: int, model_size: int, project: str, filepath: str, padding_size: int, sample_count: int):
+def run_benchmark(rank, world_size: int, layer_size: int, project: str, filepath: str, padding_size: int, sample_count: int):
     setup(rank, world_size)
 
-    model = SimpleModel(model_size, padding_size)
+    model = SimpleModel(layer_size, padding_size)
 
-    dummy_input = torch.randn(100, model_size)
+    dummy_input = torch.randn(100, layer_size)
     _ = model(dummy_input)
 
     full_state_dict = model.state_dict()
@@ -176,13 +229,13 @@ def main():
       python3 -u demo/lightning/checkpoint/simulated/multiprocessing_train.py \
       --project=<gcs_project_id> \
       --ckpt-dir-path=<path_to_gcs_bucket> \
-      --model-size=300 \
+      --layer-size=300 \
       --world-size=5
     """
     args = parse_args()
 
     mp.set_start_method('spawn')
-    mp.spawn(run_benchmark, args=(args.world_size, args.model_size, args.project, args.ckpt_dir_path, args.padding_size, args.sample_count),
+    mp.spawn(run_benchmark, args=(args.world_size, args.layer_size, args.project, args.ckpt_dir_path, args.padding_size, args.sample_count),
              nprocs=args.world_size, join=True)
 
 
