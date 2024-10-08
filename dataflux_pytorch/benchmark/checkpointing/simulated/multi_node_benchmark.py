@@ -2,11 +2,17 @@ import os
 import socket
 import statistics
 import time
-from typing import Dict
 
 import torch
-import torch.distributed as dist
-from demo.lightning.checkpoint.simulated.multiprocessing_train import BenchmarkStrategy, SimpleModel, format_size, get_tensor_size_bytes, split_tensor, cleanup, time_checkpoint_operation
+from demo.lightning.checkpoint.simulated.multiprocessing_train import (
+    BenchmarkStrategy,
+    SimpleModel,
+    cleanup,
+    format_size,
+    get_tensor_size_bytes,
+    split_tensor,
+    time_checkpoint_operation,
+)
 
 
 def configure_master_addr():
