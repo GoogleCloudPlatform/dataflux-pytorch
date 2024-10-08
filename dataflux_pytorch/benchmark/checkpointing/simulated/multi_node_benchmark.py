@@ -98,7 +98,7 @@ if __name__ == "__main__":
     model_size = int(os.getenv("NUM_LAYERS"))
     project = os.getenv("PROJECT")
     path = os.getenv("CKPT_DIR_PATH")
-    sample_size = int(os.getenv("SAMPLE_SIZE", 3))
+    sample_size = int(os.getenv("SAMPLE_COUNT", 3))
     padding_size = int(os.getenv("PADDING_SIZE", 4000))
     main(world_size, model_size,
          project, path, padding_size, sample_size)

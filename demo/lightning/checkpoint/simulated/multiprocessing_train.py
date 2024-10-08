@@ -72,7 +72,7 @@ def parse_args() -> argparse.Namespace:
                         default=100, help="Size of the model.")
     parser.add_argument("--clear-kernel-cache", action="store_true",
                         default=False, help="Clear kernel cache.")
-    parser.add_argument("--sample-size", type=int, default=3,
+    parser.add_argument("--sample-count", type=int, default=3,
                         help="Number of samples for benchmarking.")
     parser.add_argument("--padding-size", type=int, default=1000,
                         help="Size of dummy tensors for padding, to control the size of the checkpoint.")
@@ -113,19 +113,17 @@ def split_tensor(tensor: torch.Tensor, world_size: int, rank: int) -> torch.Tens
     return tensor.view(-1)[start_idx:end_idx]
 
 
-def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed_state_dict: Dict[str, torch.Tensor], filepath: str, sample_size: int, operation: str) -> list:
+def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed_state_dict: Dict[str, torch.Tensor], filepath: str, sample_count: int, operation: str) -> list:
     """Times save or load operations for checkpoints."""
     times = []
-    for i in range(sample_size):
+    for i in range(sample_count):
+        checkpoint_path = os.path.join(
+            filepath, f'checkpoints/ckpt_{i}.ckpt')
         start_time = time.time()
         if operation == 'save':
-            checkpoint_path = os.path.join(
-                filepath, f'checkpoints/ckpt_{i}.ckpt')
             benchmark_strategy.save_checkpoint(
                 distributed_state_dict, filepath=checkpoint_path)
         elif operation == 'load':
-            checkpoint_path = os.path.join(
-                filepath, f'checkpoints/ckpt_{i}.ckpt')
             benchmark_strategy.load_checkpoint(checkpoint_path=checkpoint_path)
         end_time = time.time()
         times.append(end_time - start_time)
@@ -133,7 +131,7 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed
     return times
 
 
-def run_benchmark(rank, world_size: int, model_size: int, project: str, filepath: str, padding_size: int, sample_size: int):
+def run_benchmark(rank, world_size: int, model_size: int, project: str, filepath: str, padding_size: int, sample_count: int):
     setup(rank, world_size)
 
     model = SimpleModel(model_size, padding_size)
@@ -152,9 +150,9 @@ def run_benchmark(rank, world_size: int, model_size: int, project: str, filepath
         tensor, world_size, rank) for key, tensor in full_state_dict.items()}
 
     save_checkpoint_times = time_checkpoint_operation(
-        benchmark_strategy, distributed_state_dict, filepath, sample_size, 'save')
+        benchmark_strategy, distributed_state_dict, filepath, sample_count, 'save')
     load_checkpoint_times = time_checkpoint_operation(
-        benchmark_strategy, distributed_state_dict, filepath, sample_size, 'load')
+        benchmark_strategy, distributed_state_dict, filepath, sample_count, 'load')
 
     if rank == 0:
         print("######################")
@@ -184,7 +182,7 @@ def main():
     args = parse_args()
 
     mp.set_start_method('spawn')
-    mp.spawn(run_benchmark, args=(args.world_size, args.model_size, args.project, args.ckpt_dir_path, args.padding_size, args.sample_size),
+    mp.spawn(run_benchmark, args=(args.world_size, args.model_size, args.project, args.ckpt_dir_path, args.padding_size, args.sample_count),
              nprocs=args.world_size, join=True)
 
 
