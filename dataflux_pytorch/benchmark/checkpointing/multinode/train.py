@@ -10,6 +10,63 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (WikiText2)
 import torch.distributed
 from torch.utils.data import DataLoader
+from lightning.pytorch.strategies import FSDPStrategy
+
+# New imports
+from lightning.pytorch.plugins import CheckpointIO
+import gcsfs
+from lightning.pytorch.utilities import rank_zero_only
+
+
+import os
+import torch
+import torch.distributed as dist
+import torch.distributed.checkpoint as dcp
+from lightning.pytorch.callbacks import Callback
+import gcsfs
+from fsspec.core import url_to_fs
+
+
+class GCSShardedCheckpoint(Callback):
+    def __init__(self, dirpath, gcs_project, every_n_train_steps=1):
+        super().__init__()
+        self.dirpath = dirpath
+        self.every_n_train_steps = every_n_train_steps
+        self.fs = gcsfs.GCSFileSystem(project=gcs_project)
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        if (trainer.global_step + 1) % self.every_n_train_steps == 0:
+            self.save_checkpoint(trainer, pl_module)
+
+    def save_checkpoint(self, trainer, pl_module):
+        if not trainer.is_global_zero:
+            return
+
+        checkpoint_dir = os.path.join(
+            self.dirpath, f"step_{trainer.global_step}")
+
+        state_dict = {
+            "model": trainer.strategy.model,
+            "optimizer": trainer.optimizers[0],
+        }
+
+        storage_writer = dcp.FileSystemWriter(checkpoint_dir, fs=self.fs)
+        dcp.save_state_dict(
+            state_dict=state_dict,
+            storage_writer=storage_writer,
+        )
+
+    def load_checkpoint(self, trainer, pl_module, checkpoint_dir):
+        state_dict = {
+            "model": trainer.strategy.model,
+            "optimizer": trainer.optimizers[0],
+        }
+
+        storage_reader = dcp.FileSystemReader(checkpoint_dir, fs=self.fs)
+        dcp.load_state_dict(
+            state_dict=state_dict,
+            storage_reader=storage_reader,
+        )
 
 
 def main(project: str,
@@ -27,102 +84,39 @@ def main(project: str,
     # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
-    checkpoint_callback = ModelCheckpoint(
-        save_top_k=1 if save_only_latest else -1,
-        every_n_train_steps=1,
-        filename="checkpoint-{epoch:02d}-{step:02d}",
-        enable_version_counter=True,
-    )
-    dataflux_strategy = DatafluxFSDPStrategy(
-        path=ckpt_dir_path,
-        project_name=project,
-        storage_client=None,
-        model=model,
-        state_dict_type="sharded",
-    )
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
-    num_nodes = int(os.environ.get("WORLD_SIZE", 4))
+    # num_nodes = int(os.environ.get("WORLD_SIZE", 2))
+    sharded_checkpoint = GCSShardedCheckpoint(
+        dirpath=ckpt_dir_path,
+        gcs_project=project,
+        every_n_train_steps=1,
+    )
+
+    dataflux_strategy = FSDPStrategy(
+        state_dict_type="sharded",
+        state_dict_config={"offload_to_cpu": True, "use_dtensor": True},
+    )
 
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
-        plugins=[],
-        callbacks=[checkpoint_callback],
+        callbacks=[sharded_checkpoint],
         min_epochs=min_epochs_save,
         max_epochs=max_epochs_save,
         max_steps=max_steps_save,
         accelerator="gpu",
         strategy=dataflux_strategy,
-        devices=1,
-        num_nodes=num_nodes,
+        devices=4,
+        num_nodes=1,
     )
     trainer.fit(model, dataloader)
-    print(f"Saving checkpoint to {ckpt_dir_path} {max_steps_save} times.")
-    start = time.time()
-    for i in range(max_steps_save):
-        trainer.save_checkpoint(
-            os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
-    end = time.time()
-    if torch.distributed.get_rank() == 0:
-        print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
-    avg_save_time = (end - start) / max_steps_save
-    min_epochs_restore = int(os.environ.get("MIN_EPOCHS_RESTORE", 4))
-    max_epochs_restore = int(os.environ.get("MAX_EPOCHS_RESTORE", 5))
-    max_steps_restore = int(os.environ.get("MAX_STEPS_RESTORE", 3))
-    load_checkpoint_times = []
-    for i in range(max_steps_restore):
-        checkpoint_callback = ModelCheckpoint(
-            save_top_k=1 if save_only_latest else -1,
-            every_n_train_steps=0,
-            filename="checkpoint-{epoch:02d}-{step:02d}",
-            enable_version_counter=True,
-        )
-        model = DemoTransformer(vocab_size=dataset.vocab_size,
-                                nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-        new_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
-        dataflux_strategy = DatafluxFSDPStrategy(
-            path=new_path,
-            project_name=project,
-            storage_client=None,
-            model=model,
-            state_dict_type="sharded",
-        )
-        trainer = Trainer(
-            default_root_dir=ckpt_dir_path,
-            plugins=[],
-            callbacks=[checkpoint_callback],
-            min_epochs=min_epochs_restore,
-            max_epochs=max_epochs_restore,
-            max_steps=max_steps_restore,
-            accelerator="gpu",
-            strategy=dataflux_strategy,
-            devices=1,
-            num_nodes=num_nodes,
-        )
-        trainer.fit(model, dataloader, ckpt_path=new_path)
-        start = time.time()
-        trainer.strategy.load_checkpoint(new_path)
-        end = time.time()
-
-        if torch.distributed.get_rank() == 0:
-            print(f"Loaded checkpoint from {new_path}.")
-        load_checkpoint_times.append(end - start)
-
-    if torch.distributed.get_rank() == 0:
-        avg_load_time = statistics.mean(load_checkpoint_times)
-        print("##################################")
-        print("Average time to save one checkpoint: " + str(avg_save_time) +
-              " seconds")
-        print("Average time to load one checkpoint: " + str(avg_load_time) +
-              " seconds")
-        print("##################################")
 
 
 if __name__ == "__main__":
     main(
-        os.getenv("PROJECT"),
-        os.getenv("CKPT_DIR_PATH"),
+        "gcs-tess",
+        "gs://yashsha-benchmarks-us-central1/",
         os.getenv("SAVE_ONLY_LATEST") == "1",
-        os.getenv("CKPT_RESTORE_PATH"),
+        "gs://yashsha-benchmarks-us-central1/",
     )
