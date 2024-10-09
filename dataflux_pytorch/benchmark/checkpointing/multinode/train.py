@@ -48,7 +48,7 @@ def main(project: str,
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
     )
-    print(f"trainer.strategy is set to {args.strategy}")
+
     strategy = None
     if args.strategy == DF_FSDP_STRATEGY:
         strategy = DatafluxFSDPStrategy(
