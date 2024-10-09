@@ -3,13 +3,14 @@ import os
 import socket
 import time
 import torch
-
+import json
 from contextlib import contextmanager
 from typing import Generator
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
+import torch.distributed
 from torch.utils.data import DataLoader
 from pathlib import Path
 from google.cloud import storage
@@ -78,6 +79,13 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         )
         return state_dict_type_context  # type: ignore[return-value]
 
+    def upload_to_gcs(self, source_file_name):
+        path = "gs://yashsha-benchmarks-us-west1"
+        bucket_name, key = parse_gcs_path(path)
+        bucket_client = self.storage_client.bucket(bucket_name)
+        blob = bucket_client.blob(key)
+        blob.upload_from_filename(source_file_name)
+
     def load_checkpoint(self, checkpoint_path):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
@@ -91,7 +99,43 @@ class DatafluxFSDPStrategy(FSDPStrategy):
 
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
+            if torch.distributed.get_rank() == 0:
+                before_file_path = '/tmp/before.txt'
+                with open(before_file_path, "w") as f:
+                    for shard_key, shard_tensor in module_state.items():
+                        # Convert tensor to bytes
+                        buffer = io.BytesIO()
+                        torch.save(shard_tensor, buffer)
+                        shard_bytes = buffer.getvalue()
+
+                        # Write shard key and length
+                        f.write(f"{shard_key}:{len(shard_bytes)}\n")
+
+                        # Write shard data
+                        f.write(str(shard_bytes))
+                        f.write("\n")
+
+                print("#### Module state before the load_checkpoint ####")
+                self.upload_to_gcs(before_file_path)
             load(module_state, self.reader)
+            if torch.distributed.get_rank() == 0:
+                after_file_path = '/tmp/after.json'
+                with open(after_file_path, "w") as f:
+                    for shard_key, shard_tensor in module_state.items():
+                        # Convert tensor to bytes
+                        buffer = io.BytesIO()
+                        torch.save(shard_tensor, buffer)
+                        shard_bytes = buffer.getvalue()
+
+                        # Write shard key and length
+                        f.write(f"{shard_key}:{len(shard_bytes)}\n")
+
+                        # Write shard data
+                        f.write(str(shard_bytes))
+                        f.write("\n")
+                self.upload_to_gcs(after_file_path)
+                print("#### Module state after the load_checkpoint ####")
+                print("################################")
             self.model.load_state_dict(
                 module_state["model"], strict=self.lightning_module.strict_loading)
 
@@ -174,7 +218,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
     )
-    accelerator = os.environ.get("ACCELERATOR", "cpu")
+    accelerator = os.environ.get("ACCELERATOR", "gpu")
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
@@ -216,7 +260,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
                           model=model,
                           state_dict_type="sharded",
                       ),
-                      num_nodes=int(os.environ.get("WORLD_SIZE", 5))
+                      num_nodes=int(os.environ.get("WORLD_SIZE", 2))
                       )
     trainer.fit(model, dataloader, ckpt_path=ckpt_restore_path)
 
