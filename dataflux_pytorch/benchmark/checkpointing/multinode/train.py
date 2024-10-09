@@ -47,6 +47,8 @@ def main(project: str,
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
     )
+    print(f"trainer.strategy is set to {args.strategy}")
+    strategy = None
     if args.strategy == DF_FSDP_STRATEGY:
         strategy = DatafluxFSDPStrategy(
             path=ckpt_dir_path,
@@ -75,11 +77,12 @@ def main(project: str,
         num_nodes=num_nodes,
     )
     trainer.fit(model, dataloader)
-    print(f"Saving checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     start = time.time()
     for i in range(max_steps_save):
-        trainer.save_checkpoint(
-            os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
+        save_path = ckpt_dir_path + f"checkpoints/ckpt_{i}.ckpt/"
+        save_path = os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/')
+        print(f"Saved checkpoint to {save_path} {max_steps_save} times.")
+        trainer.save_checkpoint(save_path)
     end = time.time()
     if torch.distributed.get_rank() == 0:
         print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
@@ -98,6 +101,7 @@ def main(project: str,
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
         new_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
+        strategy = None
         if args.strategy == DF_FSDP_STRATEGY:
             strategy = DatafluxFSDPStrategy(
                 path=new_path,
@@ -140,6 +144,9 @@ def main(project: str,
 
 
 if __name__ == "__main__":
+    print(f'PROJECT: {os.getenv("PROJECT")}')
+    print(f'CKPT_DIR_PATH: {os.getenv("CKPT_DIR_PATH")}')
+    print(f'CKPT_RESTORE_PATH: {os.getenv("CKPT_RESTORE_PATH")}')
     main(
         os.getenv("PROJECT"),
         os.getenv("CKPT_DIR_PATH"),

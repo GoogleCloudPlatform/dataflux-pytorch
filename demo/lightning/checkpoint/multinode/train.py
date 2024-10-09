@@ -1,6 +1,7 @@
-import io
 import os
 import socket
+import fsspec
+import gcsfs
 import time
 import torch
 
@@ -32,8 +33,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
     def __init__(self, path, project_name, storage_client, model, **kwargs):
         super().__init__(**kwargs)
         self.writer = GCSDistributedWriter(path, project_name, storage_client)
-        self.reader = GCSDistributedReader(
-            path, project_name, storage_client)
+        self.reader = GCSDistributedReader(path, project_name, storage_client)
         self.checkpoint_io = DatafluxLightningCheckpoint(
             project_name, storage_client)
         self.model = model
@@ -63,7 +63,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
             self.checkpoint_io.save_checkpoint(checkpoint,
                                                path / _METADATA_FILENAME)
 
-    def get_sharded_state_dict_context(self, module: Module) -> Generator[None, None, None]:
+    def get_sharded_state_dict_context(
+            self, module: Module) -> Generator[None, None, None]:
 
         from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
@@ -93,7 +94,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
             module_state = {"model": self.model.state_dict()}
             load(module_state, self.reader)
             self.model.load_state_dict(
-                module_state["model"], strict=self.lightning_module.strict_loading)
+                module_state["model"],
+                strict=self.lightning_module.strict_loading)
 
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
 
@@ -114,7 +116,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         # Load metadata (anything not a module or optimizer)
         new_path = path / _METADATA_FILENAME
         metadata = None
-        with self.reader.fs.create_stream(path=new_path, mode='rb') as metadata_file:
+        with self.reader.fs.create_stream(path=new_path,
+                                          mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
 
@@ -157,7 +160,10 @@ def init_processes():
     configure_master_addr()
 
 
-def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_path: str = ""):
+def main(project: str,
+         ckpt_dir_path: str,
+         save_only_latest: bool,
+         ckpt_restore_path: str = ""):
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
     dataset = WikiText2()
@@ -192,8 +198,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
                           model=model,
                           state_dict_type="sharded",
                       ),
-                      num_nodes=int(os.environ.get("WORLD_SIZE", 5))
-                      )
+                      num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
     trainer.fit(model, dataloader)
 
     print("Restoring checkpoints ...")
@@ -216,9 +221,89 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
                           model=model,
                           state_dict_type="sharded",
                       ),
-                      num_nodes=int(os.environ.get("WORLD_SIZE", 5))
-                      )
+                      num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
     trainer.fit(model, dataloader, ckpt_path=ckpt_restore_path)
+
+
+class FSSpecFSDPStrategy(FSDPStrategy):
+
+    def __init__(self, path, project_name, model, **kwargs):
+        super().__init__(**kwargs)
+        self.fs = gcsfs.GCSFileSystem(project=project_name)
+        self.model = model
+
+    def save_checkpoint(self,
+                        checkpoint,
+                        filepath,
+                        storage_options=None) -> None:
+        if storage_options is not None:
+            raise TypeError(
+                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
+                " `FSDPStrategy` does not use the `CheckpointIO`.")
+
+        path = Path(self.broadcast(filepath))
+        if self._state_dict_type == "sharded":
+            if path.is_file():
+                path.unlink()
+            path.mkdir(parents=True, exist_ok=True)
+
+            converted_state = {"model": checkpoint.pop("state_dict")}
+            converted_state.update({
+                f"optimizer_{idx}": optim_state
+                for idx, optim_state in enumerate(
+                    checkpoint.pop("optimizer_states", []))
+            })
+
+            _distributed_checkpoint_save(converted_state, path)
+
+            if self.global_rank == 0:
+                torch.save(checkpoint, path / _METADATA_FILENAME)
+        else:
+            raise ValueError(
+                f"Unknown state_dict_type: {self._state_dict_type}")
+
+    def load_checkpoint(self, checkpoint_path):
+        # broadcast the path from rank 0 to ensure all the states are loaded from a common path
+        path = Path(self.broadcast(checkpoint_path))
+
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+        assert self.model is not None
+        assert self.lightning_module is not None
+
+        from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+
+        state_dict_ctx = _get_sharded_state_dict_context(self.model)
+
+        with state_dict_ctx:
+            module_state = {"model": self.model.state_dict()}
+            _distributed_checkpoint_load(module_state, path)
+            self.model.load_state_dict(
+                module_state["model"],
+                strict=self.lightning_module.strict_loading)
+
+            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
+                from torch.distributed.checkpoint import FileSystemReader
+
+                reader = FsspecReader(path=path)
+                # the optimizer states must be loaded separately
+                for idx, optim in enumerate(self.optimizers):
+                    optim_key = f"optimizer_{idx}"
+                    optim_state = load_sharded_optimizer_state_dict(
+                        model_state_dict=module_state["model"],
+                        optimizer_key=optim_key,
+                        storage_reader=reader,
+                    )
+                    flattened_osd = FSDP.optim_state_dict_to_load(
+                        optim_state_dict=optim_state[optim_key],
+                        model=self.model,
+                        optim=optim,
+                    )
+                    optim.load_state_dict(flattened_osd)
+
+        # Load metadata (anything not a module or optimizer)
+        metadata = torch.load(path / _METADATA_FILENAME)
+        return metadata
 
 
 class DemoTransformer(LightningTransformer):
