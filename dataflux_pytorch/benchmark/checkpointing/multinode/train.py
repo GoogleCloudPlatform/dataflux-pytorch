@@ -80,12 +80,10 @@ def main(project: str,
         num_nodes=num_nodes,
     )
     trainer.fit(model, dataloader)
+    print(f"Saving checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     start = time.time()
     for i in range(max_steps_save):
-        save_path = ckpt_dir_path + f"checkpoints/ckpt_{i}.ckpt/"
-        save_path = os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/')
-        print(f"Saved checkpoint to {save_path} {max_steps_save} times.")
-        trainer.save_checkpoint(save_path)
+            trainer.save_checkpoint(os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
     end = time.time()
     if torch.distributed.get_rank() == 0:
         print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
