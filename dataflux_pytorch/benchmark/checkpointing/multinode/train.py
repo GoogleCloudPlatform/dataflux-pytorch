@@ -83,7 +83,8 @@ def main(project: str,
     print(f"Saving checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     start = time.time()
     for i in range(max_steps_save):
-            trainer.save_checkpoint(os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
+        trainer.save_checkpoint(
+            os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
     end = time.time()
     if torch.distributed.get_rank() == 0:
         print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")

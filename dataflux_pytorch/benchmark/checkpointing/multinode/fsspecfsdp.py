@@ -41,9 +41,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
             for idx, optim_state in enumerate(
                 checkpoint.pop("optimizer_states", []))
         })
-        save(converted_state,
-             checkpoint_id=filepath,
-             storage_writer=writer)
+        save(converted_state, checkpoint_id=filepath, storage_writer=writer)
 
         bucket = gcsfs.GCSFileSystem()
         with bucket.open(os.path.join(filepath, _METADATA_FILENAME),
@@ -106,6 +104,6 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         new_path = os.path.join(checkpoint_path, _METADATA_FILENAME)
         metadata = None
         with reader.fs.create_stream(path=new_path,
-                                          mode='rb') as metadata_file:
+                                     mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
