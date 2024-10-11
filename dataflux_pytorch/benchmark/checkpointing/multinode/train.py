@@ -14,13 +14,13 @@ import torch.distributed
 from torch.utils.data import DataLoader
 
 DF_FSDP_STRATEGY = "dataflux_fsdp"
-FSDP_STRATEGY = "fsdp"
+FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--strategy',
-                        choices=[DF_FSDP_STRATEGY, FSDP_STRATEGY],
+                        choices=[DF_FSDP_STRATEGY, FSSPEC_FSDP_STRATEGY],
                         default=DF_FSDP_STRATEGY)
     return parser.parse_args()
 
