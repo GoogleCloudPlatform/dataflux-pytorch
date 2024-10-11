@@ -34,7 +34,6 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         writer = FF.FsspecWriter(self.path, sync_files=False)
         _ = Path(self.broadcast(filepath))
 
-        # self.broadcast(filepath)
         converted_state = {"model": checkpoint.pop("state_dict")}
         converted_state.update({
             f"optimizer_{idx}": optim_state
@@ -100,7 +99,6 @@ class FSSpecFSDPStrategy(FSDPStrategy):
                     optim.load_state_dict(flattened_osd)
 
         # Load metadata (anything not a module or optimizer)
-        # new_path = path / _METADATA_FILENAME
         new_path = os.path.join(checkpoint_path, _METADATA_FILENAME)
         metadata = None
         with reader.fs.create_stream(path=new_path,
