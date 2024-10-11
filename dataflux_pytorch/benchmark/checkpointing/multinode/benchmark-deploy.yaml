@@ -49,6 +49,8 @@ spec:
                     nvidia.com/gpu: 1
 
                 env: 
+                - name: PYTHONPATH
+                  value: /app
                 - name: REPLICATED_JOB_NAME
                   valueFrom:
                     fieldRef:
