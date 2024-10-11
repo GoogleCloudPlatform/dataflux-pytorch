@@ -1,3 +1,4 @@
+from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
 from demo.lightning.checkpoint.multinode.train import DatafluxFSDPStrategy, init_processes, DemoTransformer
 
 import os
@@ -6,9 +7,7 @@ import torch
 import statistics
 import argparse
 
-from fsspecfsdp import FSSpecFSDPStrategy
 from lightning import Trainer
-from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (WikiText2)
 import torch.distributed
@@ -22,7 +21,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--strategy',
                         choices=[DF_FSDP_STRATEGY, FSDP_STRATEGY],
-                        default=FSDP_STRATEGY)
+                        default=DF_FSDP_STRATEGY)
     return parser.parse_args()
 
 
@@ -51,6 +50,7 @@ def main(project: str,
 
     strategy = None
     if args.strategy == DF_FSDP_STRATEGY:
+        print("Using DatafluxFSDPStrategy")
         strategy = DatafluxFSDPStrategy(
             path=ckpt_dir_path,
             project_name=project,
@@ -59,6 +59,7 @@ def main(project: str,
             state_dict_type="sharded",
         )
     else:
+        print("Using FSSpecFSDPStrategy")
         strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
                                       model=model,
                                       state_dict_type="sharded")
@@ -105,6 +106,7 @@ def main(project: str,
         new_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
         strategy = None
         if args.strategy == DF_FSDP_STRATEGY:
+            print("Using DatafluxFSDPStrategy")
             strategy = DatafluxFSDPStrategy(
                 path=new_path,
                 project_name=project,
@@ -113,6 +115,7 @@ def main(project: str,
                 state_dict_type="sharded",
             )
         else:
+            print("Using FSSpecFSDPStrategy")
             strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
                                           model=model,
                                           state_dict_type="sharded")
