@@ -4,6 +4,7 @@ import gcsfs
 import torch
 
 from pathlib import Path
+from typing import Generator
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.strategies import FSDPStrategy
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -19,8 +20,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
     def __init__(self, path, model, **kwargs):
         super().__init__(**kwargs)
         self.model = model
-        # self.reader = FF.FsspecReader(path)
-        self.writer = FF.FsspecWriter(path, sync_files=False)
+        self.path = path
 
     def save_checkpoint(self,
                         checkpoint,
@@ -31,7 +31,8 @@ class FSSpecFSDPStrategy(FSDPStrategy):
                 "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
                 " `FSDPStrategy` does not use the `CheckpointIO`.")
 
-        path = Path(self.broadcast(filepath))
+        writer = FF.FsspecWriter(self.path, sync_files=False)
+        _ = Path(self.broadcast(filepath))
 
         # self.broadcast(filepath)
         converted_state = {"model": checkpoint.pop("state_dict")}
@@ -42,7 +43,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         })
         save(converted_state,
              checkpoint_id=filepath,
-             storage_writer=self.writer)
+             storage_writer=writer)
 
         bucket = gcsfs.GCSFileSystem()
         with bucket.open(os.path.join(filepath, _METADATA_FILENAME),
@@ -67,7 +68,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
 
     def load_checkpoint(self, checkpoint_path):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        path = Path(self.broadcast(checkpoint_path))
+        _ = Path(self.broadcast(checkpoint_path))
 
         assert self.model is not None
         assert self.lightning_module is not None
