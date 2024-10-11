@@ -1,24 +1,9 @@
 import os
-import socket
-import fsspec
+
 import gcsfs
-import time
 import torch
 
-from contextlib import contextmanager
-from typing import Generator
-from lightning import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos import (LightningTransformer, Transformer,
-                                     WikiText2)
-from torch.utils.data import DataLoader
 from pathlib import Path
-from google.cloud import storage
-
-from dataflux_pytorch.lightning.gcs_filesystem import GCSDistributedWriter, GCSDistributedReader
-from dataflux_pytorch.lightning.path_utils import parse_gcs_path
-from dataflux_core import user_agent
-from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.strategies import FSDPStrategy
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -41,8 +26,6 @@ class FSSpecFSDPStrategy(FSDPStrategy):
                         checkpoint,
                         filepath,
                         storage_options=None) -> None:
-        print(
-            f"FSSpecFSDPStrategy.save_checkpoint called; filepath={filepath}")
         if storage_options is not None:
             raise TypeError(
                 "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
@@ -57,22 +40,10 @@ class FSSpecFSDPStrategy(FSDPStrategy):
             for idx, optim_state in enumerate(
                 checkpoint.pop("optimizer_states", []))
         })
-        print(
-            f"In FSSpecFSDPStrategy.save_checkpoints. Second arg to save is {filepath}"
-        )
         save(converted_state,
              checkpoint_id=filepath,
              storage_writer=self.writer)
 
-        # do with torch.save via fsspec
-        print(
-            f"In FSSpecFSDPStrategy.save_checkpoint. Second arg to torch.save is {os.path.join(filepath, _METADATA_FILENAME)}"
-        )
-        # if self.global_rank == 0:
-        #     with self.writer.fs.open(os.path.join(filepath,
-        #                                           _METADATA_FILENAME)) as f:
-        #         torch.save(checkpoint, f)
-        import gcsfs
         bucket = gcsfs.GCSFileSystem()
         with bucket.open(os.path.join(filepath, _METADATA_FILENAME),
                          'wb') as f:
@@ -95,7 +66,6 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         return state_dict_type_context  # type: ignore[return-value]
 
     def load_checkpoint(self, checkpoint_path):
-        print(f"load_checkpoint called with checkpoint_path={checkpoint_path}")
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
 
