@@ -32,6 +32,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
                 " `FSDPStrategy` does not use the `CheckpointIO`.")
 
         writer = FF.FsspecWriter(self.path, sync_files=False)
+        # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         _ = Path(self.broadcast(filepath))
 
         converted_state = {"model": checkpoint.pop("state_dict")}
