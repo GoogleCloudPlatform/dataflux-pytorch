@@ -33,7 +33,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
 
         writer = FF.FsspecWriter(self.path, sync_files=False)
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        _ = Path(self.broadcast(filepath))
+        self.broadcast(filepath)
 
         converted_state = {"model": checkpoint.pop("state_dict")}
         converted_state.update({
@@ -66,7 +66,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
 
     def load_checkpoint(self, checkpoint_path):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        _ = Path(self.broadcast(checkpoint_path))
+        self.broadcast(checkpoint_path)
 
         assert self.model is not None
         assert self.lightning_module is not None
