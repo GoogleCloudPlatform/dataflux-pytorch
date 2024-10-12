@@ -23,6 +23,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         self.path = path
         self.reader = FF.FsspecReader(path)
         self.writer = FF.FsspecWriter(self.path, sync_files=False)
+        self.bucket = gcsfs.GCSFileSystem()
 
     def save_checkpoint(self,
                         checkpoint,
@@ -46,9 +47,8 @@ class FSSpecFSDPStrategy(FSDPStrategy):
              checkpoint_id=filepath,
              storage_writer=self.writer)
 
-        bucket = gcsfs.GCSFileSystem()
-        with bucket.open(os.path.join(filepath, _METADATA_FILENAME),
-                         'wb') as f:
+        with self.bucket.open(os.path.join(filepath, _METADATA_FILENAME),
+                              'wb') as f:
             torch.save(checkpoint, f)
 
     def get_sharded_state_dict_context(
