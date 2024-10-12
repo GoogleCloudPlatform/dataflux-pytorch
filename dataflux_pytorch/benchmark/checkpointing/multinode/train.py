@@ -151,9 +151,6 @@ def main(project: str,
 
 
 if __name__ == "__main__":
-    print(f'PROJECT: {os.getenv("PROJECT")}')
-    print(f'CKPT_DIR_PATH: {os.getenv("CKPT_DIR_PATH")}')
-    print(f'CKPT_RESTORE_PATH: {os.getenv("CKPT_RESTORE_PATH")}')
     main(
         os.getenv("PROJECT"),
         os.getenv("CKPT_DIR_PATH"),
