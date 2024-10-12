@@ -1,4 +1,3 @@
-import io
 import os
 import socket
 import time
@@ -32,8 +31,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
     def __init__(self, path, project_name, storage_client, model, **kwargs):
         super().__init__(**kwargs)
         self.writer = GCSDistributedWriter(path, project_name, storage_client)
-        self.reader = GCSDistributedReader(
-            path, project_name, storage_client)
+        self.reader = GCSDistributedReader(path, project_name, storage_client)
         self.checkpoint_io = DatafluxLightningCheckpoint(
             project_name, storage_client)
         self.model = model
@@ -63,7 +61,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
             self.checkpoint_io.save_checkpoint(checkpoint,
                                                path / _METADATA_FILENAME)
 
-    def get_sharded_state_dict_context(self, module: Module) -> Generator[None, None, None]:
+    def get_sharded_state_dict_context(
+            self, module: Module) -> Generator[None, None, None]:
 
         from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
@@ -93,7 +92,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
             module_state = {"model": self.model.state_dict()}
             load(module_state, self.reader)
             self.model.load_state_dict(
-                module_state["model"], strict=self.lightning_module.strict_loading)
+                module_state["model"],
+                strict=self.lightning_module.strict_loading)
 
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
 
@@ -114,7 +114,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         # Load metadata (anything not a module or optimizer)
         new_path = path / _METADATA_FILENAME
         metadata = None
-        with self.reader.fs.create_stream(path=new_path, mode='rb') as metadata_file:
+        with self.reader.fs.create_stream(path=new_path,
+                                          mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
 
@@ -157,7 +158,10 @@ def init_processes():
     configure_master_addr()
 
 
-def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_path: str = ""):
+def main(project: str,
+         ckpt_dir_path: str,
+         save_only_latest: bool,
+         ckpt_restore_path: str = ""):
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
     dataset = WikiText2()
@@ -192,8 +196,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
                           model=model,
                           state_dict_type="sharded",
                       ),
-                      num_nodes=int(os.environ.get("WORLD_SIZE", 5))
-                      )
+                      num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
     trainer.fit(model, dataloader)
 
     print("Restoring checkpoints ...")
@@ -216,8 +219,7 @@ def main(project: str, ckpt_dir_path: str, save_only_latest: bool, ckpt_restore_
                           model=model,
                           state_dict_type="sharded",
                       ),
-                      num_nodes=int(os.environ.get("WORLD_SIZE", 5))
-                      )
+                      num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
     trainer.fit(model, dataloader, ckpt_path=ckpt_restore_path)
 
 
