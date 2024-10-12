@@ -116,7 +116,7 @@ def main(project: str,
             )
         else:
             print("Using FSSpecFSDPStrategy")
-            strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
+            strategy = FSSpecFSDPStrategy(path=new_path,
                                           model=model,
                                           state_dict_type="sharded")
         trainer = Trainer(

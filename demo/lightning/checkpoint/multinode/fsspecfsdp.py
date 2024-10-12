@@ -21,6 +21,8 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         super().__init__(**kwargs)
         self.model = model
         self.path = path
+        self.reader = FF.FsspecReader(path)
+        self.writer = FF.FsspecWriter(self.path, sync_files=False)
 
     def save_checkpoint(self,
                         checkpoint,
@@ -31,7 +33,6 @@ class FSSpecFSDPStrategy(FSDPStrategy):
                 "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
                 " `FSDPStrategy` does not use the `CheckpointIO`.")
 
-        writer = FF.FsspecWriter(self.path, sync_files=False)
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         self.broadcast(filepath)
 
@@ -41,7 +42,9 @@ class FSSpecFSDPStrategy(FSDPStrategy):
             for idx, optim_state in enumerate(
                 checkpoint.pop("optimizer_states", []))
         })
-        save(converted_state, checkpoint_id=filepath, storage_writer=writer)
+        save(converted_state,
+             checkpoint_id=filepath,
+             storage_writer=self.writer)
 
         bucket = gcsfs.GCSFileSystem()
         with bucket.open(os.path.join(filepath, _METADATA_FILENAME),
@@ -74,11 +77,10 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
 
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
-        reader = FF.FsspecReader(checkpoint_path)
 
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
-            load(module_state, reader)
+            load(module_state, self.reader)
             self.model.load_state_dict(
                 module_state["model"],
                 strict=self.lightning_module.strict_loading)
@@ -90,7 +92,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
                     optim_state = load_sharded_optimizer_state_dict(
                         model_state_dict=module_state["model"],
                         optimizer_key=optim_key,
-                        storage_reader=reader,
+                        storage_reader=self.reader,
                     )
                     flattened_osd = FSDP.optim_state_dict_to_load(
                         optim_state_dict=optim_state[optim_key],
@@ -102,7 +104,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         # Load metadata (anything not a module or optimizer)
         new_path = os.path.join(checkpoint_path, _METADATA_FILENAME)
         metadata = None
-        with reader.fs.create_stream(path=new_path,
-                                     mode='rb') as metadata_file:
+        with self.reader.fs.create_stream(path=new_path,
+                                          mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
