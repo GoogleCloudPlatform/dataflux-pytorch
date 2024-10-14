@@ -1,29 +1,26 @@
 import os
 import socket
 import time
-import torch
-
-from contextlib import contextmanager
+from pathlib import Path
 from typing import Generator
+
+import torch
+from dataflux_core import user_agent
+from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
+                                                       GCSDistributedWriter)
+from google.cloud import storage
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
-from torch.utils.data import DataLoader
-from pathlib import Path
-from google.cloud import storage
-
-from dataflux_pytorch.lightning.gcs_filesystem import GCSDistributedWriter, GCSDistributedReader
-from dataflux_pytorch.lightning.path_utils import parse_gcs_path
-from dataflux_core import user_agent
-from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
-from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.strategies import FSDPStrategy
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
 from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
-from torch.distributed.checkpoint import save, load
+from lightning.pytorch.trainer.states import TrainerFn
+from torch.distributed.checkpoint import load, save
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn import Module
+from torch.utils.data import DataLoader
 
 
 class DatafluxFSDPStrategy(FSDPStrategy):
@@ -44,8 +41,9 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                         storage_options=None) -> None:
         if storage_options is not None:
             raise TypeError(
-                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
-                " `FSDPStrategy` does not use the `CheckpointIO`.")
+                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is\
+                not supported because`FSDPStrategy` does not use the \
+                    `CheckpointIO`.")
 
         path = Path(self.broadcast(filepath))
 
@@ -64,7 +62,9 @@ class DatafluxFSDPStrategy(FSDPStrategy):
     def get_sharded_state_dict_context(
             self, module: Module) -> Generator[None, None, None]:
 
-        from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
+        from torch.distributed.fsdp.api import (ShardedOptimStateDictConfig,
+                                                ShardedStateDictConfig,
+                                                StateDictType)
 
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
         optim_state_dict_config = ShardedOptimStateDictConfig(
@@ -78,13 +78,15 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         return state_dict_type_context  # type: ignore[return-value]
 
     def load_checkpoint(self, checkpoint_path):
-        # broadcast the path from rank 0 to ensure all the states are loaded from a common path
+        # broadcast the path from rank 0 to ensure all the states are loaded \
+        # from a common path.
         path = Path(self.broadcast(checkpoint_path))
 
         assert self.model is not None
         assert self.lightning_module is not None
 
-        from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+        from torch.distributed.checkpoint.optimizer import \
+            load_sharded_optimizer_state_dict
 
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
 
@@ -129,15 +131,16 @@ def configure_master_addr():
         coordinator_found = False
         lookup_attempt = 1
         max_coordinator_lookups = 50
-        while not coordinator_found and lookup_attempt <= max_coordinator_lookups:
+        while (not coordinator_found
+               and lookup_attempt <= max_coordinator_lookups):
             try:
                 coordinator_ip_address = socket.gethostbyname(
                     coordinator_address)
                 coordinator_found = True
             except socket.gaierror:
-                print(
-                    f"Failed to recognize coordinator address {coordinator_address} on"
-                    f" attempt {lookup_attempt}, retrying...")
+                print(f"Failed to recognize coordinator address\
+                         {coordinator_address} on attempt \
+                            {lookup_attempt}, retrying...")
                 lookup_attempt += 1
                 time.sleep(5)
     print(f"Coordinator IP address: {coordinator_ip_address}")
@@ -146,7 +149,7 @@ def configure_master_addr():
 
 def init_processes():
     """Initializes the distributed environment."""
-    # Get the necessary environment variables from the GKE environment
+    # Get the necessary environment variables from the GKE environment.
     world_size = int(os.environ["WORLD_SIZE"])
 
     job_index = int(os.environ.get("JOB_INDEX"))
@@ -169,9 +172,12 @@ def main(project: str,
 
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 2)))
-    # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
-    # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
-    # If `save_only_latest` is False, a new checkpoint is created for each step.
+    # Save once per step, and if `save_only_latest`, replace the last \
+    # checkpoint each time.
+    # Replacing is implemented by saving the new checkpoint, and then deleting\
+    # the previous one.
+    # If `save_only_latest` is False, a new checkpoint is created for each \
+    # step.
     checkpoint_callback = ModelCheckpoint(
         save_top_k=1 if save_only_latest else -1,
         every_n_train_steps=1,
