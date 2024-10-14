@@ -1,17 +1,19 @@
-from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
-from demo.lightning.checkpoint.multinode.train import DatafluxFSDPStrategy, init_processes, DemoTransformer
-
-import os
-import time
-import torch
-import statistics
 import argparse
+import os
+import statistics
+import time
 
+import torch
+import torch.distributed
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos import (WikiText2)
-import torch.distributed
+from lightning.pytorch.demos import WikiText2
 from torch.utils.data import DataLoader
+
+from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
+from demo.lightning.checkpoint.multinode.train import (DatafluxFSDPStrategy,
+                                                       DemoTransformer,
+                                                       init_processes)
 
 DF_FSDP_STRATEGY = "dataflux_fsdp"
 FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
@@ -131,7 +133,7 @@ def main(project: str,
             devices=1,
             num_nodes=num_nodes,
         )
-        trainer.fit(model, dataloader, ckpt_path=new_path)
+        trainer.fit(model, dataloader)
         start = time.time()
         trainer.strategy.load_checkpoint(new_path)
         end = time.time()
