@@ -10,18 +10,21 @@ import argparse
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (WikiText2)
+from lightning.pytorch.strategies import FSDPStrategy
 import torch.distributed
 from torch.utils.data import DataLoader
 
 DF_FSDP_STRATEGY = "dataflux_fsdp"
 FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
+FSDP_STRATEGY = "fsdp"
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--strategy',
-                        choices=[DF_FSDP_STRATEGY, FSSPEC_FSDP_STRATEGY],
-                        default=DF_FSDP_STRATEGY)
+    parser.add_argument(
+        '--strategy',
+        choices=[DF_FSDP_STRATEGY, FSSPEC_FSDP_STRATEGY, FSDP_STRATEGY],
+        default=DF_FSDP_STRATEGY)
     return parser.parse_args()
 
 
@@ -58,11 +61,14 @@ def main(project: str,
             model=model,
             state_dict_type="sharded",
         )
-    else:
+    elif args.strategy == FSSPEC_FSDP_STRATEGY:
         print("Using FSSpecFSDPStrategy")
         strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
                                       model=model,
                                       state_dict_type="sharded")
+    elif args.strategy == FSDP_STRATEGY:
+        print("Using FSDPStrategy.")
+        strategy = FSDPStrategy(state_dict_type="sharded")
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
@@ -114,11 +120,16 @@ def main(project: str,
                 model=model,
                 state_dict_type="sharded",
             )
-        else:
+        elif args.strategy == FSSPEC_FSDP_STRATEGY:
             print("Using FSSpecFSDPStrategy")
             strategy = FSSpecFSDPStrategy(path=new_path,
                                           model=model,
                                           state_dict_type="sharded")
+        elif args.strategy == FSDP_STRATEGY:
+            print("Using FSDPStrategy.")
+            strategy = FSDPStrategy(state_dict_type="sharded")
+        else:
+            raise Exception()
         trainer = Trainer(
             default_root_dir=ckpt_dir_path,
             plugins=[],
