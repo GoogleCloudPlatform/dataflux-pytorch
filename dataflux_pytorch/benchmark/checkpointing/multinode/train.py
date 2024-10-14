@@ -69,6 +69,9 @@ def main(project: str,
     elif args.strategy == FSDP_STRATEGY:
         print("Using FSDPStrategy.")
         strategy = FSDPStrategy(state_dict_type="sharded")
+    else:
+        raise TypeError("Invalid strategy.")
+
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
@@ -129,7 +132,7 @@ def main(project: str,
             print("Using FSDPStrategy.")
             strategy = FSDPStrategy(state_dict_type="sharded")
         else:
-            raise Exception()
+            raise TypeError("Invalid strategy.")
         trainer = Trainer(
             default_root_dir=ckpt_dir_path,
             plugins=[],
