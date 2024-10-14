@@ -14,18 +14,19 @@
  limitations under the License.
  """
 import argparse
-import statistics
-import torch
-import torch.nn as nn
-import torch.distributed as dist
-import torch.multiprocessing as mp
-import torch.distributed.checkpoint as dist_cp
 import os
+import statistics
 import time
-from typing import Optional, Dict
-from lightning.pytorch.strategies import FSDPStrategy
-from dataflux_pytorch.lightning.gcs_filesystem import GCSDistributedWriter, GCSDistributedReader
+from typing import Dict, Optional
 
+import torch
+import torch.distributed as dist
+import torch.distributed.checkpoint as dist_cp
+import torch.multiprocessing as mp
+import torch.nn as nn
+from lightning.pytorch.strategies import FSDPStrategy
+
+from dataflux_pytorch.lightning.gcs_filesystem import GCSDistributedReader, GCSDistributedWriter
 
 # Constants for distributed setup
 MASTER_ADDR = 'localhost'
@@ -45,15 +46,14 @@ def write_model_structure(file, model, indent=''):
 
 
 def write_full_model(model: nn.Module, filename: str) -> None:
-    try:
-        with open(filename, 'w') as f:
-            f.write("Model Structure:\n")
-            write_model_structure(f, model)
-            f.write("\nModel State Dict:\n")
-            for key, value in model.state_dict().items():
-                f.write(f"{key}:\n")
-                f.write(f"  Shape: {value.shape}\n")
-                f.write(f"  Values: {value}\n")
+    with open(filename, 'w') as f:
+        f.write("Model Structure:\n")
+        write_model_structure(f, model)
+        f.write("\nModel State Dict:\n")
+        for key, value in model.state_dict().items():
+            f.write(f"{key}:\n")
+            f.write(f"  Shape: {value.shape}\n")
+            f.write(f"  Values: {value}\n")
 
             if hasattr(model, 'dummy_tensors'):
                 f.write("\nDummy Tensors:\n")
@@ -63,6 +63,9 @@ def write_full_model(model: nn.Module, filename: str) -> None:
                     f.write(f"  Values: {tensor}\n")
     except IOError as e:
         logger.error(f"Error writing model to {filename}: {e}")
+
+
+def write_state_dict(state_dict: Dict[str, torch.Tensor], filename: str) -> None:
 
 
 def write_state_dict(state_dict: Dict[str, torch.Tensor], filename: str) -> None:
@@ -104,14 +107,18 @@ def parse_args() -> argparse.Namespace:
                         help="Path to GCS bucket for checkpoints.")
     parser.add_argument("--layer-size", type=int,
                         default=100, help="Size of each layer.")
+                        default = 100, help = "Size of each layer.")
     parser.add_argument("--clear-kernel-cache", action="store_true",
-                        default=False, help="Clear kernel cache.")
+                        default = False, help = "Clear kernel cache.")
     parser.add_argument("--sample-count", type=int, default=3,
-                        help="Number of samples for benchmarking.")
+                        help = "Number of samples for benchmarking.")
     parser.add_argument("--padding-size", type=int, default=1000,
-                        help="Size of dummy tensors for padding.")
+                        help = "Size of dummy tensors for padding.")
+                        help = "Size of dummy tensors for padding.")
     parser.add_argument("--world-size", type=int, required=True,
                         help="Number of processes in the distributed setup.")
+    parser.add_argument("--debug", action="store_true",
+                        help="Enable debug mode.")
     parser.add_argument("--debug", action="store_true",
                         help="Enable debug mode.")
     return parser.parse_args()
@@ -125,7 +132,7 @@ class BenchmarkStrategy(FSDPStrategy):
         self.model = model
         self.benchmark_world_size = world_size
 
-    def save_checkpoint(self, checkpoint: Dict[str, torch.Tensor], filepath: str, storage_options: Optional[Dict] = None) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, torch.Tensor], filepath: str, storage_options: Optional[Dict]=None) -> None:
         """
         Saves the model's state dictionary to a specified file path in GCS. torch.distributed.checkpoint.save contains the core logic for saving model shards.
         You can find the source code for FSDP.save_checkpoint
@@ -140,13 +147,17 @@ class BenchmarkStrategy(FSDPStrategy):
         """
         dist_cp.save(state_dict=checkpoint, checkpoint_id=filepath,
                      storage_writer=self.writer)
+        dist_cp.save(state_dict=checkpoint, checkpoint_id=filepath,
+                     storage_writer=self.writer)
 
+    def load_checkpoint(self, checkpoint_path: str, initial_state_dict: Dict) -> None:
     def load_checkpoint(self, checkpoint_path: str, initial_state_dict: Dict) -> None:
         """
         Loads a model's state dictionary from a specified checkpoint file in GCS. torch.distributed.checkpoint.load contains the core logic of loading sharded model weights.
         You can find the source code for FSDP.load_checkpoint
         https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/fabric/strategies/fsdp.py#L519.
 
+        For torch.distributed.checkpoint.load to work properly the template_state_dict should have model format.
         For torch.distributed.checkpoint.load to work properly the template_state_dict should have model format.
         The values of the keys will be overwritten with new values from sharded checkpoint after load is successful.
 
@@ -163,15 +174,24 @@ class BenchmarkStrategy(FSDPStrategy):
                      storage_reader=self.reader
                      )
 
+        dist_cp.load(state_dict=initial_state_dict,
+                     checkpoint_id=checkpoint_path,
+                     storage_reader=self.reader
+                     )
+
 
 class SimpleModel(nn.Module):
+    def __init__(self, size: int, padding_size: int):
     def __init__(self, size: int, padding_size: int):
         super(SimpleModel, self).__init__()
         self.fc1 = nn.Linear(size, size)
         self.fc2 = nn.Linear(size, size)
         self.dummy_tensors = [torch.randn(size, size)
                               for _ in range(padding_size)]
+        self.dummy_tensors = [torch.randn(size, size)
+                              for _ in range(padding_size)]
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.fc2(torch.relu(self.fc1(x)))
 
@@ -188,6 +208,7 @@ def cleanup():
 
 
 def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed_state_dict: Dict[str, torch.Tensor], filepath: str, sample_count: int, operation: str, model) -> list:
+def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed_state_dict: Dict[str, torch.Tensor], filepath: str, sample_count: int, operation: str, model) -> list:
     """
     Times the save or load operations for checkpoints.
 
@@ -202,9 +223,17 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed
         list: A list of times taken for each operation in seconds.
 
     This function facilitates performance evaluation of checkpoint saving/loading
+    This function facilitates performance evaluation of checkpoint saving/loading
     under distributed settings.
     """
     times = []
+    template_state_dict = model.state_dict()
+    for key, tensor in template_state_dict.items():
+        template_state_dict[key] = torch.empty_like(tensor)
+    if hasattr(model, 'dummy_tensors'):
+        for i, tensor in enumerate(model.dummy_tensors):
+            template_state_dict[f'dummy_tensor_{i}'] = torch.empty_like(
+                tensor)
     template_state_dict = model.state_dict()
     for key, tensor in template_state_dict.items():
         template_state_dict[key] = torch.empty_like(tensor)
@@ -223,6 +252,8 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed
         elif operation == 'load':
             benchmark_strategy.load_checkpoint(
                 checkpoint_path=checkpoint_path, initial_state_dict=template_state_dict)
+            benchmark_strategy.load_checkpoint(
+                checkpoint_path=checkpoint_path, initial_state_dict=template_state_dict)
         end_time = time.time()
         times.append(end_time - start_time)
         dist.barrier()  # Synchronize processes
@@ -231,10 +262,13 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy, distributed
 
 
 def run_benchmark(rank, world_size: int, layer_size: int, project: str, filepath: str, padding_size: int, sample_count: int, debug: bool) -> None:
+def run_benchmark(rank, world_size: int, layer_size: int, project: str, filepath: str, padding_size: int, sample_count: int, debug: bool) -> None:
     setup(rank, world_size)
 
     model = SimpleModel(layer_size, padding_size)
+    model = SimpleModel(layer_size, padding_size)
 
+    if rank == 0 and debug:
     if rank == 0 and debug:
         print("Writing initial model structure and parameters to file...")
         write_full_model(model, "initial_model_state.txt")
@@ -259,11 +293,15 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str, filepath
     dist.barrier()
     save_checkpoint_times = time_checkpoint_operation(
         benchmark_strategy, state_dict, filepath, sample_count, 'save', model)
+        benchmark_strategy, state_dict, filepath, sample_count, 'save', model)
     load_checkpoint_times = time_checkpoint_operation(
+        benchmark_strategy, state_dict, filepath, sample_count, 'load', model)
+
         benchmark_strategy, state_dict, filepath, sample_count, 'load', model)
 
     if rank == 0:
         print(
+            f"Time taken to save checkpoint: {statistics.mean(save_checkpoint_times):.4f} seconds")
             f"Time taken to save checkpoint: {statistics.mean(save_checkpoint_times):.4f} seconds")
         print(
             f"Time taken to load checkpoint: {statistics.mean(load_checkpoint_times):.4f} seconds")
@@ -272,6 +310,7 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str, filepath
         print(
             f"Size of distributed tensors (rank {rank}): {format_size(total_distributed_size_bytes / world_size)}")
         print(
+            f"Total size of all tensors: {format_size(total_distributed_size_bytes )}")
             f"Total size of all tensors: {format_size(total_distributed_size_bytes )}")
         print("######################")
 
@@ -284,6 +323,7 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str, filepath
     cleanup()
 
 
+def main() -> None:
 def main() -> None:
     """
     Typical usage example:
@@ -302,4 +342,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    main()
     main()
