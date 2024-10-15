@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Generator
 
 import torch
-import torch.distributed
 import torch.optim
 from dataflux_core import user_agent
 from google.cloud import storage
