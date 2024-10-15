@@ -7,6 +7,7 @@ from typing import Generator
 
 import torch
 import torch.distributed
+import torch.optim
 from dataflux_core import user_agent
 from google.cloud import storage
 from lightning import Trainer
@@ -265,6 +266,9 @@ class DemoTransformer(LightningTransformer):
     ) -> None:
         super().__init__()
         self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
+
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
 
 if __name__ == "__main__":
