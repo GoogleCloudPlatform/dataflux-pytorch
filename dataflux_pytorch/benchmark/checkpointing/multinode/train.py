@@ -79,7 +79,7 @@ def main(project: str,
         max_steps=max_steps_save,
         accelerator="gpu",
         strategy=strategy,
-        devices=1,
+        devices='auto',
         num_nodes=num_nodes,
     )
     trainer.fit(model, dataloader)
@@ -130,7 +130,7 @@ def main(project: str,
             max_steps=max_steps_restore,
             accelerator="gpu",
             strategy=strategy,
-            devices=1,
+            devices='auto',
             num_nodes=num_nodes,
         )
         trainer.fit(model, dataloader)
