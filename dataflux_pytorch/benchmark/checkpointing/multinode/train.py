@@ -134,7 +134,7 @@ def main(project: str,
             devices='auto',
             num_nodes=num_nodes,
         )
-        trainer.fit(model, dataloader)
+        trainer.fit(model, dataloader, ckpt_path=new_path)
         start = time.time()
         # trainer.strategy.load_checkpoint(new_path)
         end = time.time()
