@@ -123,7 +123,7 @@ def main(project: str,
                                           model=model,
                                           state_dict_type="sharded")
         trainer = Trainer(
-            default_root_dir=ckpt_dir_path,
+            default_root_dir=new_path,
             plugins=[],
             callbacks=[checkpoint_callback],
             min_epochs=min_epochs_restore,
@@ -136,7 +136,6 @@ def main(project: str,
         )
         trainer.fit(model, dataloader)
         start = time.time()
-        trainer._checkpoint_connector.restore(new_path)
         # trainer.strategy.load_checkpoint(new_path)
         end = time.time()
 
