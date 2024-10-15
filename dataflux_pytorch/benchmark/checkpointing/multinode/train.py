@@ -59,10 +59,7 @@ def get_strategy(choice, model, ckpt_dir_path):
     return strategy
 
 
-def main(project: str,
-         ckpt_dir_path: str,
-         save_only_latest: bool,
-         ckpt_restore_path: str = ""):
+def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     args = parse_args()
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
@@ -72,16 +69,6 @@ def main(project: str,
 
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-    # Save once per step, and if `save_only_latest`, replace the last checkpoint each time.
-    # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
-    # If `save_only_latest` is False, a new checkpoint is created for each step.
-    checkpoint_callback = ModelCheckpoint(
-        save_top_k=1 if save_only_latest else -1,
-        every_n_train_steps=1,
-        filename="checkpoint-{epoch:02d}-{step:02d}",
-        enable_version_counter=True,
-    )
-
     strategy = get_strategy(args.strategy, model, ckpt_dir_path)
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
@@ -89,9 +76,9 @@ def main(project: str,
     num_nodes = int(os.environ.get("NUM_NODES", 1))
 
     trainer = Trainer(
+        enable_checkpointing=False,
         default_root_dir=ckpt_dir_path,
         plugins=[],
-        callbacks=[checkpoint_callback],
         min_epochs=min_epochs_save,
         max_epochs=max_epochs_save,
         max_steps=max_steps_save,
@@ -115,20 +102,14 @@ def main(project: str,
     max_steps_restore = int(os.environ.get("MAX_STEPS_RESTORE", 3))
     load_checkpoint_times = []
     for i in range(max_steps_restore):
-        checkpoint_callback = ModelCheckpoint(
-            save_top_k=1 if save_only_latest else -1,
-            every_n_train_steps=0,
-            filename="checkpoint-{epoch:02d}-{step:02d}",
-            enable_version_counter=True,
-        )
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
         new_ckpt_dir_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
         strategy = get_strategy(args.strategy, model, new_ckpt_dir_path)
         trainer = Trainer(
+            enable_checkpointing=False,
             default_root_dir=ckpt_dir_path,
             plugins=[],
-            callbacks=[checkpoint_callback],
             min_epochs=min_epochs_restore,
             max_epochs=max_epochs_restore,
             max_steps=max_steps_restore,
@@ -158,8 +139,6 @@ def main(project: str,
 
 if __name__ == "__main__":
     main(
-        os.getenv("PROJECT"),
         os.getenv("CKPT_DIR_PATH"),
-        os.getenv("SAVE_ONLY_LATEST") == "1",
         os.getenv("CKPT_RESTORE_PATH"),
     )
