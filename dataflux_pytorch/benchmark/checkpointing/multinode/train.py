@@ -145,6 +145,5 @@ if __name__ == "__main__":
     main(
         os.getenv("PROJECT"),
         os.getenv("CKPT_DIR_PATH"),
-        os.getenv("SAVE_ONLY_LATEST") == "1",
         os.getenv("CKPT_RESTORE_PATH"),
     )
