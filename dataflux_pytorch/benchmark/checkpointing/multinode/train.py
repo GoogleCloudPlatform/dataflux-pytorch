@@ -1,17 +1,19 @@
-from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
-from demo.lightning.checkpoint.multinode.train import DatafluxFSDPStrategy, init_processes, DemoTransformer
-
-import os
-import time
-import torch
-import statistics
 import argparse
+import os
+import statistics
+import time
 
+import torch
+import torch.distributed
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos import (WikiText2)
-import torch.distributed
+from lightning.pytorch.demos import WikiText2
 from torch.utils.data import DataLoader
+
+from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
+from demo.lightning.checkpoint.multinode.train import (DatafluxFSDPStrategy,
+                                                       DemoTransformer,
+                                                       init_processes)
 
 DF_FSDP_STRATEGY = "dataflux_fsdp"
 FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
@@ -57,16 +59,18 @@ def main(project: str,
             storage_client=None,
             model=model,
             state_dict_type="sharded",
+            use_orig_params=False,
         )
     else:
         print("Using FSSpecFSDPStrategy")
         strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
                                       model=model,
-                                      state_dict_type="sharded")
+                                      state_dict_type="sharded",
+                                      use_orig_params=False)
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
-    num_nodes = int(os.environ.get("WORLD_SIZE", 4))
+    num_nodes = int(os.environ.get("NUM_NODES", 1))
 
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
@@ -77,7 +81,7 @@ def main(project: str,
         max_steps=max_steps_save,
         accelerator="gpu",
         strategy=strategy,
-        devices=1,
+        devices=os.environ.get("NUM_DEVICES", 'auto'),
         num_nodes=num_nodes,
     )
     trainer.fit(model, dataloader)
@@ -113,12 +117,14 @@ def main(project: str,
                 storage_client=None,
                 model=model,
                 state_dict_type="sharded",
+                use_orig_params=False,
             )
         else:
             print("Using FSSpecFSDPStrategy")
             strategy = FSSpecFSDPStrategy(path=new_path,
                                           model=model,
-                                          state_dict_type="sharded")
+                                          state_dict_type="sharded",
+                                          use_orig_params=False)
         trainer = Trainer(
             default_root_dir=ckpt_dir_path,
             plugins=[],
@@ -128,7 +134,7 @@ def main(project: str,
             max_steps=max_steps_restore,
             accelerator="gpu",
             strategy=strategy,
-            devices=1,
+            devices=os.environ.get("NUM_DEVICES", 'auto'),
             num_nodes=num_nodes,
         )
         trainer.fit(model, dataloader, ckpt_path=new_path)

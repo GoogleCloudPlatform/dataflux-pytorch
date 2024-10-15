@@ -5,10 +5,8 @@ from pathlib import Path
 from typing import Generator
 
 import torch
+import torch.optim
 from dataflux_core import user_agent
-from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
-from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
-                                                       GCSDistributedWriter)
 from google.cloud import storage
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -21,6 +19,10 @@ from torch.distributed.checkpoint import load, save
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn import Module
 from torch.utils.data import DataLoader
+
+from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
+                                                       GCSDistributedWriter)
 
 
 class DatafluxFSDPStrategy(FSDPStrategy):
@@ -235,9 +237,20 @@ class DemoTransformer(LightningTransformer):
         self,
         vocab_size: int = 33278,
         nlayers: int = 2,
+        optimizer: str = "sgd",
     ) -> None:
         super().__init__()
+        self.optimizer = optimizer
         self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
+
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        # Use self.trainer.model.parameters so that we can set
+        # use_orig_params=False on the Strategy. Using AdamW also results in a
+        # checkpoint size roughly 20% of used GPU memory.
+        if self.optimizer == "adamw":
+            return torch.optim.AdamW(self.trainer.model.parameters(), lr=0.1)
+        else:
+            return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
 
 if __name__ == "__main__":

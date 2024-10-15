@@ -27,6 +27,8 @@ You will need to set the following environment variables in order for the benchm
   
   * `CKPT_DIR_PATH`: The full path of the directory in which to save checkpoints, in the format `gs://<bucket>/<directory>/`
 
+  * `CKPT_RESTORE_PATH`: The path to restore checkpoints from. Typically the `CKPT_DIR_PATH` + `/checkpoints/`
+
 2. Set the optional environment variables, if desired:
   
   * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints. Defaults to 10.
@@ -46,6 +48,10 @@ You will need to set the following environment variables in order for the benchm
   
   * `MAX_STEPS_RESTORE`: Maximum number of steps for which training can run during second trainig loop. Defaults to 5. 
 
+  * `NUM_NODES`: The number of nodes (machines). Defaults to 1.
+
+  * `NUM_DEVICES`: The number of devices per node, or `auto`. Defaults to `auto`. 
+
 
 ### Installing Requirements:
  
@@ -63,5 +69,5 @@ You will need to set the following environment variables in order for the benchm
 To run the script use the following command. 
 
 ```shell
-python dataflux_pytorch/benchmark/checkpointing/multinode/train.py
+python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train
 ```

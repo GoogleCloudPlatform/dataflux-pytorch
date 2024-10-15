@@ -65,7 +65,7 @@ spec:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
                   value: "15"
-                - name: WORLD_SIZE
+                - name: NUM_NODES
                   value: "15"
 
                 - name: JOBSET_NAME
