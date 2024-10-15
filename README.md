@@ -335,14 +335,14 @@ Checkpoint benchmarks were taken on single node setups with 48vCPU, 192 GB RAM, 
 
 | Checkpoint Type | Checkpoint File Size (MB) | Avg Checkpoint Restore Time | Read Throughput (MB/s) |
 | --- | --- | --- | --- |
-| Default   | 75.6    | 2.38      | 31.76   |
-| Dataflux  | 75.6    | 0.51      | 148.24  |
-| Default   | 298     | 1.69      | 176.33  |
-| Dataflux  | 298     | 1.03      | 289.32  |
-| Default   | 2,500   | 186.57    | 13.40   |
-| Dataflux  | 2,500   | 14.77     | 169.26  |
-| Default   | 24,200  | 2,093.52  | 11.56   |
-| Dataflux  | 24,200  | 113.14    | 213.89  |
+| Without Dataflux   | 75.6    | 2.38      | 31.76   |
+| Dataflux           | 75.6    | 0.51      | 148.24  |
+| Without Dataflux   | 298     | 1.69      | 176.33  |
+| Dataflux           | 298     | 1.03      | 289.32  |
+| Without Dataflux   | 2,500   | 186.57    | 13.40   |
+| Dataflux           | 2,500   | 14.77     | 169.26  |
+| Without Dataflux   | 24,200  | 2,093.52  | 11.56   |
+| Dataflux           | 24,200  | 113.14    | 213.89  |
 
 ## Limitations
 
