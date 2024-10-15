@@ -1,29 +1,27 @@
 import os
 import socket
 import time
-import torch
-
-from contextlib import contextmanager
+from pathlib import Path
 from typing import Generator
+
+import torch
+from dataflux_core import user_agent
+from google.cloud import storage
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
-from torch.utils.data import DataLoader
-from pathlib import Path
-from google.cloud import storage
-
-from dataflux_pytorch.lightning.gcs_filesystem import GCSDistributedWriter, GCSDistributedReader
-from dataflux_pytorch.lightning.path_utils import parse_gcs_path
-from dataflux_core import user_agent
-from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
-from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.strategies import FSDPStrategy
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
 from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
-from torch.distributed.checkpoint import save, load
+from lightning.pytorch.trainer.states import TrainerFn
+from torch.distributed.checkpoint import async_save, load, save
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn import Module
+from torch.utils.data import DataLoader
+
+from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
+                                                       GCSDistributedWriter)
 
 
 class DatafluxFSDPStrategy(FSDPStrategy):
@@ -37,6 +35,13 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         self.model = model
         self.storage_client = storage.Client(project=project_name)
         user_agent.add_dataflux_user_agent(self.storage_client)
+
+    def _save(self, state, path) -> None:
+        save(state, checkpoint_id=path, storage_writer=self.writer)
+
+    def _write_checkpoint(self, checkpoint, path):
+        self.checkpoint_io.save_checkpoint(checkpoint,
+                                           path / _METADATA_FILENAME)
 
     def save_checkpoint(self,
                         checkpoint,
@@ -55,16 +60,17 @@ class DatafluxFSDPStrategy(FSDPStrategy):
             for idx, optim_state in enumerate(
                 checkpoint.pop("optimizer_states", []))
         })
-        save(converted_state, checkpoint_id=path, storage_writer=self.writer)
+        self._save(converted_state, path)
 
         if self.global_rank == 0:
-            self.checkpoint_io.save_checkpoint(checkpoint,
-                                               path / _METADATA_FILENAME)
+            self._write_checkpoint(checkpoint, path)
 
     def get_sharded_state_dict_context(
             self, module: Module) -> Generator[None, None, None]:
 
-        from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
+        from torch.distributed.fsdp.api import (ShardedOptimStateDictConfig,
+                                                ShardedStateDictConfig,
+                                                StateDictType)
 
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
         optim_state_dict_config = ShardedOptimStateDictConfig(
@@ -84,7 +90,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         assert self.model is not None
         assert self.lightning_module is not None
 
-        from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+        from torch.distributed.checkpoint.optimizer import \
+            load_sharded_optimizer_state_dict
 
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
 
@@ -118,6 +125,23 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                                           mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
+
+
+class AsyncDatafluxFSDPStrategy(DatafluxFSDPStrategy):
+
+    def __init__(self, path, project_name, storage_client, model, **kwargs):
+        super().__init__(path, project_name, storage_client, model, **kwargs)
+        self.checkpoint_results = []
+
+    def _save(self, state, path) -> None:
+        result = async_save(state,
+                            checkpoint_id=path,
+                            storage_writer=self.writer)
+        self.checkpoint_results.append(result)
+
+    def _write_checkpoint(self, checkpoint, path):
+        self.checkpoint_io.save_checkpoint(checkpoint,
+                                           path / _METADATA_FILENAME)
 
 
 def configure_master_addr():

@@ -1,19 +1,22 @@
-from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
-from demo.lightning.checkpoint.multinode.train import DatafluxFSDPStrategy, init_processes, DemoTransformer
-
-import os
-import time
-import torch
-import statistics
 import argparse
+import os
+import statistics
+import time
 
+import torch
+import torch.distributed
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos import (WikiText2)
-import torch.distributed
+from lightning.pytorch.demos import WikiText2
 from torch.utils.data import DataLoader
 
+from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
+from demo.lightning.checkpoint.multinode.train import (
+    AsyncDatafluxFSDPStrategy, DatafluxFSDPStrategy, DemoTransformer,
+    init_processes)
+
 DF_FSDP_STRATEGY = "dataflux_fsdp"
+ASYNC_DF_STRATEGY = "async_fsdp"
 FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
 
 
@@ -48,6 +51,7 @@ def main(project: str,
         enable_version_counter=True,
     )
 
+    # Parse args to determine which strategy to initialize.
     strategy = None
     if args.strategy == DF_FSDP_STRATEGY:
         print("Using DatafluxFSDPStrategy")
@@ -58,11 +62,22 @@ def main(project: str,
             model=model,
             state_dict_type="sharded",
         )
-    else:
+    elif args.strategy == ASYNC_DF_STRATEGY:
+        strategy = AsyncDatafluxFSDPStrategy(
+            path=ckpt_dir_path,
+            project_name=project,
+            storage_client=None,
+            model=model,
+            state_dict_type="sharded",
+        )
+    elif args.strategy == FSSPEC_FSDP_STRATEGY:
         print("Using FSSpecFSDPStrategy")
         strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
                                       model=model,
                                       state_dict_type="sharded")
+    else:
+        raise Exception("Invalid strategy choice")
+
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
