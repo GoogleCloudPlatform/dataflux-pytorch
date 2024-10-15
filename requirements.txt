@@ -1,4 +1,4 @@
-torch==2.3.0
+torch
 google-cloud-storage
 absl-py
 numpy
