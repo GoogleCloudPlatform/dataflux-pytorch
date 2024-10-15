@@ -314,6 +314,36 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesnâ
 
 *Note: Within each experiment, all training parameters such as batch size and parallelism are consistent. The team is working on publishing a detailed analysis soon.*
 
+### Checkpointing
+Checkpoint benchmarks were taken on single node setups with 48vCPU, 192 GB RAM, 512 GB SSD co-located with a storage bucket in the `us-west` region. These results were the average of 10 runs. Checkpoints were tested on models ranging in size from ~76MB to ~24GB.
+
+## Checkpoint Save
+
+| Checkpoint Type | Checkpoint File Size (MB) | Avg Checkpoint Save Time | Write Throughput (MB/s) |
+| --- | --- | --- | --- |
+| Without Dataflux | 75.6    | 0.81    | 93.33   |
+| Dataflux         | 75.6    | 0.56    | 135.00  |
+| Without Dataflux | 298     | 2.87    | 103.98  |
+| Dataflux         | 298     | 1.03    | 289.32  |
+| Without Dataflux | 2,500   | 25.61   | 97.61   |
+| Dataflux         | 2,500   | 6.25    | 400.00  |
+| Without Dataflux | 24,200  | 757.10  | 31.96   |
+| Dataflux         | 24,200  | 64.50   | 375.19  |
+
+
+## Checkpoint Load
+
+| Checkpoint Type | Checkpoint File Size (MB) | Avg Checkpoint Restore Time | Read Throughput (MB/s) |
+| --- | --- | --- | --- |
+| Without Dataflux   | 75.6    | 2.38      | 31.76   |
+| Dataflux           | 75.6    | 0.51      | 148.24  |
+| Without Dataflux   | 298     | 1.69      | 176.33  |
+| Dataflux           | 298     | 1.03      | 289.32  |
+| Without Dataflux   | 2,500   | 186.57    | 13.40   |
+| Dataflux           | 2,500   | 14.77     | 169.26  |
+| Without Dataflux   | 24,200  | 2,093.52  | 11.56   |
+| Dataflux           | 24,200  | 113.14    | 213.89  |
+
 ## Limitations
 
 ### Billing
