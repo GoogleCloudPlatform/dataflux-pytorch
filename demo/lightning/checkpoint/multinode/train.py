@@ -1,7 +1,6 @@
 import os
 import socket
 import time
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator
 
@@ -25,7 +24,6 @@ from torch.utils.data import DataLoader
 from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
                                                        GCSDistributedWriter)
-from dataflux_pytorch.lightning.path_utils import parse_gcs_path
 
 
 class DatafluxFSDPStrategy(FSDPStrategy):
@@ -91,59 +89,30 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         from torch.distributed.checkpoint.optimizer import \
             load_sharded_optimizer_state_dict
 
-        t1 = time.time()
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
-        t2 = time.time()
-        print(
-            f"Got state dict ctx in {t2-t1} seconds on rank {torch.distributed.get_rank()}"
-        )
 
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
-            print(
-                f"load_checkpoint path is {path}, reader path is {self.reader.path} on rank {torch.distributed.get_rank()}"
-            )
             load(module_state, self.reader)
-            t3 = time.time()
-            print(
-                f"Loaded module state in {t3-t2} seconds on rank {torch.distributed.get_rank()}"
-            )
             self.model.load_state_dict(
                 module_state["model"],
                 strict=self.lightning_module.strict_loading)
-            t4 = time.time()
-            print(
-                f"Loaded model state dict in {t4-t3} seconds on rank {torch.distributed.get_rank()}"
-            )
 
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
 
                 for idx, optim in enumerate(self.optimizers):
-                    to1 = time.time()
                     optim_key = f"optimizer_{idx}"
                     optim_state = load_sharded_optimizer_state_dict(
                         model_state_dict=module_state["model"],
                         optimizer_key=optim_key,
                         storage_reader=self.reader,
                     )
-                    to2 = time.time()
-                    print(
-                        f"Loaded optimizer {idx} state dict in {to2-to1} seconds on rank {torch.distributed.get_rank()}"
-                    )
                     flattened_osd = FSDP.optim_state_dict_to_load(
                         optim_state_dict=optim_state[optim_key],
                         model=self.model,
                         optim=optim,
                     )
-                    to3 = time.time()
-                    print(
-                        f"Flattened optimizer {idx} state dict in {to3-to2} seconds on rank {torch.distributed.get_rank()}"
-                    )
                     optim.load_state_dict(flattened_osd)
-                    to4 = time.time()
-                    print(
-                        f"Loaded optimizer {idx} from flattened state dict in {to4-to3} seconds on rank {torch.distributed.get_rank()}"
-                    )
 
         # Load metadata (anything not a module or optimizer)
         new_path = path / _METADATA_FILENAME
@@ -268,8 +237,10 @@ class DemoTransformer(LightningTransformer):
         self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
+        # Use self.trainer.model.parameters so that we can set
+        # use_orig_params=False on the Strategy. Using AdamW also results in a
+        # checkpoint size roughly 20% of used GPU memory.
         return torch.optim.AdamW(self.trainer.model.parameters(), lr=0.1)
-        #return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
 
 if __name__ == "__main__":
