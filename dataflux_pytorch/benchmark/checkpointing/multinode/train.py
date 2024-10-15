@@ -22,9 +22,10 @@ FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--strategy',
-                        choices=[DF_FSDP_STRATEGY, FSSPEC_FSDP_STRATEGY],
-                        default=DF_FSDP_STRATEGY)
+    parser.add_argument(
+        '--strategy',
+        choices=[DF_FSDP_STRATEGY, ASYNC_DF_STRATEGY, FSSPEC_FSDP_STRATEGY],
+        default=DF_FSDP_STRATEGY)
     return parser.parse_args()
 
 
