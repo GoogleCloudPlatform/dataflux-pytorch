@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Generator
 
 import torch
+import torch.distributed
 from dataflux_core import user_agent
 from google.cloud import storage
 from lightning import Trainer
@@ -93,7 +94,9 @@ class DatafluxFSDPStrategy(FSDPStrategy):
 
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
-            self.reader.path = path
+            print(
+                f"load_checkpoint path is {path}, reader path is {self.reader.path} on rank {torch.distributed.get_rank()}"
+            )
             load(module_state, self.reader)
             self.model.load_state_dict(
                 module_state["model"],
