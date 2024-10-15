@@ -1,9 +1,11 @@
+from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
 from demo.lightning.checkpoint.multinode.train import DatafluxFSDPStrategy, init_processes, DemoTransformer
 
 import os
 import time
 import torch
 import statistics
+import argparse
 
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -11,11 +13,23 @@ from lightning.pytorch.demos import (WikiText2)
 import torch.distributed
 from torch.utils.data import DataLoader
 
+DF_FSDP_STRATEGY = "dataflux_fsdp"
+FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--strategy',
+                        choices=[DF_FSDP_STRATEGY, FSSPEC_FSDP_STRATEGY],
+                        default=DF_FSDP_STRATEGY)
+    return parser.parse_args()
+
 
 def main(project: str,
          ckpt_dir_path: str,
          save_only_latest: bool,
          ckpt_restore_path: str = ""):
+    args = parse_args()
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
     torch.cuda.empty_cache()
@@ -33,13 +47,22 @@ def main(project: str,
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
     )
-    dataflux_strategy = DatafluxFSDPStrategy(
-        path=ckpt_dir_path,
-        project_name=project,
-        storage_client=None,
-        model=model,
-        state_dict_type="sharded",
-    )
+
+    strategy = None
+    if args.strategy == DF_FSDP_STRATEGY:
+        print("Using DatafluxFSDPStrategy")
+        strategy = DatafluxFSDPStrategy(
+            path=ckpt_dir_path,
+            project_name=project,
+            storage_client=None,
+            model=model,
+            state_dict_type="sharded",
+        )
+    else:
+        print("Using FSSpecFSDPStrategy")
+        strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
+                                      model=model,
+                                      state_dict_type="sharded")
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
@@ -53,7 +76,7 @@ def main(project: str,
         max_epochs=max_epochs_save,
         max_steps=max_steps_save,
         accelerator="gpu",
-        strategy=dataflux_strategy,
+        strategy=strategy,
         devices=1,
         num_nodes=num_nodes,
     )
@@ -81,13 +104,21 @@ def main(project: str,
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
         new_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
-        dataflux_strategy = DatafluxFSDPStrategy(
-            path=new_path,
-            project_name=project,
-            storage_client=None,
-            model=model,
-            state_dict_type="sharded",
-        )
+        strategy = None
+        if args.strategy == DF_FSDP_STRATEGY:
+            print("Using DatafluxFSDPStrategy")
+            strategy = DatafluxFSDPStrategy(
+                path=new_path,
+                project_name=project,
+                storage_client=None,
+                model=model,
+                state_dict_type="sharded",
+            )
+        else:
+            print("Using FSSpecFSDPStrategy")
+            strategy = FSSpecFSDPStrategy(path=new_path,
+                                          model=model,
+                                          state_dict_type="sharded")
         trainer = Trainer(
             default_root_dir=ckpt_dir_path,
             plugins=[],
@@ -96,7 +127,7 @@ def main(project: str,
             max_epochs=max_epochs_restore,
             max_steps=max_steps_restore,
             accelerator="gpu",
-            strategy=dataflux_strategy,
+            strategy=strategy,
             devices=1,
             num_nodes=num_nodes,
         )
