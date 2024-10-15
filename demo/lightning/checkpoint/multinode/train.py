@@ -90,7 +90,12 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         from torch.distributed.checkpoint.optimizer import \
             load_sharded_optimizer_state_dict
 
+        t1 = time.time()
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
+        t2 = time.time()
+        print(
+            f"Got state dict ctx in {t2-t1} seconds on rank {torch.distributed.get_rank()}"
+        )
 
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
@@ -98,25 +103,46 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                 f"load_checkpoint path is {path}, reader path is {self.reader.path} on rank {torch.distributed.get_rank()}"
             )
             load(module_state, self.reader)
+            t3 = time.time()
+            print(
+                f"Loaded module state in {t3-t2} seconds on rank {torch.distributed.get_rank()}"
+            )
             self.model.load_state_dict(
                 module_state["model"],
                 strict=self.lightning_module.strict_loading)
+            t4 = time.time()
+            print(
+                f"Loaded model state dict in {t4-t3} seconds on rank {torch.distributed.get_rank()}"
+            )
 
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
 
                 for idx, optim in enumerate(self.optimizers):
+                    to1 = time.time()
                     optim_key = f"optimizer_{idx}"
                     optim_state = load_sharded_optimizer_state_dict(
                         model_state_dict=module_state["model"],
                         optimizer_key=optim_key,
                         storage_reader=self.reader,
                     )
+                    to2 = time.time()
+                    print(
+                        f"Loaded optimizer {idx} state dict in {to2-to1} seconds on rank {torch.distributed.get_rank()}"
+                    )
                     flattened_osd = FSDP.optim_state_dict_to_load(
                         optim_state_dict=optim_state[optim_key],
                         model=self.model,
                         optim=optim,
                     )
+                    to3 = time.time()
+                    print(
+                        f"Flattened optimizer {idx} state dict in {to3-to2} seconds on rank {torch.distributed.get_rank()}"
+                    )
                     optim.load_state_dict(flattened_osd)
+                    to4 = time.time()
+                    print(
+                        f"Loaded optimizer {idx} from flattened state dict in {to4-to3} seconds on rank {torch.distributed.get_rank()}"
+                    )
 
         # Load metadata (anything not a module or optimizer)
         new_path = path / _METADATA_FILENAME
