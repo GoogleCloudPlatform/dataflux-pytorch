@@ -2,11 +2,12 @@ import io
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator, Optional, Union, cast
+from typing import Generator, Optional, Union
 
 from dataflux_core import user_agent
 from google.cloud import storage
-from torch.distributed.checkpoint import FileSystemWriter, FileSystemReader
+from torch.distributed.checkpoint import FileSystemReader, FileSystemWriter
+
 from dataflux_pytorch.dataflux_checkpoint import DatafluxCheckpointBuffer
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
 
