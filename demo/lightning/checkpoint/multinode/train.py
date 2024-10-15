@@ -1,29 +1,29 @@
 import os
 import socket
 import time
-import torch
-
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Generator
+
+import torch
+from dataflux_core import user_agent
+from google.cloud import storage
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
-from torch.utils.data import DataLoader
-from pathlib import Path
-from google.cloud import storage
-
-from dataflux_pytorch.lightning.gcs_filesystem import GCSDistributedWriter, GCSDistributedReader
-from dataflux_pytorch.lightning.path_utils import parse_gcs_path
-from dataflux_core import user_agent
-from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
-from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.strategies import FSDPStrategy
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
 from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
-from torch.distributed.checkpoint import save, load
+from lightning.pytorch.trainer.states import TrainerFn
+from torch.distributed.checkpoint import load, save
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn import Module
+from torch.utils.data import DataLoader
+
+from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
+                                                       GCSDistributedWriter)
+from dataflux_pytorch.lightning.path_utils import parse_gcs_path
 
 
 class DatafluxFSDPStrategy(FSDPStrategy):
@@ -64,7 +64,9 @@ class DatafluxFSDPStrategy(FSDPStrategy):
     def get_sharded_state_dict_context(
             self, module: Module) -> Generator[None, None, None]:
 
-        from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
+        from torch.distributed.fsdp.api import (ShardedOptimStateDictConfig,
+                                                ShardedStateDictConfig,
+                                                StateDictType)
 
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
         optim_state_dict_config = ShardedOptimStateDictConfig(
@@ -84,12 +86,14 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         assert self.model is not None
         assert self.lightning_module is not None
 
-        from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+        from torch.distributed.checkpoint.optimizer import \
+            load_sharded_optimizer_state_dict
 
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
 
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
+            self.reader.path = path
             load(module_state, self.reader)
             self.model.load_state_dict(
                 module_state["model"],
