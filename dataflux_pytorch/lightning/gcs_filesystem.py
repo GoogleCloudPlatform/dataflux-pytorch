@@ -110,6 +110,7 @@ class GCSDistributedReader(FileSystemReader):
     def __init__(self,
                  path: Union[str, os.PathLike],
                  project_name: str,
-                 storage_client: Optional[storage.Client] = None):
-        super().__init__(path=path)
+                 storage_client: Optional[storage.Client] = None,
+                 **kwargs):
+        super().__init__(path=path, **kwargs)
         self.fs = GCSFileSystem(project_name, storage_client)
