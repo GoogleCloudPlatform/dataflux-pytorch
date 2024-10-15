@@ -31,6 +31,33 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_strategy(choice, model, ckpt_dir_path):
+    project = os.getenv("PROJECT")
+    strategy = None
+    if choice == DF_FSDP_STRATEGY:
+        print("Using DatafluxFSDPStrategy")
+        strategy = DatafluxFSDPStrategy(
+            path=ckpt_dir_path,
+            project_name=project,
+            storage_client=None,
+            model=model,
+            state_dict_type="sharded",
+            use_orig_params=False,
+        )
+    elif choice == FSSPEC_FSDP_STRATEGY:
+        print("Using FSSpecFSDPStrategy")
+        strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
+                                      model=model,
+                                      state_dict_type="sharded",
+                                      use_orig_params=False)
+    elif choice == FSDP_STRATEGY:
+        print("Using FSDPStrategy.")
+        strategy = FSDPStrategy(state_dict_type="sharded")
+    else:
+        raise TypeError("Invalid strategy.")
+    return strategy
+
+
 def main(project: str,
          ckpt_dir_path: str,
          save_only_latest: bool,
@@ -54,29 +81,7 @@ def main(project: str,
         enable_version_counter=True,
     )
 
-    strategy = None
-    if args.strategy == DF_FSDP_STRATEGY:
-        print("Using DatafluxFSDPStrategy")
-        strategy = DatafluxFSDPStrategy(
-            path=ckpt_dir_path,
-            project_name=project,
-            storage_client=None,
-            model=model,
-            state_dict_type="sharded",
-            use_orig_params=False,
-        )
-    elif args.strategy == FSSPEC_FSDP_STRATEGY:
-        print("Using FSSpecFSDPStrategy")
-        strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
-                                      model=model,
-                                      state_dict_type="sharded",
-                                      use_orig_params=False)
-    elif args.strategy == FSDP_STRATEGY:
-        print("Using FSDPStrategy.")
-        strategy = FSDPStrategy(state_dict_type="sharded")
-    else:
-        raise TypeError("Invalid strategy.")
-
+    strategy = get_strategy(args.strategy, model, ckpt_dir_path)
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
@@ -117,29 +122,8 @@ def main(project: str,
         )
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-        new_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
-        strategy = None
-        if args.strategy == DF_FSDP_STRATEGY:
-            print("Using DatafluxFSDPStrategy")
-            strategy = DatafluxFSDPStrategy(
-                path=new_path,
-                project_name=project,
-                storage_client=None,
-                model=model,
-                state_dict_type="sharded",
-                use_orig_params=False,
-            )
-        elif args.strategy == FSSPEC_FSDP_STRATEGY:
-            print("Using FSSpecFSDPStrategy")
-            strategy = FSSpecFSDPStrategy(path=new_path,
-                                          model=model,
-                                          state_dict_type="sharded",
-                                          use_orig_params=False)
-        elif args.strategy == FSDP_STRATEGY:
-            print("Using FSDPStrategy.")
-            strategy = FSDPStrategy(state_dict_type="sharded")
-        else:
-            raise TypeError("Invalid strategy.")
+        new_ckpt_dir_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
+        strategy = get_strategy(args.strategy, model, new_ckpt_dir_path)
         trainer = Trainer(
             default_root_dir=ckpt_dir_path,
             plugins=[],
@@ -152,13 +136,13 @@ def main(project: str,
             devices=os.environ.get("NUM_DEVICES", 'auto'),
             num_nodes=num_nodes,
         )
-        trainer.fit(model, dataloader, ckpt_path=new_path)
+        trainer.fit(model, dataloader, ckpt_path=new_ckpt_dir_path)
         start = time.time()
-        trainer.strategy.load_checkpoint(new_path)
+        trainer.strategy.load_checkpoint(new_ckpt_dir_path)
         end = time.time()
 
         if torch.distributed.get_rank() == 0:
-            print(f"Loaded checkpoint from {new_path}.")
+            print(f"Loaded checkpoint from {new_ckpt_dir_path}.")
         load_checkpoint_times.append(end - start)
 
     if torch.distributed.get_rank() == 0:
