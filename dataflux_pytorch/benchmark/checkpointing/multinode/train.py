@@ -81,7 +81,6 @@ def main(project: str,
         strategy=strategy,
         devices='auto',
         num_nodes=num_nodes,
-        profiler="advanced",
     )
     trainer.fit(model, dataloader)
     print(f"Saving checkpoint to {ckpt_dir_path} {max_steps_save} times.")
@@ -133,7 +132,6 @@ def main(project: str,
             strategy=strategy,
             devices='auto',
             num_nodes=num_nodes,
-            profiler="advanced",
         )
         trainer.fit(model, dataloader, ckpt_path=new_path)
         start = time.time()

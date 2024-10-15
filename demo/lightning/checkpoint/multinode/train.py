@@ -31,8 +31,15 @@ class DatafluxFSDPStrategy(FSDPStrategy):
 
     def __init__(self, path, project_name, storage_client, model, **kwargs):
         super().__init__(**kwargs)
-        self.writer = GCSDistributedWriter(path, project_name, storage_client)
-        self.reader = GCSDistributedReader(path, project_name, storage_client)
+        self.writer = GCSDistributedWriter(path,
+                                           project_name,
+                                           storage_client,
+                                           single_file_per_rank=False,
+                                           per_thread_copy_ahead=1000000000)
+        self.reader = GCSDistributedReader(path,
+                                           project_name,
+                                           storage_client,
+                                           single_file_per_rank=False)
         self.checkpoint_io = DatafluxLightningCheckpoint(
             project_name, storage_client)
         self.model = model
