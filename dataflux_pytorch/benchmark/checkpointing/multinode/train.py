@@ -27,10 +27,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main(project: str,
-         ckpt_dir_path: str,
-         save_only_latest: bool,
-         ckpt_restore_path: str = ""):
+def main(project: str, ckpt_dir_path: str, ckpt_restore_path: str = ""):
     args = parse_args()
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
@@ -44,10 +41,8 @@ def main(project: str,
     # Replacing is implemented by saving the new checkpoint, and then deleting the previous one.
     # If `save_only_latest` is False, a new checkpoint is created for each step.
     checkpoint_callback = ModelCheckpoint(
-        save_top_k=1 if save_only_latest else -1,
-        every_n_train_steps=1,
-        filename="checkpoint-{epoch:02d}-{step:02d}",
-        enable_version_counter=True,
+        save_last=False,
+        save_on_train_epoch_end=False,
     )
 
     strategy = None
@@ -67,8 +62,6 @@ def main(project: str,
                                       model=model,
                                       state_dict_type="sharded",
                                       use_orig_params=False)
-    min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
-    max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
 
@@ -76,8 +69,6 @@ def main(project: str,
         default_root_dir=ckpt_dir_path,
         plugins=[],
         callbacks=[checkpoint_callback],
-        min_epochs=min_epochs_save,
-        max_epochs=max_epochs_save,
         max_steps=max_steps_save,
         accelerator="gpu",
         strategy=strategy,
@@ -94,16 +85,12 @@ def main(project: str,
     if torch.distributed.get_rank() == 0:
         print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     avg_save_time = (end - start) / max_steps_save
-    min_epochs_restore = int(os.environ.get("MIN_EPOCHS_RESTORE", 4))
-    max_epochs_restore = int(os.environ.get("MAX_EPOCHS_RESTORE", 5))
     max_steps_restore = int(os.environ.get("MAX_STEPS_RESTORE", 3))
     load_checkpoint_times = []
     for i in range(max_steps_restore):
         checkpoint_callback = ModelCheckpoint(
-            save_top_k=1 if save_only_latest else -1,
-            every_n_train_steps=0,
-            filename="checkpoint-{epoch:02d}-{step:02d}",
-            enable_version_counter=True,
+            save_last=False,
+            save_on_train_epoch_end=False,
         )
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
@@ -129,8 +116,6 @@ def main(project: str,
             default_root_dir=ckpt_dir_path,
             plugins=[],
             callbacks=[checkpoint_callback],
-            min_epochs=min_epochs_restore,
-            max_epochs=max_epochs_restore,
             max_steps=max_steps_restore,
             accelerator="gpu",
             strategy=strategy,
