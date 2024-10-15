@@ -59,6 +59,7 @@ def main(project: str,
             storage_client=None,
             model=model,
             state_dict_type="sharded",
+            use_orig_params=False,
         )
     else:
         print("Using FSSpecFSDPStrategy")
@@ -115,6 +116,7 @@ def main(project: str,
                 storage_client=None,
                 model=model,
                 state_dict_type="sharded",
+                use_orig_params=False,
             )
         else:
             print("Using FSSpecFSDPStrategy")
