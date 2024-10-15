@@ -105,8 +105,7 @@ def main(project: str,
         )
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-        new_path = ckpt_restore_path
-        # new_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
+        new_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
         strategy = None
         if args.strategy == DF_FSDP_STRATEGY:
             print("Using DatafluxFSDPStrategy")
@@ -123,7 +122,7 @@ def main(project: str,
                                           model=model,
                                           state_dict_type="sharded")
         trainer = Trainer(
-            default_root_dir=new_path,
+            default_root_dir=ckpt_dir_path,
             plugins=[],
             callbacks=[checkpoint_callback],
             min_epochs=min_epochs_restore,
@@ -136,7 +135,7 @@ def main(project: str,
         )
         trainer.fit(model, dataloader, ckpt_path=new_path)
         start = time.time()
-        # trainer.strategy.load_checkpoint(new_path)
+        trainer.strategy.load_checkpoint(new_path)
         end = time.time()
 
         if torch.distributed.get_rank() == 0:
