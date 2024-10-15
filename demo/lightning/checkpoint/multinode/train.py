@@ -268,7 +268,8 @@ class DemoTransformer(LightningTransformer):
         self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
-        return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
+        return torch.optim.AdamW(self.trainer.model.parameters(), lr=0.1)
+        #return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
 
 if __name__ == "__main__":
