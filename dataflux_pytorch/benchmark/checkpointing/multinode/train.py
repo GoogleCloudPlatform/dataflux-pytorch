@@ -135,7 +135,8 @@ def main(project: str,
         )
         trainer.fit(model, dataloader)
         start = time.time()
-        trainer.strategy.load_checkpoint(new_path)
+        trainer._checkpoint_connector.restore(new_path)
+        # trainer.strategy.load_checkpoint(new_path)
         end = time.time()
 
         if torch.distributed.get_rank() == 0:
