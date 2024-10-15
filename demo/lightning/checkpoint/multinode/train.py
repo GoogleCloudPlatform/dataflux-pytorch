@@ -36,10 +36,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                                            storage_client,
                                            single_file_per_rank=False,
                                            per_thread_copy_ahead=1000000000)
-        self.reader = GCSDistributedReader(path,
-                                           project_name,
-                                           storage_client,
-                                           single_file_per_rank=False)
+        self.reader = GCSDistributedReader(path, project_name, storage_client)
         self.checkpoint_io = DatafluxLightningCheckpoint(
             project_name, storage_client)
         self.model = model
