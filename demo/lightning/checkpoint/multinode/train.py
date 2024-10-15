@@ -232,15 +232,20 @@ class DemoTransformer(LightningTransformer):
         self,
         vocab_size: int = 33278,
         nlayers: int = 2,
+        optimizer: str = "sgd",
     ) -> None:
         super().__init__()
+        self.optimizer = optimizer
         self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         # Use self.trainer.model.parameters so that we can set
         # use_orig_params=False on the Strategy. Using AdamW also results in a
         # checkpoint size roughly 20% of used GPU memory.
-        return torch.optim.AdamW(self.trainer.model.parameters(), lr=0.1)
+        if self.optimizer == "adamw":
+            return torch.optim.AdamW(self.trainer.model.parameters(), lr=0.1)
+        else:
+            return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
 
 if __name__ == "__main__":
