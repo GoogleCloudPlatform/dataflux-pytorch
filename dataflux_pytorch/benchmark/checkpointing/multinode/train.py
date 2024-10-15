@@ -52,7 +52,8 @@ def get_strategy(choice, model, ckpt_dir_path):
                                       use_orig_params=False)
     elif choice == FSDP_STRATEGY:
         print("Using FSDPStrategy.")
-        strategy = FSDPStrategy(state_dict_type="sharded")
+        strategy = FSDPStrategy(state_dict_type="sharded",
+                                use_orig_params=False)
     else:
         raise TypeError("Invalid strategy.")
     return strategy
