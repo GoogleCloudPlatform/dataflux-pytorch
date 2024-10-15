@@ -68,7 +68,7 @@ def main(project: str,
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
     max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
-    num_nodes = int(os.environ.get("WORLD_SIZE", 4))
+    num_nodes = int(os.environ.get("NUM_NODES", 1))
 
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
