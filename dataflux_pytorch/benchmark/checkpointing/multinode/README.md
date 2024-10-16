@@ -30,17 +30,9 @@ You will need to set the following environment variables in order for the benchm
   * `ACCELERATOR`: Set to `gpu` if running on a GPU, or `cpu` if running on a CPU (default)
     * If running on a GPU, you also must set `PJRT_DEVICE` to `CPU`.
   
-  * `MIN_EPOCHS_SAVE`: Minimum epochs for which training should run during first training loop which saves checkpoint. Defaults to 4. For detailed explaination of min_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#min-epochs).
+  * `NUM_SAVE_CALLS`: The number of times `trainer.save_checkpoint` is called. Defaults to 3.
   
-  * `MIN_EPOCHS_RESTORE`: Minimum epochs for which training should run during second training loop which restores checkpoint. Defaults to 4.
-  
-  * `MAX_EPOCHS_SAVE` : Maximum epochs for which training should run during first training loop, which saves checkpoint. Defaults to 5. For detailed explanation of max_epochs see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-epochs).
-  
-  * `MAX_EPOCHS_RESTORE` : Maximum epochs for which training should run during second training loop, which restores checkpoint. Defaults to 5.
-  
-  * `MAX_STEPS_SAVE`: Maximum number of steps for which training can run during first trainig loop. Defaults to 5. For more infomration on max_steps see [here](https://lightning.ai/docs/pytorch/stable/common/trainer.html#max-steps).
-  
-  * `MAX_STEPS_RESTORE`: Maximum number of steps for which training can run during second trainig loop. Defaults to 5. 
+  * `NUM_LOAD_CALLS`: The number of times `trainer.strategy.load_checkpoint` is called. Defaults to 3. 
 
   * `NUM_NODES`: The number of nodes (machines). Defaults to 1.
 
