@@ -65,6 +65,7 @@ def main(project: str,
             use_orig_params=False,
         )
     elif args.strategy == ASYNC_DF_STRATEGY:
+        print("Using AsyncDatafluxFSDPStrategy")
         strategy = AsyncDatafluxFSDPStrategy(
             path=ckpt_dir_path,
             project_name=project,

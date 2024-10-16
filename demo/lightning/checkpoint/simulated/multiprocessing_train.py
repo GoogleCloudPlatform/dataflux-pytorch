@@ -24,9 +24,10 @@ import torch.distributed as dist
 import torch.distributed.checkpoint as dist_cp
 import torch.multiprocessing as mp
 import torch.nn as nn
+from lightning.pytorch.strategies import FSDPStrategy
+
 from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
                                                        GCSDistributedWriter)
-from lightning.pytorch.strategies import FSDPStrategy
 
 # Constants for distributed setup
 MASTER_ADDR = 'localhost'
@@ -145,6 +146,10 @@ def parse_args() -> argparse.Namespace:
                         action="store_true",
                         default=False,
                         help="Enable debug mode.")
+    parser.add_argument("--async-save",
+                        action="store_true",
+                        default=False,
+                        help="Use distributed async save strategy.")
     return parser.parse_args()
 
 
@@ -209,6 +214,26 @@ class BenchmarkStrategy(FSDPStrategy):
         dist_cp.load(state_dict=initial_state_dict,
                      checkpoint_id=checkpoint_path,
                      storage_reader=self.reader)
+
+
+class AsyncBenchmarkStrategy(BenchmarkStrategy):
+
+    def __init__(self, project: str, path: str, model, **kwargs):
+        super().__init__(project, path, model, **kwargs)
+        self._checkpoint_futures = []
+
+    def save_checkpoint(self,
+                        checkpoint: Dict[str, torch.Tensor],
+                        filepath: str,
+                        storage_options: Optional[Dict] = None) -> None:
+        res = dist_cp.async_save(state_dict=checkpoint,
+                                 checkpoint_id=filepath,
+                                 storage_writer=self.writer)
+        self._checkpoint_futures.append(res)
+
+    def finalize(self):
+        for i, future in enumerate(self._checkpoint_futures):
+            future.result()
 
 
 class SimpleModel(nn.Module):
@@ -294,7 +319,7 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
 
 def run_benchmark(rank, world_size: int, layer_size: int, project: str,
                   filepath: str, padding_size: int, sample_count: int,
-                  debug: bool) -> None:
+                  debug: bool, async_save: bool) -> None:
     setup(rank, world_size)
 
     model = SimpleModel(layer_size, padding_size)
@@ -302,9 +327,15 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
     if rank == 0 and debug:
         print("Writing initial model structure and parameters to file...")
         write_full_model(model, "initial_model_state.txt")
-    benchmark_strategy = BenchmarkStrategy(project=project,
-                                           path=filepath,
-                                           model=model)
+
+    if async_save:
+        benchmark_strategy = AsyncBenchmarkStrategy(project=project,
+                                                    path=filepath,
+                                                    model=model)
+    else:
+        benchmark_strategy = BenchmarkStrategy(project=project,
+                                               path=filepath,
+                                               model=model)
 
     state_dict = model.state_dict()
     for i, tensor in enumerate(model.dummy_tensors):
@@ -323,6 +354,9 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
                                                       state_dict, filepath,
                                                       sample_count, 'save',
                                                       model)
+
+    if async_save:
+        benchmark_strategy.finalize()
 
     load_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
@@ -369,7 +403,7 @@ def main() -> None:
     mp.spawn(run_benchmark,
              args=(args.world_size, args.layer_size, args.project,
                    args.ckpt_dir_path, args.padding_size, args.sample_count,
-                   args.debug),
+                   args.debug, args.async_save),
              nprocs=args.world_size,
              join=True)
 

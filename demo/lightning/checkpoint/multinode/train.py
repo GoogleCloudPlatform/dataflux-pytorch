@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Generator
 
 import torch
+import torch.distributed as dist
 import torch.optim
 from dataflux_core import user_agent
 from google.cloud import storage
@@ -181,9 +182,15 @@ def init_processes():
     job_completion_index = int(os.environ.get("JOB_COMPLETION_INDEX"))
     processes_in_job = int(os.environ.get("PROCESSES_IN_JOB"))
     rank = job_index * processes_in_job + job_completion_index
+    # TODO(awonak): remove debug
+    print(
+        f"INIT RANK: {job_index} * {job_completion_index} + {processes_in_job} = {rank}"
+    )
     os.environ["NODE_RANK"] = str(rank)
-
     configure_master_addr()
+    dist.init_process_group("cpu:gloo,cuda:ncc",
+                            rank=rank,
+                            world_size=world_size)
 
 
 def main(project: str,
