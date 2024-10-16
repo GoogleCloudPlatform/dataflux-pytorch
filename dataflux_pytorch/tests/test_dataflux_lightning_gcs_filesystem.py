@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict
 from unittest import mock
 
+import torch.distributed as dist
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch.lightning.gcs_filesystem import GCSFileSystem
 
