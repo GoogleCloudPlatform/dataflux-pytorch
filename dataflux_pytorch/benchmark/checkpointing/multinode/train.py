@@ -31,8 +31,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_strategy(choice, model, ckpt_dir_path):
-    project = os.getenv("PROJECT")
+def get_strategy(choice, project, model, ckpt_dir_path):
     strategy = None
     if choice == DF_FSDP_STRATEGY:
         print("Using DatafluxFSDPStrategy")
@@ -69,7 +68,8 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
 
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-    strategy = get_strategy(args.strategy, model, ckpt_dir_path)
+    strategy = get_strategy(args.strategy, os.getenv("PROJECT"), model,
+                            ckpt_dir_path)
     num_save_calls = int(os.environ.get("NUM_SAVE_CALLS", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
 
