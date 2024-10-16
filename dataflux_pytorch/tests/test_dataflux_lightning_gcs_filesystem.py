@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict
 from unittest import mock
 
+import torch.distributed as dist
 from dataflux_client_python.dataflux_core.tests import fake_gcs
 from dataflux_pytorch.lightning.gcs_filesystem import GCSFileSystem
 
@@ -18,6 +19,7 @@ class GCSFileSystemTestCase(unittest.TestCase):
         self.fake_gcs = GCSFileSystem(project_name=self.project_name,
                                       debug=False,
                                       storage_client=self.client)
+        dist.init_process_group("gloo")
 
     def test_create_stream_invalid_path_string(self):
         path = "fake_bucket/checkpoint.ckpt"
