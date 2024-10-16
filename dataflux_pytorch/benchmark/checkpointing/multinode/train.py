@@ -70,7 +70,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 10)))
     strategy = get_strategy(args.strategy, model, ckpt_dir_path)
-    max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
+    num_save_calls = int(os.environ.get("NUM_SAVE_CALLS", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
 
     trainer = Trainer(
@@ -86,18 +86,18 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         num_nodes=num_nodes,
     )
     trainer.fit(model, dataloader)
-    print(f"Saving checkpoint to {ckpt_dir_path} {max_steps_save} times.")
+    print(f"Saving checkpoint to {ckpt_dir_path} {num_save_calls} times.")
     start = time.time()
-    for i in range(max_steps_save):
+    for i in range(num_save_calls):
         trainer.save_checkpoint(
             os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
     end = time.time()
     if torch.distributed.get_rank() == 0:
-        print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
-    avg_save_time = (end - start) / max_steps_save
-    max_steps_restore = int(os.environ.get("MAX_STEPS_RESTORE", 3))
+        print(f"Saved checkpoint to {ckpt_dir_path} {num_save_calls} times.")
+    avg_save_time = (end - start) / num_save_calls
+    num_load_calls = int(os.environ.get("NUM_LOAD_CALLS", 3))
     load_checkpoint_times = []
-    for i in range(max_steps_restore):
+    for i in range(num_load_calls):
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
         new_ckpt_dir_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
