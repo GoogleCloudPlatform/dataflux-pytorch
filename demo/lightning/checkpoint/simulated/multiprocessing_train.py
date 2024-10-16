@@ -206,9 +206,13 @@ class BenchmarkStrategy(FSDPStrategy):
         inference.
         Ensure that the model architecture matches the saved state dictionary.
         """
+        start = time.time()
         dist_cp.load(state_dict=initial_state_dict,
                      checkpoint_id=checkpoint_path,
                      storage_reader=self.reader)
+        end = time.time()
+        print("######################")
+        print(f'Rank: {dist.get_rank()} load_checkpoint: {end-start}')
 
 
 class SimpleModel(nn.Module):
