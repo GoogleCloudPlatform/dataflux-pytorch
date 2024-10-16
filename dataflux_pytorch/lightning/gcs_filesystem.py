@@ -33,17 +33,15 @@ class GCSFileSystem():
         bucket, path = parse_gcs_path(path)
         blob = self.storage_client.bucket(bucket).blob(path)
         if mode == "wb":  # write mode.
-            if self.debug:
-                print(
-                    f'Writing from Rank: {dist.get_rank()} to bucket {bucket}\
-                        &path {path} ...')
+            print(
+                f"Creating Stream, Write Mode: Rank: {dist.get_rank()} Bucket: {bucket} path: {path}"
+            )
             with DatafluxCheckpointBuffer(blob) as stream:
                 yield stream
         elif mode == "rb":  # read mode.
-            if self.debug:
-                print(
-                    f'Reading on Rank: {dist.get_rank()} from bucket {bucket} &\
-                        path {path} ...')
+            print(
+                f"Creating Stream, Read Mode: Rank: {dist.get_rank()} Bucket: {bucket} path: {path}"
+            )
             stream = io.BytesIO()
             blob.download_to_file(stream)
             stream.seek(0)
@@ -70,9 +68,9 @@ class GCSFileSystem():
         old_bucket, old_path = parse_gcs_path(path)
         new_bucket, new_path = parse_gcs_path(new_path)
         if old_bucket != new_bucket:
-            raise Exception(f"When renaming objects, the old bucket name \
-                    (got: {old_bucket}) must be the same as the new bucket\
-                    name (got: {new_bucket})")
+            raise Exception(
+                f"When renaming objects, the old bucket name (got: {old_bucket}) must be the same as the new bucket name (got: {new_bucket})"
+            )
         blob = self.storage_client.bucket(old_bucket).blob(old_path)
         self.storage_client.bucket(new_bucket).rename_blob(blob, new_path)
 
