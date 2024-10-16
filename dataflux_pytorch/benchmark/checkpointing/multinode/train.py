@@ -70,8 +70,6 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 10)))
     strategy = get_strategy(args.strategy, model, ckpt_dir_path)
-    min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
-    max_epochs_save = int(os.environ.get("MAX_EPOCHS_SAVE", 5))
     max_steps_save = int(os.environ.get("MAX_STEPS_SAVE", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
 
@@ -79,9 +77,9 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         enable_checkpointing=False,
         default_root_dir=ckpt_dir_path,
         plugins=[],
-        min_epochs=min_epochs_save,
-        max_epochs=max_epochs_save,
-        max_steps=max_steps_save,
+        min_epochs=1,
+        max_epochs=1,
+        max_steps=1,
         accelerator="gpu",
         strategy=strategy,
         devices=os.environ.get("NUM_DEVICES", 'auto'),
@@ -97,8 +95,6 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     if torch.distributed.get_rank() == 0:
         print(f"Saved checkpoint to {ckpt_dir_path} {max_steps_save} times.")
     avg_save_time = (end - start) / max_steps_save
-    min_epochs_restore = int(os.environ.get("MIN_EPOCHS_RESTORE", 4))
-    max_epochs_restore = int(os.environ.get("MAX_EPOCHS_RESTORE", 5))
     max_steps_restore = int(os.environ.get("MAX_STEPS_RESTORE", 3))
     load_checkpoint_times = []
     for i in range(max_steps_restore):
@@ -110,9 +106,9 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
             enable_checkpointing=False,
             default_root_dir=ckpt_dir_path,
             plugins=[],
-            min_epochs=min_epochs_restore,
-            max_epochs=max_epochs_restore,
-            max_steps=max_steps_restore,
+            min_epochs=1,
+            max_epochs=1,
+            max_steps=1,
             accelerator="gpu",
             strategy=strategy,
             devices=os.environ.get("NUM_DEVICES", 'auto'),
@@ -138,7 +134,10 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
 
 
 if __name__ == "__main__":
+    start = time.time()
     main(
         os.getenv("CKPT_DIR_PATH"),
         os.getenv("CKPT_RESTORE_PATH"),
     )
+    end = time.time()
+    print(f"Benchmark took {end - start} seconds.")
