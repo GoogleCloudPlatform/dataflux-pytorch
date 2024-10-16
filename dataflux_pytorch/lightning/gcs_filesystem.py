@@ -33,17 +33,15 @@ class GCSFileSystem():
         bucket, path = parse_gcs_path(path)
         blob = self.storage_client.bucket(bucket).blob(path)
         if mode == "wb":  # write mode.
-            if self.debug:
-                print(
-                    f'Writing from Rank: {dist.get_rank()} to bucket {bucket}\
-                        &path {path} ...')
+            print(
+                f"### Write Mode: Rank: {dist.get_rank()} Bucket: {bucket} path: {path}"
+            )
             with DatafluxCheckpointBuffer(blob) as stream:
                 yield stream
         elif mode == "rb":  # read mode.
-            if self.debug:
-                print(
-                    f'Reading on Rank: {dist.get_rank()} from bucket {bucket} &\
-                        path {path} ...')
+            print(
+                f"### Read Mode: Rank: {dist.get_rank()} Bucket: {bucket} path: {path}"
+            )
             stream = io.BytesIO()
             blob.download_to_file(stream)
             stream.seek(0)
