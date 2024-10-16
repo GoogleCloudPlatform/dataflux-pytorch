@@ -131,7 +131,7 @@ def parse_args() -> argparse.Namespace:
                         help="Clear kernel cache.")
     parser.add_argument("--sample-count",
                         type=int,
-                        default=3,
+                        default=1,
                         help="Number of samples for benchmarking.")
     parser.add_argument("--padding-size",
                         type=int,
