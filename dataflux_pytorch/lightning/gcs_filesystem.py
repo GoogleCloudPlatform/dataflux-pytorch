@@ -40,8 +40,10 @@ class GCSFileSystem():
             with DatafluxCheckpointBuffer(blob) as stream:
                 yield stream
         elif mode == "rb":  # read mode.
-            print(f'Reading on Rank: {dist.get_rank()} from bucket {bucket} &\
-                     path {path} ...')
+            if self.debug:
+                print(
+                    f'Reading on Rank: {dist.get_rank()} from bucket {bucket} &\
+                        path {path} ...')
             stream = io.BytesIO()
             blob.download_to_file(stream)
             stream.seek(0)
