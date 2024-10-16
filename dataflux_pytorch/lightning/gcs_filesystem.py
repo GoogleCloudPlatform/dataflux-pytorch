@@ -50,8 +50,8 @@ class GCSFileSystem():
             yield stream
         else:
             raise ValueError(
-                "Invalid mode argument, create_stream only supports rb \
-                    (read mode) & wb (write mode)")
+                "Invalid mode argument, create_stream only supports rb (read mode) & wb (write mode)"
+            )
 
     def concat_path(self, path: Union[str, os.PathLike],
                     suffix: str) -> Union[str, os.PathLike]:
