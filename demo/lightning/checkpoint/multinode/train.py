@@ -137,10 +137,20 @@ class AsyncDatafluxFSDPStrategy(DatafluxFSDPStrategy):
         super().__init__(path, project_name, storage_client, model, **kwargs)
         self.checkpoint_results = []
 
+        dist.init_process_group("cpu:gloo,cuda:nccl")
+
+        default_group = dist.group.WORLD
+        default_backend = dist.get_backend(default_group)
+        default_ranks = list(range(dist.get_world_size()))
+
+        self.checkpoint_group = dist.new_group(default_ranks,
+                                               backend=default_backend)
+
     def _save(self, state, path) -> None:
         result = async_save(state,
                             checkpoint_id=path,
-                            storage_writer=self.writer)
+                            storage_writer=self.writer,
+                            process_group=self.checkpoint_group)
         self.checkpoint_results.append(result)
 
     def _write_checkpoint(self, checkpoint, path):
