@@ -4,12 +4,6 @@ This benchmarking script will allow you to run and benchmark the performance of 
 
 ## Getting started
 
-### Installation
-
-```shell
-pip install gcs-torch-dataflux gcsfs
-```
-
 ### Configuration
 
 First ensure you are running within a virtual python enviroment, make sure gcloud config project is set to correct value. Otherwise use the following command to set it 
@@ -55,7 +49,7 @@ You will need to set the following environment variables in order for the benchm
 
 ### Installing Requirements:
  
-* Install the requirements using following command `pip install -r dataflux_pytorch/benchmark/checkpointing/requirements.txt`; `pip install .`
+* Install the requirements using following command `pip install -r dataflux_pytorch/benchmark/requirements.txt`; `pip install .`
 
 
 ### Checkpointing Strategy: 
