@@ -24,6 +24,7 @@ FSDP_STRATEGY = "fsdp"
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--save_only", action="store_true", default=False)
     parser.add_argument(
         '--strategy',
         choices=[DF_FSDP_STRATEGY, FSSPEC_FSDP_STRATEGY, FSDP_STRATEGY],
@@ -97,6 +98,10 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     avg_save_time = (end - start) / num_save_calls
     num_load_calls = int(os.environ.get("NUM_LOAD_CALLS", 3))
     load_checkpoint_times = []
+    if args.save_only:
+        print("Skipping loads because you set --save_only")
+        num_load_calls = 0
+        load_checkpoint_times = [0]
     for i in range(num_load_calls):
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
