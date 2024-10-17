@@ -9,25 +9,27 @@ from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import WikiText2
 from lightning.pytorch.strategies import FSDPStrategy
-import torch.distributed
 from torch.utils.data import DataLoader
 
 from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
-from demo.lightning.checkpoint.multinode.train import (DatafluxFSDPStrategy,
-                                                       DemoTransformer,
-                                                       init_processes)
+from demo.lightning.checkpoint.multinode.train import (
+    AsyncDatafluxFSDPStrategy, DatafluxFSDPStrategy, DemoTransformer,
+    init_processes)
 
 DF_FSDP_STRATEGY = "dataflux_fsdp"
+ASYNC_DF_STRATEGY = "async_fsdp"
 FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
 FSDP_STRATEGY = "fsdp"
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--strategy',
-        choices=[DF_FSDP_STRATEGY, FSSPEC_FSDP_STRATEGY, FSDP_STRATEGY],
-        default=DF_FSDP_STRATEGY)
+    parser.add_argument('--strategy',
+                        choices=[
+                            DF_FSDP_STRATEGY, ASYNC_DF_STRATEGY,
+                            FSSPEC_FSDP_STRATEGY, FSDP_STRATEGY
+                        ],
+                        default=DF_FSDP_STRATEGY)
     return parser.parse_args()
 
 
@@ -42,6 +44,15 @@ def get_strategy(choice, project, model, ckpt_dir_path):
             model=model,
             state_dict_type="sharded",
             use_orig_params=False,
+        )
+    elif choice == ASYNC_DF_STRATEGY:
+        print("Using AsyncDatafluxFSDPStrategy")
+        strategy = AsyncDatafluxFSDPStrategy(
+            path=ckpt_dir_path,
+            project_name=project,
+            storage_client=None,
+            model=model,
+            state_dict_type="sharded",
         )
     elif choice == FSSPEC_FSDP_STRATEGY:
         print("Using FSSpecFSDPStrategy")

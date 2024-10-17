@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Generator
 
 import torch
+import torch.distributed as dist
 import torch.optim
 from dataflux_core import user_agent
 from google.cloud import storage
@@ -15,7 +16,7 @@ from lightning.pytorch.demos import (LightningTransformer, Transformer,
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
 from lightning.pytorch.trainer.states import TrainerFn
-from torch.distributed.checkpoint import load, save
+from torch.distributed.checkpoint import async_save, load, save
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn import Module
 from torch.utils.data import DataLoader
@@ -37,6 +38,9 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         self.storage_client = storage.Client(project=project_name)
         user_agent.add_dataflux_user_agent(self.storage_client)
 
+    def _save(self, state, path) -> None:
+        save(state, checkpoint_id=path, storage_writer=self.writer)
+
     def save_checkpoint(self,
                         checkpoint,
                         filepath,
@@ -55,7 +59,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
             for idx, optim_state in enumerate(
                 checkpoint.pop("optimizer_states", []))
         })
-        save(converted_state, checkpoint_id=path, storage_writer=self.writer)
+        self._save(converted_state, path)
 
         if self.global_rank == 0:
             self.checkpoint_io.save_checkpoint(checkpoint,
@@ -124,6 +128,24 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         return metadata
 
 
+class AsyncDatafluxFSDPStrategy(DatafluxFSDPStrategy):
+
+    def __init__(self, path, project_name, storage_client, model, **kwargs):
+        super().__init__(path, project_name, storage_client, model, **kwargs)
+        self._checkpoint_futures = []
+
+        default_ranks = list(range(dist.get_world_size()))
+        self.checkpoint_group = dist.new_group(
+            default_ranks, backend=self.process_group_backend)
+
+    def _save(self, state, path) -> None:
+        future_obj = async_save(state,
+                                checkpoint_id=path,
+                                storage_writer=self.writer,
+                                process_group=self.checkpoint_group)
+        self._checkpoint_futures.append(future_obj)
+
+
 def configure_master_addr():
     """Get coordinator IP Address with retries"""
     coordinator_address = ""
@@ -152,13 +174,14 @@ def configure_master_addr():
 def init_processes():
     """Initializes the distributed environment."""
     # Get the necessary environment variables from the GKE environment.
+    world_size = int(os.environ.get("WORLD_SIZE"))
     job_index = int(os.environ.get("JOB_INDEX"))
     job_completion_index = int(os.environ.get("JOB_COMPLETION_INDEX"))
     processes_in_job = int(os.environ.get("PROCESSES_IN_JOB"))
     rank = job_index * processes_in_job + job_completion_index
     os.environ["NODE_RANK"] = str(rank)
-
     configure_master_addr()
+    dist.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
 def main(project: str,
