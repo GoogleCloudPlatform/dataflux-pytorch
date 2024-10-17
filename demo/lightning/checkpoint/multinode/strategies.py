@@ -227,4 +227,5 @@ class CustomFSDPStrategy(FSDPStrategy):
                         filepath,
                         storage_options=None) -> None:
         super().save_checkpoint(checkpoint, filepath, storage_options)
-        torch.save(checkpoint, os.path.join(filepath, _METADATA_FILENAME))
+        if self.global_rank != 0:
+            torch.save(checkpoint, os.path.join(filepath, _METADATA_FILENAME))
