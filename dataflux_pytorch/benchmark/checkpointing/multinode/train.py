@@ -98,6 +98,10 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     avg_save_time = (end - start) / num_save_calls
     num_load_calls = int(os.environ.get("NUM_LOAD_CALLS", 3))
     load_checkpoint_times = []
+    if args.save_only:
+        print("Skipping loads because you set --save_only")
+        num_load_calls = 0
+        load_checkpoint_times = [0]
     for i in range(num_load_calls):
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
@@ -125,14 +129,13 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
             print(f"Loaded checkpoint from {new_ckpt_dir_path}.")
         load_checkpoint_times.append(end - start)
 
+    avg_load_time = statistics.mean(load_checkpoint_times)
     if torch.distributed.get_rank() == 0:
         print("##################################")
         print("Average time to save one checkpoint: " + str(avg_save_time) +
               " seconds")
-        if not args.save_only:
-            avg_load_time = statistics.mean(load_checkpoint_times)
-            print("Average time to load one checkpoint: " +
-                  str(avg_load_time) + " seconds")
+        print("Average time to load one checkpoint: " + str(avg_load_time) +
+              " seconds")
         print("##################################")
 
 
