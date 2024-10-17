@@ -129,8 +129,8 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
             print(f"Loaded checkpoint from {new_ckpt_dir_path}.")
         load_checkpoint_times.append(end - start)
 
-    avg_load_time = statistics.mean(load_checkpoint_times)
     if torch.distributed.get_rank() == 0:
+        avg_load_time = statistics.mean(load_checkpoint_times)
         print("##################################")
         print("Average time to save one checkpoint: " + str(avg_save_time) +
               " seconds")
