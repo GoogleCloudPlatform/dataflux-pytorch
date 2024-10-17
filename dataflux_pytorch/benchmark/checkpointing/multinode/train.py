@@ -7,13 +7,12 @@ import torch
 import torch.distributed
 from lightning import Trainer
 from lightning.pytorch.demos import WikiText2
-from lightning.pytorch.strategies import FSDPStrategy
 import torch.distributed
 from torch.utils.data import DataLoader
 
-from demo.lightning.checkpoint.multinode.strategies import FSSpecFSDPStrategy
-from demo.lightning.checkpoint.multinode.train import (DatafluxFSDPStrategy,
-                                                       DemoTransformer,
+from demo.lightning.checkpoint.multinode.strategies import (
+    DatafluxFSDPStrategy, FSSpecFSDPStrategy, CustomFSDPStrategy)
+from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
                                                        init_processes)
 
 DF_FSDP_STRATEGY = "dataflux_fsdp"
@@ -50,8 +49,8 @@ def get_strategy(choice, project, model, ckpt_dir_path):
                                       use_orig_params=False)
     elif choice == FSDP_STRATEGY:
         print("Using FSDPStrategy.")
-        strategy = FSDPStrategy(state_dict_type="sharded",
-                                use_orig_params=False)
+        strategy = CustomFSDPStrategy(state_dict_type="sharded",
+                                      use_orig_params=False)
     else:
         raise ValueError("Invalid strategy.")
     return strategy

@@ -214,7 +214,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         return metadata
 
 
-class CustomFSDP(FSDPStrategy):
+class CustomFSDPStrategy(FSDPStrategy):
 
     def __init__(self,
                  state_dict_type="sharded",
