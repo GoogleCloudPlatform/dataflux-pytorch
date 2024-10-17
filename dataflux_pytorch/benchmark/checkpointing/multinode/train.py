@@ -12,7 +12,7 @@ from lightning.pytorch.strategies import FSDPStrategy
 import torch.distributed
 from torch.utils.data import DataLoader
 
-from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
+from demo.lightning.checkpoint.multinode.strategies import FSSpecFSDPStrategy
 from demo.lightning.checkpoint.multinode.train import (DatafluxFSDPStrategy,
                                                        DemoTransformer,
                                                        init_processes)
