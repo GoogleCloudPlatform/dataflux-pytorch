@@ -222,13 +222,18 @@ class AsyncBenchmarkStrategy(BenchmarkStrategy):
         super().__init__(project, path, model, **kwargs)
         self._checkpoint_futures = []
 
+        default_ranks = list(range(dist.get_world_size()))
+        self.checkpoint_group = dist.new_group(
+            default_ranks, backend=self.process_group_backend)
+
     def save_checkpoint(self,
                         checkpoint: Dict[str, torch.Tensor],
                         filepath: str,
                         storage_options: Optional[Dict] = None) -> None:
         res = dist_cp.async_save(state_dict=checkpoint,
                                  checkpoint_id=filepath,
-                                 storage_writer=self.writer)
+                                 storage_writer=self.writer,
+                                 process_group=self.checkpoint_group)
         self._checkpoint_futures.append(res)
 
     def finalize(self):

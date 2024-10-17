@@ -193,9 +193,7 @@ def init_processes():
     )
     os.environ["NODE_RANK"] = str(rank)
     configure_master_addr()
-    dist.init_process_group("cpu:gloo,cuda:ncc",
-                            rank=rank,
-                            world_size=world_size)
+    dist.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
 def main(project: str,
