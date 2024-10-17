@@ -230,15 +230,11 @@ class AsyncBenchmarkStrategy(BenchmarkStrategy):
                         checkpoint: Dict[str, torch.Tensor],
                         filepath: str,
                         storage_options: Optional[Dict] = None) -> None:
-        res = dist_cp.async_save(state_dict=checkpoint,
-                                 checkpoint_id=filepath,
-                                 storage_writer=self.writer,
-                                 process_group=self.checkpoint_group)
-        self._checkpoint_futures.append(res)
-
-    def finalize(self):
-        for i, future in enumerate(self._checkpoint_futures):
-            future.result()
+        future_obj = dist_cp.async_save(state_dict=checkpoint,
+                                        checkpoint_id=filepath,
+                                        storage_writer=self.writer,
+                                        process_group=self.checkpoint_group)
+        self._checkpoint_futures.append(future_obj)
 
 
 class SimpleModel(nn.Module):
@@ -359,9 +355,6 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
                                                       state_dict, filepath,
                                                       sample_count, 'save',
                                                       model)
-
-    if async_save:
-        benchmark_strategy.finalize()
 
     load_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,

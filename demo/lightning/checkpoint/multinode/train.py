@@ -41,10 +41,6 @@ class DatafluxFSDPStrategy(FSDPStrategy):
     def _save(self, state, path) -> None:
         save(state, checkpoint_id=path, storage_writer=self.writer)
 
-    def _write_checkpoint(self, checkpoint, path):
-        self.checkpoint_io.save_checkpoint(checkpoint,
-                                           path / _METADATA_FILENAME)
-
     def save_checkpoint(self,
                         checkpoint,
                         filepath,
@@ -66,7 +62,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         self._save(converted_state, path)
 
         if self.global_rank == 0:
-            self._write_checkpoint(checkpoint, path)
+            self.checkpoint_io.save_checkpoint(checkpoint,
+                                               path / _METADATA_FILENAME)
 
     def get_sharded_state_dict_context(
             self, module: Module) -> Generator[None, None, None]:
@@ -135,22 +132,18 @@ class AsyncDatafluxFSDPStrategy(DatafluxFSDPStrategy):
 
     def __init__(self, path, project_name, storage_client, model, **kwargs):
         super().__init__(path, project_name, storage_client, model, **kwargs)
-        self.checkpoint_results = []
+        self._checkpoint_futures = []
 
         default_ranks = list(range(dist.get_world_size()))
         self.checkpoint_group = dist.new_group(
             default_ranks, backend=self.process_group_backend)
 
     def _save(self, state, path) -> None:
-        result = async_save(state,
-                            checkpoint_id=path,
-                            storage_writer=self.writer,
-                            process_group=self.checkpoint_group)
-        self.checkpoint_results.append(result)
-
-    def _write_checkpoint(self, checkpoint, path):
-        self.checkpoint_io.save_checkpoint(checkpoint,
-                                           path / _METADATA_FILENAME)
+        future_obj = async_save(state,
+                                checkpoint_id=path,
+                                storage_writer=self.writer,
+                                process_group=self.checkpoint_group)
+        self._checkpoint_futures.append(future_obj)
 
 
 def configure_master_addr():
@@ -186,10 +179,6 @@ def init_processes():
     job_completion_index = int(os.environ.get("JOB_COMPLETION_INDEX"))
     processes_in_job = int(os.environ.get("PROCESSES_IN_JOB"))
     rank = job_index * processes_in_job + job_completion_index
-    # TODO(awonak): remove debug
-    print(
-        f"INIT RANK: {job_index} * {job_completion_index} + {processes_in_job} = {rank}"
-    )
     os.environ["NODE_RANK"] = str(rank)
     configure_master_addr()
     dist.init_process_group("gloo", rank=rank, world_size=world_size)
