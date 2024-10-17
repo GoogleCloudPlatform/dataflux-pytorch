@@ -216,11 +216,8 @@ class FSSpecFSDPStrategy(FSDPStrategy):
 
 class CustomFSDPStrategy(FSDPStrategy):
 
-    def __init__(self,
-                 state_dict_type="sharded",
-                 use_orig_params=False,
-                 **kwargs):
-        super().__init__(state_dict_type, use_orig_params, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def save_checkpoint(self,
                         checkpoint,

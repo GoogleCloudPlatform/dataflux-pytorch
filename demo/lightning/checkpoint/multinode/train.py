@@ -9,7 +9,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import (LightningTransformer, Transformer,
                                      WikiText2)
 from torch.utils.data import DataLoader
-from strategies import DatafluxFSDPStrategy
+from .strategies import DatafluxFSDPStrategy
 
 
 def configure_master_addr():
