@@ -6,7 +6,6 @@ import time
 import torch
 import torch.distributed
 from lightning import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import WikiText2
 from lightning.pytorch.strategies import FSDPStrategy
 import torch.distributed

@@ -212,3 +212,19 @@ class FSSpecFSDPStrategy(FSDPStrategy):
                                           mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
+
+
+class CustomFSDP(FSDPStrategy):
+
+    def __init__(self,
+                 state_dict_type="sharded",
+                 use_orig_params=False,
+                 **kwargs):
+        super().__init__(state_dict_type, use_orig_params, **kwargs)
+
+    def save_checkpoint(self,
+                        checkpoint,
+                        filepath,
+                        storage_options=None) -> None:
+        super().save_checkpoint(checkpoint, filepath, storage_options)
+        torch.save(checkpoint, os.path.join(filepath, _METADATA_FILENAME))
