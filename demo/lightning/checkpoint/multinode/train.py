@@ -181,8 +181,6 @@ def configure_master_addr():
 def init_processes():
     """Initializes the distributed environment."""
     # Get the necessary environment variables from the GKE environment.
-    world_size = int(os.environ["WORLD_SIZE"])
-
     job_index = int(os.environ.get("JOB_INDEX"))
     job_completion_index = int(os.environ.get("JOB_COMPLETION_INDEX"))
     processes_in_job = int(os.environ.get("PROCESSES_IN_JOB"))
