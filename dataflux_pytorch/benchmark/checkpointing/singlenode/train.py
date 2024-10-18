@@ -29,6 +29,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 
 from dataflux_pytorch import dataflux_checkpoint
+from dataflux_pytorch.benchmark.checkpointing.singlenode import llama
 from dataflux_pytorch.lightning import (DatafluxLightningAsyncCheckpoint,
                                         DatafluxLightningCheckpoint,
                                         path_utils)
@@ -55,15 +56,15 @@ class LightningTransformer(LightningModule):
 
     def __init__(self, vocab_size: int = 33278, nlayers: int = 100) -> None:
         super().__init__()
-        self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
+        self.model = llama.LLaMA(llama.LLaMAConfig.from_name("7B"))
 
     def forward(self, inputs: Tensor, target: Tensor) -> Tensor:
-        return self.model(inputs, target)
+        return self.model(inputs, 35, None)
 
     def training_step(self, batch: Tuple[Tensor, Tensor],
                       batch_idx: int) -> Tensor:
         inputs, target = batch
-        output = self(inputs, target)
+        output = self(inputs, target)[0]
         loss = torch.nn.functional.nll_loss(output, target.view(-1))
         return loss
 
@@ -126,7 +127,7 @@ def main():
         raise ValueError("Steps need to greater than 0.")
 
     dataset = WikiText2()
-    dataloader = DataLoader(dataset, num_workers=1)
+    dataloader = DataLoader(dataset, num_workers=1, batch_size=1)
     model = LightningTransformer(vocab_size=dataset.vocab_size,
                                  nlayers=args.layers)
 
