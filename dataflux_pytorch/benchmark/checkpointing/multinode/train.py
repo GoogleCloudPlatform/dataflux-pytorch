@@ -128,7 +128,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
         new_ckpt_dir_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
-        strategy = get_strategy(args.strategy, os.getenv("PROJECT"), model,
+        strategy = get_strategy(args, os.getenv("PROJECT"), model,
                                 new_ckpt_dir_path)
         trainer = Trainer(
             enable_checkpointing=False,
