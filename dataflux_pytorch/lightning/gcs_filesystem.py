@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator, Optional, Union
 
+import torch.distributed
 from dataflux_core import user_agent
 from google.cloud import storage
 from torch.distributed.checkpoint import FileSystemReader, FileSystemWriter
@@ -30,6 +31,9 @@ class GCSFileSystem():
                       mode: str) -> Generator[io.IOBase, None, None]:
         bucket, path = parse_gcs_path(path)
         blob = self.storage_client.bucket(bucket).blob(path)
+        print(
+            f"Rank {torch.distributed.get_rank()} opened path {path} in mode {mode}"
+        )
         if mode == "wb":  # write mode.
             with DatafluxCheckpointBuffer(blob) as stream:
                 yield stream
