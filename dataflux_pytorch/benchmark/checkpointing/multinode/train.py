@@ -31,6 +31,19 @@ def parse_args():
     return parser.parse_args()
 
 
+def validate(args):
+    if args.save_only and args.load_only:
+        raise ValueError("Either save_only or load_only can be set.")
+    if args.save_only and args.strategy != FSDP_STRATEGY:
+        raise ValueError(
+            "strategy must be set to fsdp if benchmarking only checkpoint saves."
+        )
+    if args.load_only and args.strategy != FSDP_STRATEGY:
+        raise ValueError(
+            "strategy must be set to fsdp if benchmarking only checkpoint loads."
+        )
+
+
 def get_strategy(args, project, model, ckpt_dir_path):
     strategy = None
     if args.strategy == DF_FSDP_STRATEGY:
@@ -78,6 +91,8 @@ def copy_bucket_to_local(bucket_name, local_dir):
 
 def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     args = parse_args()
+    validate(args)
+
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
     torch.cuda.empty_cache()
@@ -119,7 +134,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         print("Skipping loads because you set --save_only")
         num_load_calls = 0
         load_checkpoint_times = [0]
-    if args.strategy == FSDP_STRATEGY and args.load_only:
+    elif args.load_only:
         print(f"Copying contents of {ckpt_dir_path} to {ckpt_restore_path}")
         copy_bucket_to_local(ckpt_dir_path.removeprefix("gs://"),
                              os.path.dirname(ckpt_restore_path))
