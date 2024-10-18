@@ -218,7 +218,24 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         return metadata
 
 
-class CustomFSDPStrategy(FSDPStrategy):
+class LoadFromBootDiskFSDP(FSDPStrategy):
+    """Customized FSDP strategy intended to be used when benchmarking
+    checkpoint loads from a directory on a node's boot disk.
+
+    In fully sharded distributed training, each node writes its own shard of
+    the chekpoint file to a directory that is accessible to all other nodes in
+    the training cluster, usually a GCS bucket or a persistent volume mounted
+    by all nodes. Since one node's boot disk cannot be accessed by another
+    node, it is not possible to create a directory on a arbitrarily chosen
+    node's boot disk and have all the node's write their shards to this
+    direcotry.
+
+    To make it possible to benchmark checkpoint loads from boot disk, this
+    class's save_checkopint utilizes Dataflux to get all the nodes to write
+    their checkopint shards to a GCS bucket. Every node, before attempting to
+    load the checkpoints, makes a copy of this bucket on their boot disk.
+
+    """
 
     def __init__(self, ckpt_path, project_name, **kwargs):
         super().__init__(**kwargs)

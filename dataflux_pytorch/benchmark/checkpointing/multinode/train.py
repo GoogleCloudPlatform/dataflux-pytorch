@@ -6,7 +6,7 @@ import time
 import torch
 import torch.distributed
 from demo.lightning.checkpoint.multinode.strategies import (
-    CustomFSDPStrategy, DatafluxFSDPStrategy, FSSpecFSDPStrategy)
+    DatafluxFSDPStrategy, FSSpecFSDPStrategy, LoadFromBootDiskFSDP)
 from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
                                                        init_processes)
 from google.cloud import storage
@@ -51,10 +51,10 @@ def get_strategy(args, project, model, ckpt_dir_path):
                                       use_orig_params=False)
     elif args.strategy == FSDP_STRATEGY and args.load_only:
         print("Using CustomFSDPStrategy.")
-        strategy = CustomFSDPStrategy(ckpt_path=ckpt_dir_path,
-                                      project_name=project,
-                                      state_dict_type="sharded",
-                                      use_orig_params=False)
+        strategy = LoadFromBootDiskFSDP(ckpt_path=ckpt_dir_path,
+                                        project_name=project,
+                                        state_dict_type="sharded",
+                                        use_orig_params=False)
     elif args.strategy == FSDP_STRATEGY and args.save_only:
         print("Using FSDPStrategy.")
         strategy = FSDPStrategy(state_dict_type="sharded",
