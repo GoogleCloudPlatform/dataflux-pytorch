@@ -10,6 +10,7 @@ from lightning.pytorch.demos import WikiText2
 import torch.distributed
 from torch.utils.data import DataLoader
 from lightning.pytorch.strategies import FSDPStrategy
+from google.cloud import storage
 
 from demo.lightning.checkpoint.multinode.strategies import (
     DatafluxFSDPStrategy, FSSpecFSDPStrategy, CustomFSDPStrategy)
@@ -60,9 +61,6 @@ def get_strategy(args, project, model, ckpt_dir_path):
     else:
         raise ValueError("Invalid strategy.")
     return strategy
-
-
-from google.cloud import storage
 
 
 def copy_bucket_to_local(bucket_name, local_dir):
