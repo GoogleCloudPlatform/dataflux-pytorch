@@ -76,7 +76,7 @@ Average time to load one checkpoint: 62.54739844375839 seconds
 
 ## Results
 
-The table below contains benchmarking times on saving checkpoints to GCS, the average save/load time is taken over 10 calls to save_checkpoint and load_checkpoint. The tests were done from a VM with 48vCPU, 192 GB RAM, 512 GB SSD located in `us-west1-a` zone. The GCS bucket was located in the same region, `us-west1`. Checkpoints were tested on [PyTorch Lightning's Transformer demo model](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/demos/transformer.py) ranging in size from 19.8M to 6.5B parameters (~76MB to ~24GB checkpoints). Checkpoints used PyTorch Lightning's default checkpoint format where a single checkpoint file is produced.
+The table below contains benchmarking times on saving checkpoints to GCS, the average save/load time is taken over 10 calls to save_checkpoint and load_checkpoint. The tests were done from a single GCE `n2d-standard-48` node in the `us-west1` region. The GCS bucket was located in the same region. Checkpoints were tested on [PyTorch Lightning's Transformer demo model](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/demos/transformer.py) ranging in size from 19.8M to 6.5B parameters (~76MB to ~24GB checkpoints). Checkpoints used PyTorch Lightning's default checkpoint format where a single checkpoint file is produced.
 
 Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to the default `TorchCheckpointIO` with fsspec/gcsfs. 
 

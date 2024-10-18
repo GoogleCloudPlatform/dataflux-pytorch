@@ -138,7 +138,7 @@ with ckpt.reader(CKPT_PATH) as reader:
 model.load_state_dict(read_state_dict)
 ```
 
-Note that saving or restoring checkpoints will require the entire checkpoint file to fit into CPU memory.
+Note that saving or restoring checkpoint files will stage the checkpoint file in CPU memory during save/restore, requiring additional available CPU memory equal to the size of the checkpoint file.
 
 ##### Lightning Checkpointing
 
@@ -172,7 +172,7 @@ trainer.fit(model, dataloader)
 trainer.save_checkpoint(CKPT)
 ```
 
-Note that saving or restoring checkpoints will require the entire checkpoint file to fit into CPU memory.
+Note that saving or restoring checkpoint files will stage the checkpoint file in CPU memory during save/restore, requiring additional available CPU memory equal to the size of the checkpoint file.
 
 ## Performance
 
@@ -319,7 +319,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesnâ
 *Note: Within each experiment, all training parameters such as batch size and parallelism are consistent. The team is working on publishing a detailed analysis soon.*
 
 ### Checkpointing
-Checkpoint benchmarks were taken on single node setups with 48vCPU, 192 GB RAM, 512 GB SSD co-located with a storage bucket in the `us-west` region. These results were the average of 10 runs. Checkpoints were tested on [PyTorch Lightning's Transformer demo model](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/demos/transformer.py) ranging in size from 19.8M to 6.5B parameters (~76MB to ~24GB checkpoints). Checkpoints used PyTorch Lightning's default checkpoint format where a single checkpoint file is produced.
+Checkpoint benchmarks were taken on a single GCE `n2d-standard-48` node co-located with a storage bucket in the `us-west1` region. These results were the average of 10 runs. Checkpoints were tested on [PyTorch Lightning's Transformer demo model](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/demos/transformer.py) ranging in size from 19.8M to 6.5B parameters (~76MB to ~24GB checkpoints). Checkpoints used PyTorch Lightning's default checkpoint format where a single checkpoint file is produced.
 
 ## Checkpoint Save
 
