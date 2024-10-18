@@ -20,6 +20,19 @@ from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
                                                        GCSDistributedWriter)
 
 
+def save_checkpoint_helper(rank, checkpoint, path, checkpoint_io, writer):
+    converted_state = {"model": checkpoint.pop("state_dict")}
+    converted_state.update({
+        f"optimizer_{idx}": optim_state
+        for idx, optim_state in enumerate(
+            checkpoint.pop("optimizer_states", []))
+    })
+    save(converted_state, checkpoint_id=path, storage_writer=writer)
+
+    if rank == 0:
+        checkpoint_io.save_checkpoint(checkpoint, path / _METADATA_FILENAME)
+
+
 class DatafluxFSDPStrategy(FSDPStrategy):
 
     def __init__(self, path, project_name, storage_client, model, **kwargs):
@@ -43,18 +56,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                     `CheckpointIO`.")
 
         path = Path(self.broadcast(filepath))
-
-        converted_state = {"model": checkpoint.pop("state_dict")}
-        converted_state.update({
-            f"optimizer_{idx}": optim_state
-            for idx, optim_state in enumerate(
-                checkpoint.pop("optimizer_states", []))
-        })
-        save(converted_state, checkpoint_id=path, storage_writer=self.writer)
-
-        if self.global_rank == 0:
-            self.checkpoint_io.save_checkpoint(checkpoint,
-                                               path / _METADATA_FILENAME)
+        save_checkpoint_helper(self.global_rank, checkpoint, path,
+                               self.checkpoint_io, self.writer)
 
     def get_sharded_state_dict_context(
             self, module: Module) -> Generator[None, None, None]:
@@ -216,13 +219,23 @@ class FSSpecFSDPStrategy(FSDPStrategy):
 
 class CustomFSDPStrategy(FSDPStrategy):
 
-    def __init__(self, **kwargs):
+    def __init__(self, ckpt_path, project_name, **kwargs):
+        # pass save_only, load_only to this constructor
+
         super().__init__(**kwargs)
+        self.writer = GCSDistributedWriter(ckpt_path, project_name)
+        self.checkpoint_io = DatafluxLightningCheckpoint(project_name)
 
     def save_checkpoint(self,
                         checkpoint,
                         filepath,
                         storage_options=None) -> None:
-        super().save_checkpoint(checkpoint, filepath, storage_options)
-        if self.global_rank != 0:
-            torch.save(checkpoint, os.path.join(filepath, _METADATA_FILENAME))
+        if storage_options is not None:
+            raise TypeError(
+                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is\
+                not supported because`FSDPStrategy` does not use the \
+                    `CheckpointIO`.")
+
+        path = Path(self.broadcast(filepath))
+        save_checkpoint_helper(self.global_rank, checkpoint, path,
+                               self.checkpoint_io, self.writer)
