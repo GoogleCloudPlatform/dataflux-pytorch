@@ -1,23 +1,21 @@
 import os
+from pathlib import Path
+from typing import Generator
 
 import gcsfs
 import torch
-
-from pathlib import Path
-from typing import Generator
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.strategies import FSDPStrategy
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
-from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
-from torch.distributed.checkpoint import save, load
-from torch.nn import Module
-from torch.distributed.checkpoint import _fsspec_filesystem as FF
 from dataflux_core import user_agent
-from google.cloud import storage
 from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
                                                        GCSDistributedWriter)
+from google.cloud import storage
+from lightning.pytorch.strategies import FSDPStrategy
+from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
+from lightning.pytorch.trainer.states import TrainerFn
+from torch.distributed.checkpoint import _fsspec_filesystem as FF
+from torch.distributed.checkpoint import load, save
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.nn import Module
 
 
 def save_checkpoint_helper(rank, checkpoint, path, checkpoint_io, writer):
@@ -161,7 +159,9 @@ class FSSpecFSDPStrategy(FSDPStrategy):
     def get_sharded_state_dict_context(
             self, module: Module) -> Generator[None, None, None]:
 
-        from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
+        from torch.distributed.fsdp.api import (ShardedOptimStateDictConfig,
+                                                ShardedStateDictConfig,
+                                                StateDictType)
 
         state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
         optim_state_dict_config = ShardedOptimStateDictConfig(
@@ -181,7 +181,8 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         assert self.model is not None
         assert self.lightning_module is not None
 
-        from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+        from torch.distributed.checkpoint.optimizer import \
+            load_sharded_optimizer_state_dict
 
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
 
