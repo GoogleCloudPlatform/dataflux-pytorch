@@ -76,34 +76,33 @@ Average time to load one checkpoint: 62.54739844375839 seconds
 
 ## Results
 
-The table below contains benchmarking times on saving checkpoints to GCS, the average save/load time is taken over 10 calls to save_checkpoint and load_checkpoint. The tests were done from a VM with 48vCPU, 192 GB RAM, 512 GB SSD located in `us-west1-a` zone. The GCS bucket was located in the same region, `us-west1`.
+The table below contains benchmarking times on saving checkpoints to GCS, the average save/load time is taken over 10 calls to save_checkpoint and load_checkpoint. The tests were done from a VM with 48vCPU, 192 GB RAM, 512 GB SSD located in `us-west1-a` zone. The GCS bucket was located in the same region, `us-west1`. Checkpoints were tested on [PyTorch Lightning's Transformer demo model](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/demos/transformer.py) ranging in size from 19.8M to 6.5B parameters (~76MB to ~24GB checkpoints). Checkpoints used PyTorch Lightning's default checkpoint format where a single checkpoint file is produced.
 
-
-Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to the default `TorchCheckpointIO` with fsspec/gcsfs.
+Dataflux's implementation of CheckpointIO for PyTorch Lightning is undergoing active development. The numbers below will be continuously updated to reflect the current state and performance of Dataflux's PyTorch Lightning checkpoint utility. These values are compared to `Default`, which refers to the default `TorchCheckpointIO` with fsspec/gcsfs. 
 
 ### Checkpoint Save
 
-| Checkpoint Type | Layers | Checkpoint File Size (MB) | Avg Checkpoint Save Time | Write Throughput (MB/s) |
-| --- | --- | --- | --- | --- |
-| Default   | 10      | 75.6    | 0.81    | 93.33   |
-| Dataflux  | 10      | 75.6    | 0.56    | 135.00  |
-| Default   | 100     | 298     | 2.87    | 103.98  |
-| Dataflux  | 100     | 298     | 1.03    | 289.32  |
-| Default   | 1,000   | 2,500   | 25.61   | 97.61   |
-| Dataflux  | 1,000   | 2,500   | 6.25    | 400.00  |
-| Default   | 10,000  | 24,200  | 757.10  | 31.96   |
-| Dataflux  | 10,000  | 24,200  | 64.50   | 375.19  |
+| Checkpoint Type | Layers | Model Parameters | Checkpoint File Size (MB) | Avg Checkpoint Save Time | Write Throughput (MB/s) |
+| --- | --- | --- | --- | --- | --- |
+| Default   | 10      | 19.8M | 75.6    | 0.81    | 93.33   |
+| Dataflux  | 10      | 19.8M | 75.6    | 0.56    | 135.00  |
+| Default   | 100     | 77.9M | 298     | 2.87    | 103.98  |
+| Dataflux  | 100     | 77.9M | 298     | 1.03    | 289.32  |
+| Default   | 1,000   | 658M | 2,500   | 25.61   | 97.61   |
+| Dataflux  | 1,000   | 658M | 2,500   | 6.25    | 400.00  |
+| Default   | 10,000  | 6.5B | 24,200  | 757.10  | 31.96   |
+| Dataflux  | 10,000  | 6.5B | 24,200  | 64.50   | 375.19  |
 
 
 ### Checkpoint Load
 
-| Checkpoint Type | Layers | Checkpoint File Size (MB) | Avg Checkpoint Restore Time | Read Throughput (MB/s) |
-| --- | --- | --- | --- | --- |
-| Default   | 10      | 75.6    | 2.38      | 31.76   |
-| Dataflux  | 10      | 75.6    | 0.51      | 148.24  |
-| Default   | 100     | 298     | 1.69      | 176.33  |
-| Dataflux  | 100     | 298     | 1.03      | 289.32  |
-| Default   | 1,000   | 2,500   | 186.57    | 13.40   |
-| Dataflux  | 1,000   | 2,500   | 14.77     | 169.26  |
-| Default   | 10,000  | 24,200  | 2,093.52  | 11.56   |
-| Dataflux  | 10,000  | 24,200  | 113.14    | 213.89  |
+| Checkpoint Type | Layers | Model Parameters | Checkpoint File Size (MB) | Avg Checkpoint Restore Time | Read Throughput (MB/s) |
+| --- | --- | --- | --- | --- | --- |
+| Default   | 10      | 19.8M | 75.6    | 2.38      | 31.76   |
+| Dataflux  | 10      | 19.8M | 75.6    | 0.51      | 148.24  |
+| Default   | 100     | 77.9M | 298     | 1.69      | 176.33  |
+| Dataflux  | 100     | 77.9M | 298     | 1.03      | 289.32  |
+| Default   | 1,000   | 658M | 2,500   | 186.57    | 13.40   |
+| Dataflux  | 1,000   | 658M | 2,500   | 14.77     | 169.26  |
+| Default   | 10,000  | 6.5B | 24,200  | 2,093.52  | 11.56   |
+| Dataflux  | 10,000  | 6.5B | 24,200  | 113.14    | 213.89  |

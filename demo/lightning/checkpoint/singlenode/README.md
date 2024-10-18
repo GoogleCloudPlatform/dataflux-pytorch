@@ -6,6 +6,7 @@ The code in this folder provides a training demo for checkpointing with PyTorch 
 
 * The demo currently only runs with [`state_dict_type="full"`](https://lightning.ai/docs/pytorch/stable/common/checkpointing_expert.html#save-a-distributed-checkpoint) when using FSDP.
 * `requirements.txt` includes gcsfs because even though it is not used for checkpointing, PyTorch Lightning's default logger also writes to the root directory where checkpoints are saved.
+* Note that saving or restoring checkpoints will require the entire checkpoint file to fit into CPU memory.
 
 ## Running locally
 
