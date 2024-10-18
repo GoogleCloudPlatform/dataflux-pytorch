@@ -25,6 +25,7 @@ FSDP_STRATEGY = "fsdp"
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--save_only", action="store_true", default=False)
+    parser.add_argument("--load_only", action="store_true", default=False)
     parser.add_argument(
         '--strategy',
         choices=[DF_FSDP_STRATEGY, FSSPEC_FSDP_STRATEGY, FSDP_STRATEGY],
@@ -85,8 +86,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
 
     model = DemoTransformer(vocab_size=dataset.vocab_size,
                             nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-    strategy = get_strategy(args.strategy, os.getenv("PROJECT"), model,
-                            ckpt_dir_path)
+    strategy = get_strategy(args, os.getenv("PROJECT"), model, ckpt_dir_path)
     num_save_calls = int(os.environ.get("NUM_SAVE_CALLS", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
 
