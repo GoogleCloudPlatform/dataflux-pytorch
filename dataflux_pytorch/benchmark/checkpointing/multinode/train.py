@@ -122,7 +122,8 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         num_load_calls = 0
         load_checkpoint_times = [0]
     if args.strategy == FSDP_STRATEGY and args.load_only:
-        copy_bucket_to_local(ckpt_dir_path, os.path.dirname(ckpt_restore_path))
+        copy_bucket_to_local(ckpt_dir_path.removeprefix("gs://"),
+                             os.path.dirname(ckpt_restore_path))
     for i in range(num_load_calls):
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
