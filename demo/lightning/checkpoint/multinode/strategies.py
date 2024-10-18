@@ -220,8 +220,6 @@ class FSSpecFSDPStrategy(FSDPStrategy):
 class CustomFSDPStrategy(FSDPStrategy):
 
     def __init__(self, ckpt_path, project_name, **kwargs):
-        # pass save_only, load_only to this constructor
-
         super().__init__(**kwargs)
         self.writer = GCSDistributedWriter(ckpt_path, project_name)
         self.checkpoint_io = DatafluxLightningCheckpoint(project_name)
