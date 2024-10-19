@@ -63,6 +63,7 @@ def main(world_size: int, layer_size: int, project: str, filepath: str,
     for i in range(padding_size):
         if i % world_size == rank:
             state_dict[f'dummy_tensor_{i}'] = torch.randn(layer_size, 1000)
+    # Wait until the state_dict is populated properly accross all the nodes.
     dist.barrier()
 
     save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
@@ -85,7 +86,7 @@ def main(world_size: int, layer_size: int, project: str, filepath: str,
 
         tensor_size_per_instance = 1000 * layer_size * state_dict[
             f'dummy_tensor_0'].element_size()
-        total_tensor_count = padding_size // world_size  # Total tensors per rank
+        tensors_per_rank = padding_size // world_size
         total_size_bytes = total_tensor_count * tensor_size_per_instance * world_size
         print(f"Size of distributed tensors (rank {rank}):\
                  {format_size(total_tensor_count * tensor_size_per_instance)}")
@@ -98,6 +99,7 @@ def main(world_size: int, layer_size: int, project: str, filepath: str,
 
 if __name__ == "__main__":
     world_size = int(os.getenv("WORLD_SIZE"))
+    layer_size = int(os.getenv("LAYER_SIZE"))
     layer_size = int(os.getenv("LAYER_SIZE"))
     project = os.getenv("PROJECT")
     ckpt_dir_path = os.getenv("CKPT_DIR_PATH")
