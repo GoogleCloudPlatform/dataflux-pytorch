@@ -269,9 +269,9 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
         tensor_size_per_instance = 1000 * layer_size * state_dict[
             f'dummy_tensor_0'].element_size()
         tensors_per_rank = padding_size // world_size
-        total_size_bytes = total_tensor_count * tensor_size_per_instance * world_size
+        total_size_bytes = tensors_per_rank * tensor_size_per_instance * world_size
         print(f"Size of distributed tensors (rank {rank}):\
-                 {format_size(total_tensor_count * tensor_size_per_instance)}")
+                 {format_size(tensors_per_rank * tensor_size_per_instance)}")
         print(f"Total size of all tensors:\
                  {format_size(total_size_bytes)}")
         print("######################")

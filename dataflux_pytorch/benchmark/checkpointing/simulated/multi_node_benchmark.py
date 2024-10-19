@@ -50,8 +50,8 @@ def init_processes() -> int:
     return rank
 
 
-def main(world_size: int, layer_size: int, project: str, filepath: str,
-         padding_size: int, sample_count: int) -> None:
+def run_benchmark(world_size: int, layer_size: int, project: str,
+                  filepath: str, padding_size: int, sample_count: int) -> None:
     rank = init_processes() if os.environ.get("COORDINATOR_ADDRESS") else 0
 
     benchmark_strategy = BenchmarkStrategy(
@@ -87,9 +87,9 @@ def main(world_size: int, layer_size: int, project: str, filepath: str,
         tensor_size_per_instance = 1000 * layer_size * state_dict[
             f'dummy_tensor_0'].element_size()
         tensors_per_rank = padding_size // world_size
-        total_size_bytes = total_tensor_count * tensor_size_per_instance * world_size
+        total_size_bytes = tensors_per_rank * tensor_size_per_instance * world_size
         print(f"Size of distributed tensors (rank {rank}):\
-                 {format_size(total_tensor_count * tensor_size_per_instance)}")
+                 {format_size(tensors_per_rank * tensor_size_per_instance)}")
         print(f"Total size of all tensors:\
                  {format_size(total_size_bytes)}")
         print("######################")
@@ -97,7 +97,7 @@ def main(world_size: int, layer_size: int, project: str, filepath: str,
     cleanup()
 
 
-if __name__ == "__main__":
+def main() -> None:
     world_size = int(os.getenv("WORLD_SIZE"))
     layer_size = int(os.getenv("LAYER_SIZE"))
     layer_size = int(os.getenv("LAYER_SIZE"))
@@ -105,5 +105,9 @@ if __name__ == "__main__":
     ckpt_dir_path = os.getenv("CKPT_DIR_PATH")
     sample_count = int(os.getenv("SAMPLE_COUNT", 3))
     padding_size = int(os.getenv("PADDING_SIZE", 4000))
-    main(world_size, layer_size, project, ckpt_dir_path, padding_size,
-         sample_count)
+    run_benchmark(world_size, layer_size, project, ckpt_dir_path, padding_size,
+                  sample_count)
+
+
+if __name__ == "__main__":
+    main()
