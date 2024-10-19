@@ -93,9 +93,9 @@ def print_times(args, avg_save_time, avg_load_time):
     avg_save_time_str = str(avg_save_time) + " seconds"
     avg_load_time_str = str(avg_load_time) + " seconds"
     if args.save_only:
-        avg_save_time_str = "skipped"
-    elif args.load_only:
         avg_load_time_str = "skipped"
+    elif args.load_only:
+        avg_save_time_str = "skipped"
 
     print("##################################")
     print("Average time to save one checkpoint: " + avg_save_time_str)
