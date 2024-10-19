@@ -58,11 +58,14 @@ def run_benchmark(world_size: int, layer_size: int, project: str,
         project=project,
         path=filepath,
     )
-
+    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/main/torch/distributed/checkpoint/default_planner.py#L343
+    # each key will be read only once from the state_dict, hence assigning different names to different tensor will force the load function to only read
+    # tensor shard corresponding to given node.
     state_dict = dict()
     for i in range(padding_size):
         if i % world_size == rank:
             state_dict[f'dummy_tensor_{i}'] = torch.randn(layer_size, 1000)
+
     # Wait until the state_dict is populated properly accross all the nodes.
     dist.barrier()
 
