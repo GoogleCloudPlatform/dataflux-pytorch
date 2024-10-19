@@ -4,15 +4,10 @@ import statistics
 import time
 
 import torch
+import torch.distributed as dist
 from demo.lightning.checkpoint.simulated.multiprocessing_train import (
-    BenchmarkStrategy,
-    SimpleModel,
-    cleanup,
-    format_size,
-    get_tensor_size_bytes,
-    split_tensor,
-    time_checkpoint_operation,
-)
+    BenchmarkStrategy, cleanup, format_size, get_tensor_size_bytes,
+    time_checkpoint_operation)
 
 
 def configure_master_addr():
@@ -49,45 +44,53 @@ def init_processes() -> int:
     os.environ["NODE_RANK"] = str(rank)
 
     configure_master_addr()
-    torch.distributed.init_process_group(
-        backend='gloo', rank=rank, world_size=world_size)
+    torch.distributed.init_process_group(backend='gloo',
+                                         rank=rank,
+                                         world_size=world_size)
     return rank
 
 
-def main(world_size: int, model_size: int, project: str, filepath: str, padding_size: int, sample_size: int) -> None:
+def main(world_size: int, layer_size: int, project: str, filepath: str,
+         padding_size: int, sample_count: int) -> None:
     rank = init_processes() if os.environ.get("COORDINATOR_ADDRESS") else 0
-    model = SimpleModel(model_size, padding_size)
-
-    dummy_input = torch.randn(100, model_size)
-    _ = model(dummy_input)
-
-    full_state_dict = model.state_dict()
-    for i, tensor in enumerate(model.dummy_tensors):
-        full_state_dict[f'dummy_tensor_{i}'] = tensor
 
     benchmark_strategy = BenchmarkStrategy(
-        project=project, path=filepath, model=model)
+        project=project,
+        path=filepath,
+    )
 
-    distributed_state_dict = {f"{key}_shard_{rank}": split_tensor(
-        tensor, world_size, rank) for key, tensor in full_state_dict.items()}
+    state_dict = dict()
+    for i in range(padding_size):
+        if i % world_size == rank:
+            state_dict[f'dummy_tensor_{i}'] = torch.randn(layer_size, 1000)
+    dist.barrier()
 
-    save_checkpoint_times = time_checkpoint_operation(
-        benchmark_strategy, distributed_state_dict, filepath, sample_size, 'save')
-    load_checkpoint_times = time_checkpoint_operation(
-        benchmark_strategy, distributed_state_dict, filepath, sample_size, 'load')
+    save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
+                                                      state_dict, filepath,
+                                                      sample_count, 'save',
+                                                      rank, world_size,
+                                                      padding_size, layer_size)
+
+    load_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
+                                                      state_dict, filepath,
+                                                      sample_count, 'load',
+                                                      rank, world_size,
+                                                      padding_size, layer_size)
 
     if rank == 0:
-        print("######################")
-        print(
-            f"Time taken to save checkpoint: {statistics.mean(save_checkpoint_times):.4f} seconds")
-        print(
-            f"Time taken to load checkpoint: {statistics.mean(load_checkpoint_times):.4f} seconds")
-        total_distributed_size_bytes = sum(get_tensor_size_bytes(
-            tensor) for tensor in distributed_state_dict.values())
-        print(
-            f"Size of distributed tensors (rank {rank}): {format_size(total_distributed_size_bytes)}")
-        print(
-            f"Total size of all tensors (rank {rank}): {format_size(total_distributed_size_bytes * world_size)}")
+        print(f"Time taken to save checkpoint:\
+                {statistics.mean(save_checkpoint_times):.4f} seconds")
+        print(f"Time taken to load checkpoint:\
+                 {statistics.mean(load_checkpoint_times):.4f} seconds")
+
+        tensor_size_per_instance = 1000 * layer_size * state_dict[
+            f'dummy_tensor_0'].element_size()
+        total_tensor_count = padding_size // world_size  # Total tensors per rank
+        total_size_bytes = total_tensor_count * tensor_size_per_instance * world_size
+        print(f"Size of distributed tensors (rank {rank}):\
+                 {format_size(total_tensor_count * tensor_size_per_instance)}")
+        print(f"Total size of all tensors:\
+                 {format_size(total_size_bytes)}")
         print("######################")
 
     cleanup()
@@ -95,10 +98,10 @@ def main(world_size: int, model_size: int, project: str, filepath: str, padding_
 
 if __name__ == "__main__":
     world_size = int(os.getenv("WORLD_SIZE"))
-    model_size = int(os.getenv("NUM_LAYERS"))
+    layer_size = int(os.getenv("LAYER_SIZE"))
     project = os.getenv("PROJECT")
-    path = os.getenv("CKPT_DIR_PATH")
-    sample_size = int(os.getenv("SAMPLE_COUNT", 3))
+    ckpt_dir_path = os.getenv("CKPT_DIR_PATH")
+    sample_count = int(os.getenv("SAMPLE_COUNT", 3))
     padding_size = int(os.getenv("PADDING_SIZE", 4000))
-    main(world_size, model_size,
-         project, path, padding_size, sample_size)
+    main(world_size, layer_size, project, ckpt_dir_path, padding_size,
+         sample_count)

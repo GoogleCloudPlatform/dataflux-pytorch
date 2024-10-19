@@ -37,48 +37,6 @@ BYTES_PER_MB = BYTES_PER_KB * 1024
 BYTES_PER_GB = BYTES_PER_MB * 1024
 
 
-def write_model_structure_to_file(file: TextIO,
-                                  model: nn.Module,
-                                  indent: str = '') -> None:
-    """
-    Write the full model structure and state to a file.
-
-    This function writes a detailed representation of the model, including its
-    structure, state dictionary, and any dummy tensors if present.
-
-    Args:
-        model (nn.Module): The PyTorch model to be written to file.
-        filename (str): The name of the file to write the model information to.
-    """
-    for name, module in model.named_children():
-        file.write(f"{indent}{name}:\n")
-        if list(module.children()):
-            write_model_structure_to_file(module, file, indent + '  ')
-        else:
-            file.write(f"{indent}  {module}\n")
-            for param_name, param in module.named_parameters():
-                file.write(f"{indent}    {param_name}: {param.shape}\n")
-                file.write(f"{indent}      Values: {param.data}\n")
-
-
-def write_full_model(model: nn.Module, filename: str) -> None:
-    with open(filename, 'w') as f:
-        f.write("Model Structure:\n")
-        write_model_structure_to_file(model, f)
-        f.write("\nModel State Dict:\n")
-        for key, value in model.state_dict().items():
-            f.write(f"{key}:\n")
-            f.write(f"  Shape: {value.shape}\n")
-            f.write(f"  Values: {value}\n")
-
-            if hasattr(model, 'dummy_tensors'):
-                f.write("\nDummy Tensors:\n")
-                for i, tensor in enumerate(model.dummy_tensors):
-                    f.write(f"dummy_tensor_{i}:\n")
-                    f.write(f"  Shape: {tensor.shape}\n")
-                    f.write(f"  Values: {tensor}\n")
-
-
 def write_state_dict_to_file(state_dict: Dict[str, torch.Tensor],
                              filename: str) -> None:
     with open(filename, 'w') as f:
@@ -150,11 +108,10 @@ def parse_args() -> argparse.Namespace:
 
 class BenchmarkStrategy(FSDPStrategy):
 
-    def __init__(self, project: str, path: str, model, **kwargs):
+    def __init__(self, project: str, path: str, **kwargs):
         super().__init__(**kwargs)
         self.writer = GCSDistributedWriter(path, project, None)
         self.reader = GCSDistributedReader(path, project, None)
-        self.model = model
 
     def save_checkpoint(self,
                         checkpoint: Dict[str, torch.Tensor],
@@ -164,8 +121,8 @@ class BenchmarkStrategy(FSDPStrategy):
         Saves the model's state dictionary to a specified file path in GCS.
         torch.distributed.checkpoint.save contains the core logic for saving
         model shards.
-        You can find the source code for FSDP.save_checkpoint
-        https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/fabric/strategies/fsdp.py#L492.
+        Source code for FSDP.save_checkpoint can be found at
+        https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/strategies/fsdp.py#L553 .
         Args:
             checkpoint (Dict[str, torch.Tensor]): The model's state dictionary
             containing tensor weights.
@@ -173,9 +130,7 @@ class BenchmarkStrategy(FSDPStrategy):
             storage_options (Optional[Dict]): Additional storage options
             (if any).
 
-        This method uses the GCS writer to save the checkpoint. It is
-        essential for maintaining the model's state across training sessions
-        or for recovery after failure.
+        This method uses the GCS writer to save the checkpoint.
         """
         dist_cp.save(state_dict=checkpoint,
                      checkpoint_id=filepath,
@@ -188,8 +143,8 @@ class BenchmarkStrategy(FSDPStrategy):
         GCS.
         torch.distributed.checkpoint.load contains the core logic of loading
         sharded model weights.
-        You can find the source code for FSDP.load_checkpoint
-        https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/fabric/strategies/fsdp.py#L519.
+        Source code for FSDP.load_checkpoint can be found at
+        https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/strategies/fsdp.py#L589 .
 
         For torch.distributed.checkpoint.load to work properly the
         template_state_dict should have model format.
@@ -202,36 +157,10 @@ class BenchmarkStrategy(FSDPStrategy):
 
         This method reads the checkpoint from GCS and updates the model's
         state dictionary.
-        It is crucial for restoring a model's state for continued training or
-        inference.
-        Ensure that the model architecture matches the saved state dictionary.
         """
         dist_cp.load(state_dict=initial_state_dict,
                      checkpoint_id=checkpoint_path,
                      storage_reader=self.reader)
-
-
-class SimpleModel(nn.Module):
-    """
-    A simple fully connected neural network model with 2 layers.
-    It also generates dummy tensors to generate checkpoints of desired size.
-    Attributes:
-        fc1 (nn.Linear): The first linear layer.
-        fc2 (nn.Linear): The second linear layer.
-        dummy_tensors (List[torch.Tensor]): A list of dummy tensors used for
-        padding.
-    """
-
-    def __init__(self, size: int, padding_size: int):
-        super(SimpleModel, self).__init__()
-        self.fc1 = nn.Linear(size, size)
-        self.fc2 = nn.Linear(size, size)
-        self.dummy_tensors = [
-            torch.randn(size, size) for _ in range(padding_size)
-        ]
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.fc2(torch.relu(self.fc1(x)))
 
 
 def setup(rank: int, world_size: int) -> None:
@@ -248,7 +177,8 @@ def cleanup() -> None:
 def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
                               distributed_state_dict: Dict[str, torch.Tensor],
                               filepath: str, sample_count: int, operation: str,
-                              model: nn.Module) -> list:
+                              rank: int, world_size: int, tensor_count: int,
+                              tensor_size: int) -> list:
     """
     Times the save or load operations for checkpoints.
 
@@ -268,12 +198,14 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
     saving/loading under distributed settings.
     """
     times = []
-    template_state_dict = model.state_dict()
-    for key, tensor in template_state_dict.items():
-        template_state_dict[key] = torch.empty_like(tensor)
-    if hasattr(model, 'dummy_tensors'):
-        for i, tensor in enumerate(model.dummy_tensors):
-            template_state_dict[f'dummy_tensor_{i}'] = torch.empty_like(tensor)
+    template_state_dict = dict()
+    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/main/torch/distributed/checkpoint/default_planner.py#L343
+    # each key will be read only once from the state_dict, hence assigning different names to different tensor will force the load function to only read
+    # tensor shard corresponding to given node.
+    for i in range(tensor_count):
+        if i % world_size == rank:
+            template_state_dict[f'dummy_tensor_{i}'] = torch.empty(
+                tensor_size, 1000)
     for i in range(sample_count):
         checkpoint_path = os.path.join(filepath, f'checkpoints/ckpt_{i}.ckpt')
         dist.barrier()
@@ -297,18 +229,15 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
                   debug: bool) -> None:
     setup(rank, world_size)
 
-    model = SimpleModel(layer_size, padding_size)
+    benchmark_strategy = BenchmarkStrategy(
+        project=project,
+        path=filepath,
+    )
 
-    if rank == 0 and debug:
-        print("Writing initial model structure and parameters to file...")
-        write_full_model(model, "initial_model_state.txt")
-    benchmark_strategy = BenchmarkStrategy(project=project,
-                                           path=filepath,
-                                           model=model)
-
-    state_dict = model.state_dict()
-    for i, tensor in enumerate(model.dummy_tensors):
-        state_dict[f'dummy_tensor_{i}'] = tensor
+    state_dict = dict()
+    for i in range(padding_size):
+        if i % world_size == rank:
+            state_dict[f'dummy_tensor_{i}'] = torch.randn(layer_size, 1000)
 
     if rank == 0 and debug:
         print("Writing state dict before saving to file...")
@@ -322,24 +251,29 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
     save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'save',
-                                                      model)
+                                                      rank, world_size,
+                                                      padding_size, layer_size)
 
     load_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'load',
-                                                      model)
+                                                      rank, world_size,
+                                                      padding_size, layer_size)
 
     if rank == 0:
         print(f"Time taken to save checkpoint:\
                 {statistics.mean(save_checkpoint_times):.4f} seconds")
         print(f"Time taken to load checkpoint:\
                  {statistics.mean(load_checkpoint_times):.4f} seconds")
-        total_distributed_size_bytes = sum(
-            get_tensor_size_bytes(tensor) for tensor in state_dict.values())
+
+        tensor_size_per_instance = 1000 * layer_size * state_dict[
+            f'dummy_tensor_0'].element_size()
+        total_tensor_count = padding_size // world_size  # Total tensors per rank
+        total_size_bytes = total_tensor_count * tensor_size_per_instance * world_size
         print(f"Size of distributed tensors (rank {rank}):\
-                 {format_size(total_distributed_size_bytes / world_size)}")
+                 {format_size(total_tensor_count * tensor_size_per_instance)}")
         print(f"Total size of all tensors:\
-                 {format_size(total_distributed_size_bytes)}")
+                 {format_size(total_size_bytes)}")
         print("######################")
 
         if debug:
