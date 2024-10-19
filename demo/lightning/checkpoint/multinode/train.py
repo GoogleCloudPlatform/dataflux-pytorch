@@ -46,20 +46,33 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                 "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is\
                 not supported because`FSDPStrategy` does not use the \
                     `CheckpointIO`.")
-
+        t0 = time.time()
         path = Path(self.broadcast(filepath))
 
+        t1 = time.time()
+        print(
+            f"Broadcast save path on rank {self.global_rank} in {t1 - t0} seconds"
+        )
         converted_state = {"model": checkpoint.pop("state_dict")}
         converted_state.update({
             f"optimizer_{idx}": optim_state
             for idx, optim_state in enumerate(
                 checkpoint.pop("optimizer_states", []))
         })
+        t2 = time.time()
+        print(
+            f"Converted state on rank {self.global_rank} in {t2 - t1} seconds")
         save(converted_state, checkpoint_id=path, storage_writer=self.writer)
+        t3 = time.time()
+        print(
+            f"Finished saving checkpoint on rank {self.global_rank} in {t3 - t2} seconds"
+        )
 
         if self.global_rank == 0:
             self.checkpoint_io.save_checkpoint(checkpoint,
                                                path / _METADATA_FILENAME)
+            t4 = time.time()
+            print(f"Finished saving metadata on rank 0 in {t4 - t3} seconds")
 
     def get_sharded_state_dict_context(
             self, module: Module) -> Generator[None, None, None]:
@@ -82,7 +95,12 @@ class DatafluxFSDPStrategy(FSDPStrategy):
     def load_checkpoint(self, checkpoint_path):
         # broadcast the path from rank 0 to ensure all the states are loaded \
         # from a common path.
+        t0 = time.time()
         path = Path(self.broadcast(checkpoint_path))
+        t1 = time.time()
+        print(
+            f"Broadcast load path on rank {self.global_rank} in {t1 - t0} seconds"
+        )
 
         assert self.model is not None
         assert self.lightning_module is not None
@@ -94,26 +112,51 @@ class DatafluxFSDPStrategy(FSDPStrategy):
 
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
+            t2 = time.time()
+            print(
+                f"Got sharded state context on rank {self.global_rank} in {t2 - t1} seconds"
+            )
             load(module_state, self.reader)
+            t3 = time.time()
+            print(
+                f"Loaded module state on rank {self.global_rank} in {t3 - t2} seconds"
+            )
             self.model.load_state_dict(
                 module_state["model"],
                 strict=self.lightning_module.strict_loading)
+            t4 = time.time()
+            print(
+                f"Loaded model state dict on rank {self.global_rank} in {t4 - t3} seconds"
+            )
 
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
 
                 for idx, optim in enumerate(self.optimizers):
+                    t5 = time.time()
                     optim_key = f"optimizer_{idx}"
                     optim_state = load_sharded_optimizer_state_dict(
                         model_state_dict=module_state["model"],
                         optimizer_key=optim_key,
                         storage_reader=self.reader,
                     )
+                    t6 = time.time()
+                    print(
+                        f"Loaded sharded optimizer state on rank {self.global_rank} in {t6 - t5} seconds"
+                    )
                     flattened_osd = FSDP.optim_state_dict_to_load(
                         optim_state_dict=optim_state[optim_key],
                         model=self.model,
                         optim=optim,
                     )
+                    t7 = time.time()
+                    print(
+                        f"Flattened optimizer dict on rank {self.global_rank} in {t7 - t6} seconds"
+                    )
                     optim.load_state_dict(flattened_osd)
+                    t8 = time.time()
+                    print(
+                        f"Loaded optimizer dict on rank {self.global_rank} in {t8 - t7} seconds"
+                    )
 
         # Load metadata (anything not a module or optimizer)
         new_path = path / _METADATA_FILENAME
