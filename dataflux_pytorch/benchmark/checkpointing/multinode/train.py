@@ -9,7 +9,6 @@ from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos import WikiText2
 from lightning.pytorch.strategies import FSDPStrategy
-import torch.distributed
 from torch.utils.data import DataLoader
 
 from demo.lightning.checkpoint.multinode.fsspecfsdp import FSSpecFSDPStrategy
@@ -31,7 +30,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_strategy(choice, project, model, ckpt_dir_path):
+def get_strategy(choice, project, ckpt_dir_path):
     strategy = None
     if choice == DF_FSDP_STRATEGY:
         print("Using DatafluxFSDPStrategy")
@@ -39,14 +38,12 @@ def get_strategy(choice, project, model, ckpt_dir_path):
             path=ckpt_dir_path,
             project_name=project,
             storage_client=None,
-            model=model,
             state_dict_type="sharded",
             use_orig_params=False,
         )
     elif choice == FSSPEC_FSDP_STRATEGY:
         print("Using FSSpecFSDPStrategy")
         strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
-                                      model=model,
                                       state_dict_type="sharded",
                                       use_orig_params=False)
     elif choice == FSDP_STRATEGY:
@@ -66,10 +63,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
 
-    model = DemoTransformer(vocab_size=dataset.vocab_size,
-                            nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-    strategy = get_strategy(args.strategy, os.getenv("PROJECT"), model,
-                            ckpt_dir_path)
+    strategy = get_strategy(args.strategy, os.getenv("PROJECT"), ckpt_dir_path)
     num_save_calls = int(os.environ.get("NUM_SAVE_CALLS", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
 
@@ -85,6 +79,9 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         devices=os.environ.get("NUM_DEVICES", 'auto'),
         num_nodes=num_nodes,
     )
+    with trainer.init_module():
+        model = DemoTransformer(vocab_size=dataset.vocab_size,
+                                nlayers=int(os.environ.get("NUM_LAYERS", 10)))
     trainer.fit(model, dataloader)
     print(f"Saving checkpoint to {ckpt_dir_path} {num_save_calls} times.")
     start = time.time()
@@ -98,10 +95,8 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     num_load_calls = int(os.environ.get("NUM_LOAD_CALLS", 3))
     load_checkpoint_times = []
     for i in range(num_load_calls):
-        model = DemoTransformer(vocab_size=dataset.vocab_size,
-                                nlayers=int(os.environ.get("NUM_LAYERS", 10)))
         new_ckpt_dir_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
-        strategy = get_strategy(args.strategy, os.getenv("PROJECT"), model,
+        strategy = get_strategy(args.strategy, os.getenv("PROJECT"),
                                 new_ckpt_dir_path)
         trainer = Trainer(
             enable_checkpointing=False,
@@ -115,6 +110,10 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
             devices=os.environ.get("NUM_DEVICES", 'auto'),
             num_nodes=num_nodes,
         )
+        with trainer.init_module(empty_init=True):
+            model = DemoTransformer(vocab_size=dataset.vocab_size,
+                                    nlayers=int(
+                                        os.environ.get("NUM_LAYERS", 10)))
         trainer.fit(model, dataloader, ckpt_path=new_ckpt_dir_path)
         start = time.time()
         trainer.strategy.load_checkpoint(new_ckpt_dir_path)

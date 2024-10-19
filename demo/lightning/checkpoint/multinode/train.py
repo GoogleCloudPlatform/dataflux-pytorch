@@ -27,13 +27,12 @@ from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
 
 class DatafluxFSDPStrategy(FSDPStrategy):
 
-    def __init__(self, path, project_name, storage_client, model, **kwargs):
+    def __init__(self, path, project_name, storage_client, **kwargs):
         super().__init__(**kwargs)
         self.writer = GCSDistributedWriter(path, project_name, storage_client)
         self.reader = GCSDistributedReader(path, project_name, storage_client)
         self.checkpoint_io = DatafluxLightningCheckpoint(
             project_name, storage_client)
-        self.model = model
         self.storage_client = storage.Client(project=project_name)
         user_agent.add_dataflux_user_agent(self.storage_client)
 
@@ -242,7 +241,6 @@ def main(project: str,
                           path=ckpt_dir_path,
                           project_name=project,
                           storage_client=None,
-                          model=model,
                           state_dict_type="sharded",
                       ),
                       num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
@@ -265,7 +263,6 @@ def main(project: str,
                           path=ckpt_restore_path,
                           project_name=project,
                           storage_client=None,
-                          model=model,
                           state_dict_type="sharded",
                       ),
                       num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
