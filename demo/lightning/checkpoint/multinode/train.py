@@ -279,7 +279,12 @@ class DemoTransformer(LightningTransformer):
     ) -> None:
         super().__init__()
         self.optimizer = optimizer
-        self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
+        self.vocab_size = vocab_size
+        self.nlayers = nlayers
+
+    def configure_model(self):
+        self.model = Transformer(vocab_size=self.vocab_size,
+                                 nlayers=self.nlayers)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         # Use self.trainer.model.parameters so that we can set

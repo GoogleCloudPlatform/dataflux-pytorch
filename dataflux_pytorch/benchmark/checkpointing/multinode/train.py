@@ -63,6 +63,8 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
 
+    model = DemoTransformer(vocab_size=dataset.vocab_size,
+                            nlayers=int(os.environ.get("NUM_LAYERS", 10)))
     strategy = get_strategy(args.strategy, os.getenv("PROJECT"), ckpt_dir_path)
     num_save_calls = int(os.environ.get("NUM_SAVE_CALLS", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
@@ -79,9 +81,6 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         devices=os.environ.get("NUM_DEVICES", 'auto'),
         num_nodes=num_nodes,
     )
-    with trainer.init_module():
-        model = DemoTransformer(vocab_size=dataset.vocab_size,
-                                nlayers=int(os.environ.get("NUM_LAYERS", 10)))
     trainer.fit(model, dataloader)
     print(f"Saving checkpoint to {ckpt_dir_path} {num_save_calls} times.")
     start = time.time()
@@ -95,6 +94,8 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     num_load_calls = int(os.environ.get("NUM_LOAD_CALLS", 3))
     load_checkpoint_times = []
     for i in range(num_load_calls):
+        model = DemoTransformer(vocab_size=dataset.vocab_size,
+                                nlayers=int(os.environ.get("NUM_LAYERS", 10)))
         new_ckpt_dir_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
         strategy = get_strategy(args.strategy, os.getenv("PROJECT"),
                                 new_ckpt_dir_path)
@@ -110,10 +111,6 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
             devices=os.environ.get("NUM_DEVICES", 'auto'),
             num_nodes=num_nodes,
         )
-        with trainer.init_module(empty_init=True):
-            model = DemoTransformer(vocab_size=dataset.vocab_size,
-                                    nlayers=int(
-                                        os.environ.get("NUM_LAYERS", 10)))
         trainer.fit(model, dataloader, ckpt_path=new_ckpt_dir_path)
         start = time.time()
         trainer.strategy.load_checkpoint(new_ckpt_dir_path)
