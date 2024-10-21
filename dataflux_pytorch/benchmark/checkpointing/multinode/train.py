@@ -28,10 +28,17 @@ def parse_args():
         '--strategy',
         choices=[DF_FSDP_STRATEGY, FSSPEC_FSDP_STRATEGY, FSDP_STRATEGY],
         default=DF_FSDP_STRATEGY)
+    parser.add_argument("--distributed_filesystem",
+                        action="store_true",
+                        default=False)
     return parser.parse_args()
 
 
 def validate(args):
+    if args.distrbiuted_filsystem and args.strategy != FSDP_STRATEGY:
+        raise ValueError(
+            "Strategy must be set to fsdp when using a distributed filesystem like GCSFuse or Filestore"
+        )
     if args.save_only and args.load_only:
         raise ValueError("Either save_only or load_only can be set.")
     if args.save_only and args.strategy != FSDP_STRATEGY:
