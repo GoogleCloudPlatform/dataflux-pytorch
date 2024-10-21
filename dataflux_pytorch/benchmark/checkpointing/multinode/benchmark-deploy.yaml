@@ -15,34 +15,38 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: <my-job-run>
+  name: gcsfuse-ckpt
   labels:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
     alpha.jobset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-nodepool # 1:1 job replica to node pool assignment
+
 spec:
   failurePolicy:
     maxRestarts: 0
   replicatedJobs:
-    - name: <checkpoint-job>
+    - name: gcsfuse-ckpt
       replicas: 1
       template:
         spec:
-          parallelism: 15    # Equal to the number of VMs per slice
-          completions: 15    # Same as the above.
+          parallelism: 2    # Equal to the number of VMs per slice
+          completions: 2    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
+            metadata:
+              annotations:
+                gke-gcsfuse/volumes: "true"
+                gke-gcsfuse/ephemeral-storage-limit: 1Gi
             spec:
               schedulerName: default-scheduler
               restartPolicy: Never
-
               priorityClassName: medium
               hostNetwork: true
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: <my-container>
-                image: gcr.io/<my-project>/<my-container>
+              - name: gcsfuse-ckpt
+                image: gcr.io/gcs-tess/gcsfuse-ckpt
 
                 resources:
                   limits:
@@ -64,22 +68,22 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "15"
+                  value: "2"
                 - name: NUM_NODES
-                  value: "15"
+                  value: "2"
 
                 - name: JOBSET_NAME
-                  value: "<my-job-run>"
+                  value: "gcsfuse-ckpt"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
                   value: "1234"
                 - name: PROJECT
-                  value: "<gcs_project_name>"
+                  value: "gcs-tess"
                 - name: CKPT_DIR_PATH
-                  value: "<gs://my-bucket/checkpoint-path/>"
+                  value: /ckpt-dir
                 - name: CKPT_RESTORE_PATH
-                  value: "<gs://my-bucket/checkpoint-path/>"
+                  value: /ckpt-dir/checkpoints
                 - name: PJRT_DEVICE
                   value: "CPU"
                 - name: NCCL_SOCKET_IFNAME
@@ -101,4 +105,12 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py;
+                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py --strategy=fsdp --load_only;
+                volumeMounts:
+                - name: gcs-fuse-static
+                  mountPath: /ckpt-dir
+              serviceAccountName: default
+              volumes:
+              - name: gcs-fuse-static
+                persistentVolumeClaim:
+                  claimName: gcs-fuse-csi-static-pvc
