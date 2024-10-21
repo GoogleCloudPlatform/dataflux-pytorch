@@ -32,10 +32,13 @@ spec:
           completions: 15    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
+            # Uncomment the lines below if using gcsfuse csi driver to mount your bucket to all pods.
+            # metadata:
+            #   annotations:
+            #     gke-gcsfuse/volumes: "true"
             spec:
               schedulerName: default-scheduler
               restartPolicy: Never
-
               priorityClassName: medium
               hostNetwork: true
               dnsPolicy: ClusterFirstWithHostNet
@@ -67,7 +70,6 @@ spec:
                   value: "15"
                 - name: NUM_NODES
                   value: "15"
-
                 - name: JOBSET_NAME
                   value: "<my-job-run>"
                 - name: COORDINATOR_ADDRESS
@@ -102,3 +104,12 @@ spec:
                 - -c
                 - |
                   python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py;
+              # Uncomment the lines below if using gcsfuse csi driver to mount your bucket to all pods.
+              #   volumeMounts:
+              #   - name: gcs-fuse-static
+              #     mountPath: /ckpt-dir
+              # serviceAccountName: default
+              # volumes:
+              # - name: gcs-fuse-static
+              #   persistentVolumeClaim:
+              #     claimName: gcs-fuse-csi-static-pvc

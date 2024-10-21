@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gcs-fuse-csi-pv
+spec:
+  accessModes:
+  - ReadWriteMany
+  capacity:
+    storage: 5Gi
+  storageClassName: checkpoint-storage-class
+  csi:
+    driver: gcsfuse.csi.storage.gke.io
+    volumeHandle: <my-bucket-name-without-gs://>
+    volumeAttributes:
+      gcsfuseLoggingSeverity: warning
