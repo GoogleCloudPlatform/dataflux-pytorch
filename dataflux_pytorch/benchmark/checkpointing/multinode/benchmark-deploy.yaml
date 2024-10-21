@@ -20,12 +20,11 @@ metadata:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
     alpha.jobset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-nodepool # 1:1 job replica to node pool assignment
-
 spec:
   failurePolicy:
     maxRestarts: 0
   replicatedJobs:
-    - name: <checkpoint-job-name>
+    - name: <checkpoint-job>
       replicas: 1
       template:
         spec:
@@ -33,9 +32,10 @@ spec:
           completions: 15    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
-            metadata:
-              annotations:
-                gke-gcsfuse/volumes: "true"
+            # Uncomment the lines below if using gcsfuse csi driver to mount your bucket to all pods.
+            # metadata:
+            #   annotations:
+            #     gke-gcsfuse/volumes: "true"
             spec:
               schedulerName: default-scheduler
               restartPolicy: Never
@@ -70,7 +70,6 @@ spec:
                   value: "15"
                 - name: NUM_NODES
                   value: "15"
-
                 - name: JOBSET_NAME
                   value: "<my-job-run>"
                 - name: COORDINATOR_ADDRESS
