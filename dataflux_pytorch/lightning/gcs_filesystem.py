@@ -4,12 +4,12 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator, Optional, Union
 
+import torch.distributed as dist
 from dataflux_core import user_agent
-from google.cloud import storage
-from torch.distributed.checkpoint import FileSystemReader, FileSystemWriter
-
 from dataflux_pytorch.dataflux_checkpoint import DatafluxCheckpointBuffer
 from dataflux_pytorch.lightning.path_utils import parse_gcs_path
+from google.cloud import storage
+from torch.distributed.checkpoint import FileSystemReader, FileSystemWriter
 
 
 class GCSFileSystem():
@@ -17,6 +17,7 @@ class GCSFileSystem():
     def __init__(
         self,
         project_name: str,
+        debug: bool,
         storage_client: Optional[storage.Client] = None,
     ):
         self.project_name = project_name
@@ -24,6 +25,7 @@ class GCSFileSystem():
         if not storage_client:
             self.storage_client = storage.Client(project=self.project_name)
         user_agent.add_dataflux_user_agent(self.storage_client)
+        self.debug = debug
 
     @contextmanager
     def create_stream(self, path: Union[str, os.PathLike],
@@ -31,9 +33,17 @@ class GCSFileSystem():
         bucket, path = parse_gcs_path(path)
         blob = self.storage_client.bucket(bucket).blob(path)
         if mode == "wb":  # write mode.
+            if self.debug:
+                print(
+                    f"Creating Stream, Write Mode: Rank: {dist.get_rank()} Bucket: {bucket} path: {path}"
+                )
             with DatafluxCheckpointBuffer(blob) as stream:
                 yield stream
         elif mode == "rb":  # read mode.
+            if self.debug:
+                print(
+                    f"Creating Stream, Read Mode: Rank: {dist.get_rank()} Bucket: {bucket} path: {path}"
+                )
             stream = io.BytesIO()
             blob.download_to_file(stream)
             stream.seek(0)
@@ -95,9 +105,10 @@ class GCSDistributedWriter(FileSystemWriter):
                  path,
                  project_name: str,
                  storage_client: Optional[storage.Client] = None,
+                 debug: Optional[bool] = False,
                  **kwargs):
         super().__init__(path, **kwargs)
-        self.fs = GCSFileSystem(project_name, storage_client)
+        self.fs = GCSFileSystem(project_name, storage_client, debug)
         self.sync_files = False
 
 
@@ -106,6 +117,8 @@ class GCSDistributedReader(FileSystemReader):
     def __init__(self,
                  path: Union[str, os.PathLike],
                  project_name: str,
-                 storage_client: Optional[storage.Client] = None):
-        super().__init__(path=path)
-        self.fs = GCSFileSystem(project_name, storage_client)
+                 storage_client: Optional[storage.Client] = None,
+                 debug: Optional[bool] = False,
+                 **kwargs):
+        super().__init__(path, **kwargs)
+        self.fs = GCSFileSystem(project_name, storage_client, debug)
