@@ -35,7 +35,7 @@ def parse_args():
 
 
 def validate(args):
-    if args.distrbiuted_filsystem and args.strategy != FSDP_STRATEGY:
+    if args.distributed_filsystem and args.strategy != FSDP_STRATEGY:
         raise ValueError(
             "Strategy must be set to fsdp when using a distributed filesystem like GCSFuse or Filestore"
         )

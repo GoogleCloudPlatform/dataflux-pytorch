@@ -105,7 +105,7 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py --strategy=fsdp --load_only;
+                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py --strategy=fsdp --distributed_filesystem;
                 volumeMounts:
                 - name: gcs-fuse-static
                   mountPath: /ckpt-dir
