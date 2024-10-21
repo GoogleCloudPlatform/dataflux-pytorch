@@ -36,7 +36,6 @@ spec:
             metadata:
               annotations:
                 gke-gcsfuse/volumes: "true"
-                gke-gcsfuse/ephemeral-storage-limit: 1Gi
             spec:
               schedulerName: default-scheduler
               restartPolicy: Never
@@ -91,7 +90,7 @@ spec:
                 - name: NCCL_DEBUG
                   value: "WARN"
                 - name: NUM_LAYERS
-                  value: "10"
+                  value: "1000"
                 - name: ACCELERATOR
                   value: "gpu"
 

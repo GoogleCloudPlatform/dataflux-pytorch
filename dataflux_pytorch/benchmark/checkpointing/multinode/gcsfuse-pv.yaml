@@ -6,7 +6,7 @@ spec:
   accessModes:
   - ReadWriteMany
   capacity:
-    storage: 1Gi
+    storage: 5Gi
   storageClassName: checkpoint-storage-class
   mountOptions:
     - implicit-dirs

@@ -8,6 +8,6 @@ spec:
   - ReadWriteMany
   resources:
     requests:
-      storage: 1Gi
+      storage: 5Gi
   volumeName: gcs-fuse-csi-pv
   storageClassName: checkpoint-storage-class
