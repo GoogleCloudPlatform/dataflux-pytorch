@@ -15,7 +15,7 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: gcsfuse-ckpt
+  name: <my-job-run>
   labels:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
@@ -25,12 +25,12 @@ spec:
   failurePolicy:
     maxRestarts: 0
   replicatedJobs:
-    - name: gcsfuse-ckpt
+    - name: <checkpoint-job-name>
       replicas: 1
       template:
         spec:
-          parallelism: 2    # Equal to the number of VMs per slice
-          completions: 2    # Same as the above.
+          parallelism: 15    # Equal to the number of VMs per slice
+          completions: 15    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             metadata:
@@ -44,8 +44,8 @@ spec:
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: gcsfuse-ckpt
-                image: gcr.io/gcs-tess/gcsfuse-ckpt
+              - name: <my-container>
+                image: gcr.io/<my-project>/<my-container>
 
                 resources:
                   limits:
@@ -67,22 +67,22 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "2"
+                  value: "15"
                 - name: NUM_NODES
-                  value: "2"
+                  value: "15"
 
                 - name: JOBSET_NAME
-                  value: "gcsfuse-ckpt"
+                  value: "<my-job-run>"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
                   value: "1234"
                 - name: PROJECT
-                  value: "gcs-tess"
+                  value: "<gcs_project_name>"
                 - name: CKPT_DIR_PATH
-                  value: /ckpt-dir
+                  value: "<gs://my-bucket/checkpoint-path/>"
                 - name: CKPT_RESTORE_PATH
-                  value: /ckpt-dir/checkpoints
+                  value: "<gs://my-bucket/checkpoint-path/>"
                 - name: PJRT_DEVICE
                   value: "CPU"
                 - name: NCCL_SOCKET_IFNAME
@@ -90,7 +90,7 @@ spec:
                 - name: NCCL_DEBUG
                   value: "WARN"
                 - name: NUM_LAYERS
-                  value: "1000"
+                  value: "10"
                 - name: ACCELERATOR
                   value: "gpu"
 
@@ -104,12 +104,13 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py --strategy=fsdp --distributed_filesystem;
-                volumeMounts:
-                - name: gcs-fuse-static
-                  mountPath: /ckpt-dir
-              serviceAccountName: default
-              volumes:
-              - name: gcs-fuse-static
-                persistentVolumeClaim:
-                  claimName: gcs-fuse-csi-static-pvc
+                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py;
+              # Uncomment the lines below if using gcsfuse csi driver to mount your bucket to all pods.
+              #   volumeMounts:
+              #   - name: gcs-fuse-static
+              #     mountPath: /ckpt-dir
+              # serviceAccountName: default
+              # volumes:
+              # - name: gcs-fuse-static
+              #   persistentVolumeClaim:
+              #     claimName: gcs-fuse-csi-static-pvc
