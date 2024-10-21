@@ -8,10 +8,8 @@ spec:
   capacity:
     storage: 5Gi
   storageClassName: checkpoint-storage-class
-  mountOptions:
-    - implicit-dirs
   csi:
     driver: gcsfuse.csi.storage.gke.io
-    volumeHandle: checkpoint-benchmark-west1
+    volumeHandle: <my-bucket-name-without-gs://>
     volumeAttributes:
       gcsfuseLoggingSeverity: warning
