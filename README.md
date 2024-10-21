@@ -321,7 +321,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesnâ
 ### Checkpointing
 Checkpoint benchmarks were taken on a single GCE `n2d-standard-48` node co-located with a storage bucket in the `us-west1` region. These results were the average of 10 runs. Checkpoints were tested on [PyTorch Lightning's Transformer demo model](https://github.com/Lightning-AI/pytorch-lightning/blob/master/src/lightning/pytorch/demos/transformer.py) ranging in size from 19.8M to 6.5B parameters (~76MB to ~24GB checkpoints). Checkpoints used PyTorch Lightning's default checkpoint format where a single checkpoint file is produced.
 
-#### Checkpoint Save
+### Checkpoint Save
 
 | Checkpoint Type | Model Parameters | Checkpoint File Size (MB) | Avg Checkpoint Save Time | Write Throughput (MB/s) |
 | --- | --- | --- | --- | --- |
@@ -335,7 +335,7 @@ Checkpoint benchmarks were taken on a single GCE `n2d-standard-48` node co-locat
 | Dataflux         | 6.5 B  | 24,200| 64.50   | 375.19  |
 
 
-#### Checkpoint Load
+### Checkpoint Load
 
 | Checkpoint Type | Model Parameters | Checkpoint File Size (MB) | Avg Checkpoint Restore Time | Read Throughput (MB/s) |
 | --- | --- | --- | --- | --- |
