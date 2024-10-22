@@ -27,6 +27,7 @@ import torch.nn as nn
 from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
                                                        GCSDistributedWriter)
 from lightning.pytorch.strategies import FSDPStrategy
+from torch.distributed.checkpoint import _fsspec_filesystem as FF
 
 # Constants for distributed setup
 MASTER_ADDR = 'localhost'
@@ -103,15 +104,27 @@ def parse_args() -> argparse.Namespace:
                         action="store_true",
                         default=False,
                         help="Enable debug mode.")
+    parser.add_argument(
+        "--use-fsspec",
+        action="store_true",
+        default=False,
+        help=
+        ("Use the gcsfs reader/writer for communication with Google Cloud Storage. "
+         "If not specified, the custom GCS reader/writer provided by DataFlux (DF) will be used."
+         ))
     return parser.parse_args()
 
 
 class BenchmarkStrategy(FSDPStrategy):
 
-    def __init__(self, project: str, path: str, **kwargs):
+    def __init__(self, project: str, path: str, use_fsspec: bool, **kwargs):
         super().__init__(**kwargs)
-        self.writer = GCSDistributedWriter(path, project, None)
-        self.reader = GCSDistributedReader(path, project, None)
+        if use_fsspec:
+            self.reader = FF.FsspecReader(path)
+            self.writer = FF.FsspecWriter(path, sync_files=False)
+        else:
+            self.writer = GCSDistributedWriter(path, project, None)
+            self.reader = GCSDistributedReader(path, project, None)
 
     def save_checkpoint(self,
                         checkpoint: Dict[str, torch.Tensor],
@@ -226,13 +239,12 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
 
 def run_benchmark(rank, world_size: int, layer_size: int, project: str,
                   filepath: str, padding_size: int, sample_count: int,
-                  debug: bool) -> None:
+                  debug: bool, use_fsspec: bool) -> None:
     setup(rank, world_size)
 
-    benchmark_strategy = BenchmarkStrategy(
-        project=project,
-        path=filepath,
-    )
+    benchmark_strategy = BenchmarkStrategy(project=project,
+                                           path=filepath,
+                                           use_fsspec=use_fsspec)
 
     state_dict = dict()
     for i in range(padding_size):
@@ -303,7 +315,7 @@ def main() -> None:
     mp.spawn(run_benchmark,
              args=(args.world_size, args.layer_size, args.project,
                    args.ckpt_dir_path, args.padding_size, args.sample_count,
-                   args.debug),
+                   args.debug, args.use_fsspec),
              nprocs=args.world_size,
              join=True)
 
