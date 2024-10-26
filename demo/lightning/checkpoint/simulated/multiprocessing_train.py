@@ -14,6 +14,9 @@
  limitations under the License.
  """
 import argparse
+import io
+# from torch.distributed.checkpoint import _fsspec_filesystem as FF
+import logging
 import os
 import statistics
 import time
@@ -24,11 +27,10 @@ import torch.distributed as dist
 import torch.distributed.checkpoint as dist_cp
 import torch.multiprocessing as mp
 import torch.nn as nn
-from lightning.pytorch.strategies import FSDPStrategy
-from torch.distributed.checkpoint import _fsspec_filesystem as FF
-
 from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
                                                        GCSDistributedWriter)
+from lightning.pytorch.strategies import FSDPStrategy
+from torch.distributed.checkpoint import _fsspec_filesystem as FF
 
 # Constants for distributed setup
 MASTER_ADDR = 'localhost'
@@ -120,12 +122,32 @@ class BenchmarkStrategy(FSDPStrategy):
 
     def __init__(self, project: str, path: str, use_fsspec: bool, **kwargs):
         super().__init__(**kwargs)
+        self.path = path
         if use_fsspec:
-            self.reader = FF.FsspecReader(path)
-            self.writer = FF.FsspecWriter(path, sync_files=False)
+            self.reader = FsspecReader(path)
+            self.writer = FsspecWriter(path, sync_files=False)
         else:
             self.writer = GCSDistributedWriter(path, project, None)
             self.reader = GCSDistributedReader(path, project, None)
+
+    def do_something(self, state_dict, iteration: int):
+        try:
+            path = os.path.join(self.path, f"{iteration}_{dist.get_rank()}.pt")
+            buffer = io.BytesIO()
+            torch.save(state_dict, buffer)
+            data = buffer.getvalue()
+            start_time = time.time()
+            print(f" Data size to write: {len(data)} bytes")
+            with self.writer.fs.create_stream(path, "wb") as stream:
+                stream.write(data)
+
+            end_time = time.time()
+            print(
+                f"### Total time taken by do_something: {end_time-start_time}")
+        except Exception as e:
+            print(f"## Error in do_something: {str(e)}")
+            print(f"## Path being used: {self.path}")
+            raise
 
     def save_checkpoint(self,
                         checkpoint: Dict[str, torch.Tensor],
@@ -253,6 +275,9 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
         if i % world_size == rank:
             state_dict[f'dummy_tensor_{i}'] = torch.randn(layer_size, 1000)
 
+    benchmark_strategy.do_something(state_dict)
+    exit(0)
+
     if rank == 0 and debug:
         print("Writing state dict before saving to file...")
         write_state_dict_to_file(state_dict, "state_dict_before_save.txt")
@@ -262,6 +287,7 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
         })
 
     dist.barrier()
+
     save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'save',

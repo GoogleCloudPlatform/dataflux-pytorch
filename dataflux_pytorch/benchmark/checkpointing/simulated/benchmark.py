@@ -71,7 +71,18 @@ def run_benchmark(world_size: int, layer_size: int, project: str,
 
     # Wait until the state_dict is populated properly accross all the nodes.
     dist.barrier()
-
+    for i in range(3):
+        dist.barrier()
+        benchmark_strategy.do_something(state_dict=state_dict, iteration=i)
+        print(
+            f" Done with do_something, for node {dist.get_rank()} for iteration {i}"
+        )
+        dist.barrier()
+    time.sleep(100)
+    benchmark_strategy = BenchmarkStrategy(project=project,
+                                           path=filepath,
+                                           use_fsspec=false)
+    benchmark_strategy.do_something()
     save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'save',
