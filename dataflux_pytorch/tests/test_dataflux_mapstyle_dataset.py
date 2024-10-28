@@ -122,11 +122,6 @@ class ListingTestCase(unittest.TestCase):
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
 
-        # Ensure the dataset can be constructed without setting storage_client.
-        self.assertIsNone(
-            ds.storage_client,
-            "storage_client was unexpectedly constructed on init.")
-
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
     def test_init_without_storage_client_constructed_when_needed(
             self, mock_dataflux_core):
@@ -146,8 +141,8 @@ class ListingTestCase(unittest.TestCase):
         )
 
         # Assert.
-        # Ensure the dataset can be constructed without setting storage_client.
-        self.assertIsNone(
+        # Ensure that client is constructed when not passes by the user.
+        self.assertIsNotNone(
             ds.storage_client,
             "storage_client was unexpectedly constructed on init.")
         # Accessing a dataset item calls download_single.
@@ -372,7 +367,7 @@ class ListingTestCase(unittest.TestCase):
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
     def test_list_GCS_blobs_with_spawn_multiprocess(self, mock_dataflux_core):
-        """Tests the _list_GCS_blobs_with_retry doesn't initialize client before calling dataflux_core.fast_list.ListingController when multiprcessing start method is spawn."""
+        """Tests the _list_GCS_blobs_with_retry initializes client before calling dataflux_core.fast_list.ListingController when multiprcessing start method is spawn."""
 
         # Arrange.
         mock_listing_controller = mock.Mock()
@@ -389,6 +384,10 @@ class ListingTestCase(unittest.TestCase):
             data_format_fn=self.data_format_fn,
             storage_client=None,
         )
+        # Remove client created by DataFluxMapStyleDataset.
+        ds.storage_client = None
+        mock_listing_controller.client = None
+        ds._list_GCS_blobs_with_retry()
 
         if (multiprocessing.get_start_method(allow_none=False)
                 != dataflux_mapstyle_dataset.FORK):
@@ -433,6 +432,59 @@ class ListingTestCase(unittest.TestCase):
             ds.config.max_composite_object_size,
             want_size,
             f"got max_composite_object_size for compose download{ds.config.max_composite_object_size}, want {want_size}",
+        )
+
+    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    def test_getstate(self, mock_dataflux_core):
+        """Tests that the dataset.__getitems__ method returns the list of the correct downloaded object content."""
+        # Arrange.
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.run.return_value = self.want_objects
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller)
+
+        # Act.
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            storage_client=self.storage_client,
+        )
+
+        states = ds.__getstate__()
+        want_state = ds.__dict__
+        want_state.pop("storage_client")
+        # Assert.
+        self.assertEqual(
+            states,
+            want_state,
+            f"got dataflux_mapstyle_dataset params {states}, want {want_state}",
+        )
+
+    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    def test_setstate(self, mock_dataflux_core):
+        """Tests that the dataset.__getitems__ method returns the list of the correct downloaded object content."""
+        # Arrange.
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.run.return_value = self.want_objects
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller)
+
+        # Act.
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            storage_client=self.storage_client,
+        )
+        want_state = ds.__dict__
+        ds.__dict__.pop("storage_client")
+        ds.__setstate__()
+        # Assert.
+        self.assertEqual(
+            ds.__dict__,
+            want_state,
+            f"got dataflux_mapstyle_dataset params {ds.__dict__}, want {want_state}",
         )
 
 

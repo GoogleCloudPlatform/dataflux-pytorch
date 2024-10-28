@@ -140,7 +140,6 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.config = config
         if self.storage_client is None:
             self.storage_client = storage.Client(project=self.project_name)
-        self._pickle_client()
         # If composed download is enabled and a storage_client was provided,
         # check if the client has permissions to create and delete the
         # composed object.
@@ -204,8 +203,8 @@ class DataFluxMapStyleDataset(data.Dataset):
                     retry_config=self.config.list_retry_config,
                 )
                 # If the dataset was not initialized with an storage_client, ensure that we do not attach a client to the lister to avoid pickling errors (#58).
-                # if self.storage_client is not None:
-                #     lister.client = self.storage_client
+                if self.storage_client is not None:
+                    lister.client = self.storage_client
                 listed_objects = lister.run()
 
             except Exception as e:
@@ -236,22 +235,6 @@ class DataFluxMapStyleDataset(data.Dataset):
             return self.storage_client
         return storage.Client(project=self.project_name)
 
-    def _pickle_client(self):
-        """Reduce a Client by saving the intial params."""
-        self.project = self.storage_client.project
-        self.credentials = self.storage_client._credentials
-        self.client_info = self.storage_client._initial_client_info
-        self.client_options = self.storage_client._initial_client_options
-        self.extra_headers = self.storage_client._extra_headers
-
-    def _unpickle_client(self):
-        """Replicate a Client by constructing a new one with the initial params."""
-        return storage.Client(project=self.project,
-                              credentials=self.credentials,
-                              client_info=self.client_info,
-                              client_options=self.client_options,
-                              extra_headers=self.extra_headers)
-
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains
         # all our instance attributes. Use the dict.copy()
@@ -265,4 +248,4 @@ class DataFluxMapStyleDataset(data.Dataset):
         # Restore instance attributes.
         self.__dict__.update(state)
         # Restore the storage client with initial params.
-        self.storage_client = self._unpickle_client()
+        self.storage_client = storage.Client(project=self.project_name)
