@@ -477,14 +477,20 @@ class ListingTestCase(unittest.TestCase):
             config=self.config,
             storage_client=self.storage_client,
         )
-        want_state = ds.__dict__
+
         ds.__dict__.pop("storage_client")
-        ds.__setstate__()
+        self.assertNotIn(
+            "storage_client", ds.__dict__,
+            f"Key 'storage_client' should not exist in dataflux_mapstyle_dataset instance"
+        )
+        state = ds.__dict__.copy()
+        ds.__setstate__(state)
+
         # Assert.
-        self.assertEqual(
+        self.assertIn(
+            "storage_client",
             ds.__dict__,
-            want_state,
-            f"got dataflux_mapstyle_dataset params {ds.__dict__}, want {want_state}",
+            f"Key 'storage_client' should exist in dataflux_mapstyle_dataset instance",
         )
 
 
