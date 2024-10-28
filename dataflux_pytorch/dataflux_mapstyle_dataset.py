@@ -257,7 +257,6 @@ class DataFluxMapStyleDataset(data.Dataset):
         state = self.__dict__.copy()
         # Remove the unpicklable entries.
         del state['storage_client']
-        print("get_state: client deleted")
         return state
 
     def __setstate__(self, state):
@@ -266,4 +265,3 @@ class DataFluxMapStyleDataset(data.Dataset):
         # Restore the previously opened file's state. To do so, we need to
         # reopen it and read from it until the line count is restored.
         self.storage_client = self._unpickle_client()
-        print("set_state: client created")
