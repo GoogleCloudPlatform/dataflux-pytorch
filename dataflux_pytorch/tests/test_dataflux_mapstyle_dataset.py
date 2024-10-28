@@ -451,9 +451,11 @@ class ListingTestCase(unittest.TestCase):
             storage_client=self.storage_client,
         )
 
-        states = ds.__getstate__()
-        want_state = ds.__dict__
+        want_state = ds.__dict__.copy()
         want_state.pop("storage_client")
+
+        states = ds.__getstate__()
+
         # Assert.
         self.assertEqual(
             states,
@@ -470,7 +472,6 @@ class ListingTestCase(unittest.TestCase):
         mock_dataflux_core.fast_list.ListingController.return_value = (
             mock_listing_controller)
 
-        # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
             project_name=self.project_name,
             bucket_name=self.bucket_name,
@@ -478,12 +479,15 @@ class ListingTestCase(unittest.TestCase):
             storage_client=self.storage_client,
         )
 
+        # Remove storage_client from dataflux_mapstyle_dataset instance.
         ds.__dict__.pop("storage_client")
         self.assertNotIn(
             "storage_client", ds.__dict__,
-            f"Key 'storage_client' should not exist in dataflux_mapstyle_dataset instance"
+            f"Key 'storage_client' should was not removed from dataflux_mapstyle_dataset instance"
         )
         state = ds.__dict__.copy()
+
+        # Act.
         ds.__setstate__(state)
 
         # Assert.
