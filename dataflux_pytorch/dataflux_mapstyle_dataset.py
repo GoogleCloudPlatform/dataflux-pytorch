@@ -247,5 +247,5 @@ class DataFluxMapStyleDataset(data.Dataset):
     def __setstate__(self, state):
         # Restore instance attributes.
         self.__dict__.update(state)
-        # Restore the storage client with initial params.
+        # Create the storage client.
         self.storage_client = storage.Client(project=self.project_name)
