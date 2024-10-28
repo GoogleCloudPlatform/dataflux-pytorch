@@ -237,6 +237,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         return storage.Client(project=self.project_name)
 
     def _pickle_client(self):
+        """Reduce a Client by saving the intial params."""
         self.project = self.storage_client.project
         self.credentials = self.storage_client._credentials
         self.client_info = self.storage_client._initial_client_info
@@ -244,6 +245,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.extra_headers = self.storage_client._extra_headers
 
     def _unpickle_client(self):
+        """Replicate a Client by constructing a new one with the initial params."""
         return storage.Client(project=self.project,
                               credentials=self.credentials,
                               client_info=self.client_info,
@@ -252,7 +254,7 @@ class DataFluxMapStyleDataset(data.Dataset):
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains
-        # all our instance attributes. Always use the dict.copy()
+        # all our instance attributes. Use the dict.copy()
         # method to avoid modifying the original state.
         state = self.__dict__.copy()
         # Remove the unpicklable entries.
@@ -260,8 +262,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         return state
 
     def __setstate__(self, state):
-        # Restore instance attributes (i.e., filename and lineno).
+        # Restore instance attributes.
         self.__dict__.update(state)
-        # Restore the previously opened file's state. To do so, we need to
-        # reopen it and read from it until the line count is restored.
+        # Restore the storage client with initial params.
         self.storage_client = self._unpickle_client()
