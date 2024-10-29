@@ -486,9 +486,9 @@ class ListingTestCase(unittest.TestCase):
         ds.__setstate__(state)
 
         # Assert.
-        self.assertIn(
-            "storage_client",
-            ds.__dict__,
+        self.assertIsInstance(
+            ds.__dict__['storage_client'],
+            storage.Client,
             f"Key 'storage_client' should exist in dataflux_mapstyle_dataset instance",
         )
 
