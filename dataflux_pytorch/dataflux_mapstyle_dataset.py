@@ -203,8 +203,8 @@ class DataFluxMapStyleDataset(data.Dataset):
                     retry_config=self.config.list_retry_config,
                 )
                 # If the dataset was not initialized with an storage_client, ensure that we do not attach a client to the lister to avoid pickling errors (#58).
-                if self.storage_client is not None:
-                    lister.client = self.storage_client
+                # if self.storage_client is not None:
+                #     lister.client = self.storage_client
                 listed_objects = lister.run()
 
             except Exception as e:

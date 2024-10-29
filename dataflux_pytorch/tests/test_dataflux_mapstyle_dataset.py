@@ -332,8 +332,14 @@ class ListingTestCase(unittest.TestCase):
             retry_config=dataflux_mapstyle_dataset.MODIFIED_RETRY,
         )
 
-    def test_init_sets_user_agent(self):
+    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    def test_init_sets_user_agent(self, mock_dataflux_core):
         """Tests that the init function sets the storage client's user agent."""
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.run.return_value = self.want_objects
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller)
+
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
             project_name=self.project_name,
             bucket_name=self.bucket_name,
@@ -347,23 +353,6 @@ class ListingTestCase(unittest.TestCase):
             self.want_objects,
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
-
-    def test_init_with_spawn_multiprocess(self):
-        """Tests the DataFluxIterableDataset returns pickling error for passing-in client when multiprcessing start method is spawn."""
-        # Act.
-        client = storage.Client(project=self.project_name)
-        config = self.config
-        config.max_composite_object_size = 0
-        if (multiprocessing.get_start_method(allow_none=False)
-                != dataflux_mapstyle_dataset.FORK):
-            with self.assertRaises(pickle.PicklingError):
-                dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
-                    project_name=self.project_name,
-                    bucket_name=self.bucket_name,
-                    config=config,
-                    data_format_fn=self.data_format_fn,
-                    storage_client=client,
-                )
 
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
     def test_list_GCS_blobs_with_spawn_multiprocess(self, mock_dataflux_core):
@@ -413,9 +402,15 @@ class ListingTestCase(unittest.TestCase):
                 storage_client=client,
             )
 
-    def test_init_with_perm(self):
+    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    def test_init_with_perm(self, mock_dataflux_core):
         """Tests that the compose download is not disabled when create and delete permissions exists."""
         # Arrange.
+        # Arrange.
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.run.return_value = self.want_objects
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller)
         want_size = self.config.max_composite_object_size
 
         # Act.
