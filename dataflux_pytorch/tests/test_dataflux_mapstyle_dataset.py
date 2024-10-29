@@ -48,14 +48,19 @@ class ListingTestCase(unittest.TestCase):
         ], self.bucket_name)
         self.storage_client = client
 
-    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
-    def test_init(self, mock_dataflux_core):
-        """Tests the DataFluxMapStyleDataset can be initiated with the expected listing results."""
-        # Arrange.
+    def initializeMockFastList(self, mock_dataflux_core):
+        """ Test helper function to """
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
-        mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller)
+        mock_dataflux_core.return_value = (mock_listing_controller)
+
+    @mock.patch(
+        "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
+    )
+    def test_init(self, mock_dataflux_core):
+        """Tests the DataFluxMapStyleDataset can be initiated with the expected listing results."""
+        # Setup mocks for testing.
+        self.initializeMockFastList(mock_dataflux_core)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -73,14 +78,13 @@ class ListingTestCase(unittest.TestCase):
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
 
-    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    @mock.patch(
+        "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
+    )
     def test_init_with_required_parameters(self, mock_dataflux_core):
         """Tests the DataFluxMapStyleDataset can be initiated with only the required parameters."""
-        # Arrange.
-        mock_listing_controller = mock.Mock()
-        mock_listing_controller.run.return_value = self.want_objects
-        mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller)
+        # Setup mocks for testing.
+        self.initializeMockFastList(mock_dataflux_core)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -98,14 +102,13 @@ class ListingTestCase(unittest.TestCase):
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
 
-    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    @mock.patch(
+        "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
+    )
     def test_init_without_storage_client(self, mock_dataflux_core):
         """Tests the DataFluxMapStyleDataset can be initiated without storage_client."""
-        # Arrange.
-        mock_listing_controller = mock.Mock()
-        mock_listing_controller.run.return_value = self.want_objects
-        mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller)
+        # Setup mocks for testing.
+        self.initializeMockFastList(mock_dataflux_core)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -126,7 +129,7 @@ class ListingTestCase(unittest.TestCase):
     def test_init_without_storage_client_constructed_when_needed(
             self, mock_dataflux_core):
         """Tests the DataFluxMapStyleDataset can be initiated without storage_client."""
-        # Arrange.
+        # Setup mocks for testing.
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
@@ -157,7 +160,7 @@ class ListingTestCase(unittest.TestCase):
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
     def test_init_retry_exception_passes(self, mock_dataflux_core):
         """Tests that the initialization retries objects llisting upon exception and passes."""
-        # Arrange.
+        # Setup mocks for testing.
         mock_listing_controller = mock.Mock()
 
         # Simulate that the first invocation raises an exception and the second invocation
@@ -190,7 +193,7 @@ class ListingTestCase(unittest.TestCase):
     def test_init_raises_exception_when_retries_exhaust(
             self, mock_dataflux_core):
         """Tests that the initialization raises exception upon exhaustive retries."""
-        # Arrange.
+        # Setup mocks for testing.
         mock_listing_controller = mock.Mock()
         want_exception = RuntimeError("123")
 
@@ -221,14 +224,13 @@ class ListingTestCase(unittest.TestCase):
             f"got exception {re.exception}, want {want_exception}",
         )
 
-    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    @mock.patch(
+        "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
+    )
     def test_len(self, mock_dataflux_core):
         """Tests that the len(dataset) method returns the correct number of listed objects."""
-        # Arrange.
-        mock_listing_controller = mock.Mock()
-        mock_listing_controller.run.return_value = self.want_objects
-        mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller)
+        # Setup mocks for testing.
+        self.initializeMockFastList(mock_dataflux_core)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -249,7 +251,7 @@ class ListingTestCase(unittest.TestCase):
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
     def test_getitem(self, mock_dataflux_core):
         """Tests that the dataset[idx] method returns the correct downloaded object content."""
-        # Arrange.
+        # Setup mocks for testing.
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = sorted(self.want_objects)
         mock_dataflux_core.fast_list.ListingController.return_value = (
@@ -283,7 +285,7 @@ class ListingTestCase(unittest.TestCase):
     @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
     def test_getitems(self, mock_dataflux_core):
         """Tests that the dataset.__getitems__ method returns the list of the correct downloaded object content."""
-        # Arrange.
+        # Setup mocks for testing.
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.fast_list.ListingController.return_value = (
@@ -332,13 +334,12 @@ class ListingTestCase(unittest.TestCase):
             retry_config=dataflux_mapstyle_dataset.MODIFIED_RETRY,
         )
 
-    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    @mock.patch(
+        "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
+    )
     def test_init_sets_user_agent(self, mock_dataflux_core):
         """Tests that the init function sets the storage client's user agent."""
-        mock_listing_controller = mock.Mock()
-        mock_listing_controller.run.return_value = self.want_objects
-        mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller)
+        self.initializeMockFastList(mock_dataflux_core)
 
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
             project_name=self.project_name,
@@ -354,16 +355,17 @@ class ListingTestCase(unittest.TestCase):
             f"got listed objects {ds.objects}, want {self.want_objects}",
         )
 
-    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    @mock.patch(
+        "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
+    )
     def test_list_GCS_blobs_with_spawn_multiprocess(self, mock_dataflux_core):
-        """Tests the _list_GCS_blobs_with_retry initializes client before calling dataflux_core.fast_list.ListingController when multiprcessing start method is spawn."""
+        """Tests the _list_GCS_blobs_with_retry doesn't initializes client before calling dataflux_core.fast_list.ListingController when multiprcessing start method is set to spawn."""
 
-        # Arrange.
+        # Setup mocks for testing.
         mock_listing_controller = mock.Mock()
         mock_listing_controller.client = None
         mock_listing_controller.run.return_value = self.want_objects
-        mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller)
+        mock_dataflux_core.return_value = (mock_listing_controller)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -388,7 +390,7 @@ class ListingTestCase(unittest.TestCase):
 
     def test_init_without_perm(self):
         """Tests that the DataFluxIterableDataset returns permission error when create and delete permissions are missing."""
-        # Arrange.
+        # Setup client for testing.
         client = self.storage_client
         client._set_perm([], self.bucket_name)
 
@@ -402,15 +404,13 @@ class ListingTestCase(unittest.TestCase):
                 storage_client=client,
             )
 
-    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    @mock.patch(
+        "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
+    )
     def test_init_with_perm(self, mock_dataflux_core):
         """Tests that the compose download is not disabled when create and delete permissions exists."""
-        # Arrange.
-        # Arrange.
-        mock_listing_controller = mock.Mock()
-        mock_listing_controller.run.return_value = self.want_objects
-        mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller)
+        # Setup mocks for testing.
+        self.initializeMockFastList(mock_dataflux_core)
         want_size = self.config.max_composite_object_size
 
         # Act.
@@ -429,14 +429,13 @@ class ListingTestCase(unittest.TestCase):
             f"got max_composite_object_size for compose download{ds.config.max_composite_object_size}, want {want_size}",
         )
 
-    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    @mock.patch(
+        "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
+    )
     def test_getstate(self, mock_dataflux_core):
         """Tests that the dataset.__getitems__ method returns the list of the correct downloaded object content."""
-        # Arrange.
-        mock_listing_controller = mock.Mock()
-        mock_listing_controller.run.return_value = self.want_objects
-        mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller)
+        # Setup mocks for testing.
+        self.initializeMockFastList(mock_dataflux_core)
 
         # Act.
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
@@ -458,14 +457,13 @@ class ListingTestCase(unittest.TestCase):
             f"got dataflux_mapstyle_dataset params {states}, want {want_state}",
         )
 
-    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    @mock.patch(
+        "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
+    )
     def test_setstate(self, mock_dataflux_core):
         """Tests that the dataset.__getitems__ method returns the list of the correct downloaded object content."""
-        # Arrange.
-        mock_listing_controller = mock.Mock()
-        mock_listing_controller.run.return_value = self.want_objects
-        mock_dataflux_core.fast_list.ListingController.return_value = (
-            mock_listing_controller)
+        # Setup mocks for testing.
+        self.initializeMockFastList(mock_dataflux_core)
 
         ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
             project_name=self.project_name,
