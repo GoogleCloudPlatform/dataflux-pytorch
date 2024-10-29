@@ -223,18 +223,6 @@ class DataFluxMapStyleDataset(data.Dataset):
         else:
             raise error
 
-    def _get_or_create_storage_client(self):
-        """Provide initialized storage client or construct one.
-
-        Some environments do not support pickling client objects, so
-        storage_client is an optional parameter. If the dataset was
-        initialized without a storage client, construct and provide one for
-        use.
-        """
-        if self.storage_client is not None:
-            return self.storage_client
-        return storage.Client(project=self.project_name)
-
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains
         # all our instance attributes. Use the dict.copy()
