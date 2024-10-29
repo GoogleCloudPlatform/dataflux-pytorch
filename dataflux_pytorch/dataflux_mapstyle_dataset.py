@@ -138,6 +138,8 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
         self.config = config
+        if self.storage_client is None:
+            self.storage_client = storage.Client(project=self.project_name)
         # If composed download is enabled and a storage_client was provided,
         # check if the client has permissions to create and delete the
         # composed object.
@@ -165,7 +167,7 @@ class DataFluxMapStyleDataset(data.Dataset):
     def __getitem__(self, idx):
         return self.data_format_fn(
             dataflux_core.download.download_single(
-                storage_client=self._get_or_create_storage_client(),
+                storage_client=self.storage_client,
                 bucket_name=self.bucket_name,
                 object_name=self.objects[idx][0],
                 retry_config=self.config.download_retry_config,
@@ -178,7 +180,7 @@ class DataFluxMapStyleDataset(data.Dataset):
                 project_name=self.project_name,
                 bucket_name=self.bucket_name,
                 objects=[self.objects[idx] for idx in indices],
-                storage_client=self._get_or_create_storage_client(),
+                storage_client=self.storage_client,
                 dataflux_download_optimization_params=self.
                 dataflux_download_optimization_params,
                 threads=self.config.threads_per_process,
@@ -201,8 +203,6 @@ class DataFluxMapStyleDataset(data.Dataset):
                     retry_config=self.config.list_retry_config,
                 )
                 # If the dataset was not initialized with an storage_client, ensure that we do not attach a client to the lister to avoid pickling errors (#58).
-                if self.storage_client is not None:
-                    lister.client = self.storage_client
                 listed_objects = lister.run()
 
             except Exception as e:
@@ -221,14 +221,17 @@ class DataFluxMapStyleDataset(data.Dataset):
         else:
             raise error
 
-    def _get_or_create_storage_client(self):
-        """Provide initialized storage client or construct one.
+    def __getstate__(self):
+        # Copy the object's state from self.__dict__ which contains
+        # all our instance attributes. Use the dict.copy()
+        # method to avoid modifying the original state.
+        state = self.__dict__.copy()
+        # Remove the unpicklable entries.
+        del state['storage_client']
+        return state
 
-        Some environments do not support pickling client objects, so
-        storage_client is an optional parameter. If the dataset was
-        initialized without a storage client, construct and provide one for
-        use.
-        """
-        if self.storage_client is not None:
-            return self.storage_client
-        return storage.Client(project=self.project_name)
+    def __setstate__(self, state):
+        # Restore instance attributes.
+        self.__dict__.update(state)
+        # Create the storage client.
+        self.storage_client = storage.Client(project=self.project_name)
