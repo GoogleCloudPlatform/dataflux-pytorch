@@ -38,7 +38,7 @@ def configure_master_addr():
     os.environ["MASTER_ADDR"] = str(coordinator_ip_address)
 
 
-def init_processes():
+def init_processes() -> int:
     """Initializes the distributed environment."""
     # Get the necessary environment variables from the GKE environment.
     job_index = int(os.environ.get("JOB_INDEX"))
@@ -48,6 +48,7 @@ def init_processes():
     os.environ["NODE_RANK"] = str(rank)
 
     configure_master_addr()
+    return rank
 
 
 def main(project: str,
@@ -72,6 +73,7 @@ def main(project: str,
         every_n_train_steps=1,
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
+        dirpath=ckpt_dir_path,
     )
     accelerator = os.environ.get("ACCELERATOR", "cpu")
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))

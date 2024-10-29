@@ -4,18 +4,20 @@ from typing import Generator
 
 import gcsfs
 import torch
+import torch.distributed as dist
 from dataflux_core import user_agent
-from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
-from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
-                                                       GCSDistributedWriter)
 from google.cloud import storage
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
 from lightning.pytorch.trainer.states import TrainerFn
 from torch.distributed.checkpoint import _fsspec_filesystem as FF
-from torch.distributed.checkpoint import load, save
+from torch.distributed.checkpoint import async_save, load, save
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn import Module
+
+from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
+from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
+                                                       GCSDistributedWriter)
 
 
 def save_checkpoint_helper(rank, checkpoint, path, checkpoint_io, writer):
@@ -118,6 +120,50 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                                           mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
+
+
+class AsyncDatafluxFSDPStrategy(DatafluxFSDPStrategy):
+
+    def __init__(self, path, project_name, storage_client, model, **kwargs):
+        super().__init__(path, project_name, storage_client, model, **kwargs)
+        self._checkpoint_future = None
+
+        default_ranks = list(range(dist.get_world_size()))
+        self.checkpoint_group = dist.new_group(
+            default_ranks, backend=self.process_group_backend)
+
+    def save_checkpoint(self,
+                        checkpoint,
+                        filepath,
+                        storage_options=None) -> None:
+        if storage_options is not None:
+            raise TypeError(
+                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is\
+                not supported because`FSDPStrategy` does not use the \
+                    `CheckpointIO`.")
+
+        converted_state = {"model": checkpoint.pop("state_dict")}
+        converted_state.update({
+            f"optimizer_{idx}": optim_state
+            for idx, optim_state in enumerate(
+                checkpoint.pop("optimizer_states", []))
+        })
+
+        # If a previous future exists, wait for checkpointing to finish,
+        # avoiding queuing more then one checkpoint request at a time.
+        if self._checkpoint_future is not None:
+            self._checkpoint_future.result()
+
+        path = Path(self.broadcast(filepath))
+        self._checkpoint_future = async_save(
+            converted_state,
+            checkpoint_id=path,
+            storage_writer=self.writer,
+            process_group=self.checkpoint_group)
+
+        if self.global_rank == 0:
+            self.checkpoint_io.save_checkpoint(checkpoint,
+                                               path / _METADATA_FILENAME)
 
 
 class FSSpecFSDPStrategy(FSDPStrategy):
