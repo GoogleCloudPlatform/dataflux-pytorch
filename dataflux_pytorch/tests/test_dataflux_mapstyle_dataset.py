@@ -49,7 +49,7 @@ class ListingTestCase(unittest.TestCase):
         self.storage_client = client
 
     def initializeMockFastList(self, mock_dataflux_core):
-        """ Test helper function to """
+        """Test helper function to setup mock for dataflux_core.fast_list.ListingController."""
         mock_listing_controller = mock.Mock()
         mock_listing_controller.run.return_value = self.want_objects
         mock_dataflux_core.return_value = (mock_listing_controller)
