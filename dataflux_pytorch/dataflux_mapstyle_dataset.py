@@ -138,8 +138,7 @@ class DataFluxMapStyleDataset(data.Dataset):
         self.bucket_name = bucket_name
         self.data_format_fn = data_format_fn
         self.config = config
-        if self.storage_client is None:
-            self.storage_client = storage.Client(project=self.project_name)
+
         # If composed download is enabled and a storage_client was provided,
         # check if the client has permissions to create and delete the
         # composed object.
@@ -165,6 +164,8 @@ class DataFluxMapStyleDataset(data.Dataset):
         return len(self.objects)
 
     def __getitem__(self, idx):
+        if self.storage_client is None:
+            self.storage_client = storage.Client(project=self.project_name)
         return self.data_format_fn(
             dataflux_core.download.download_single(
                 storage_client=self.storage_client,
@@ -174,6 +175,8 @@ class DataFluxMapStyleDataset(data.Dataset):
             ))
 
     def __getitems__(self, indices):
+        if self.storage_client is None:
+            self.storage_client = storage.Client(project=self.project_name)
         return [
             self.data_format_fn(bytes_content) for bytes_content in
             dataflux_core.download.dataflux_download_threaded(
@@ -203,6 +206,7 @@ class DataFluxMapStyleDataset(data.Dataset):
                     retry_config=self.config.list_retry_config,
                 )
                 # If the dataset was not initialized with an storage_client, ensure that we do not attach a client to the lister to avoid pickling errors (#58).
+                lister.client = self.storage_client
                 listed_objects = lister.run()
 
             except Exception as e:
