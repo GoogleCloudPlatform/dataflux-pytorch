@@ -357,7 +357,6 @@ class ListingTestCase(unittest.TestCase):
         ds[want_idx]
 
         # Assert.
-        # Assert.
         self.assertIsNotNone(ds.storage_client,
                              "storage_client is not constructed on getitem.")
 
