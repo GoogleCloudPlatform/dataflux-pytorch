@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from typing import Generator
 
@@ -152,7 +153,11 @@ class AsyncDatafluxFSDPStrategy(DatafluxFSDPStrategy):
         # If a previous future exists, wait for checkpointing to finish,
         # avoiding queuing more then one checkpoint request at a time.
         if self._checkpoint_future is not None:
+            start_time = time.time()
             self._checkpoint_future.result()
+            duration_ms = (time.time() - start_time) / 1000
+            print(f"Checkpoint rank #{self.global_rank} async_save result() "
+                  f"duration: {duration_ms:.4f} ms.")
 
         path = Path(self.broadcast(filepath))
         self._checkpoint_future = async_save(
