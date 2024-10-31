@@ -69,6 +69,8 @@ function run_benchmarks(){
     python3 -u ./dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --project=dataflux-project --ckpt-dir-path=gs://df-ckpt-presubmit/ --layers=1000 --steps=5
     echo Running single node async checkpointing benchmark.
     python3 -u ./dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --project=dataflux-project --ckpt-dir-path=gs://df-ckpt-presubmit/async/ --layers=1000 --steps=5 --checkpoint=async_df_lightning
+    echo Running multinode simulated checkpointing benchmark.
+    python3 -u demo/lightning/checkpoint/simulated/multiprocessing_train.py --project=dataflux-project --ckpt-dir-path=gs://df-ckpt-presubmit/multinode-simulated/ --layer-size=1000 --padding-size=1000 --world-size=4
 }
 
 setup_virtual_envs
