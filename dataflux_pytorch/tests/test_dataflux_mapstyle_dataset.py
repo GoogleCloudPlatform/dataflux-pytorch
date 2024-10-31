@@ -144,8 +144,8 @@ class ListingTestCase(unittest.TestCase):
         )
 
         # Assert.
-        # Ensure that client is constructed when not passes by the user.
-        self.assertIsNotNone(
+        # Ensure that client is not constructed  in init when not passes by the user.
+        self.assertIsNone(
             ds.storage_client,
             "storage_client was unexpectedly constructed on init.")
         # Accessing a dataset item calls download_single.
@@ -333,6 +333,70 @@ class ListingTestCase(unittest.TestCase):
             threads=1,
             retry_config=dataflux_mapstyle_dataset.MODIFIED_RETRY,
         )
+
+    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    def test_getitem_initialize_client(self, mock_dataflux_core):
+        """Tests that the dataset[idx] method returns the correct downloaded object content."""
+        # Setup mocks for testing.
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.run.return_value = sorted(self.want_objects)
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller)
+        want_downloaded = bytes("content", "utf-8")
+        mock_dataflux_core.download.download_single.return_value = want_downloaded
+        want_idx = 0
+
+        # Act.
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            data_format_fn=self.data_format_fn,
+            storage_client=self.storage_client,
+        )
+        ds[want_idx]
+
+        # Assert.
+        # Assert.
+        self.assertIsNotNone(ds.storage_client,
+                             "storage_client is not constructed on getitem.")
+
+    @mock.patch("dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core")
+    def test_getitems_initialize_client(self, mock_dataflux_core):
+        """Tests that the dataset.__getitems__ method returns the list of the correct downloaded object content."""
+        # Setup mocks for testing.
+        mock_listing_controller = mock.Mock()
+        mock_listing_controller.run.return_value = self.want_objects
+        mock_dataflux_core.fast_list.ListingController.return_value = (
+            mock_listing_controller)
+        want_optimization_params = object()
+        mock_dataflux_core.download.DataFluxDownloadOptimizationParams.return_value = (
+            want_optimization_params)
+        dataflux_download_return_val = [
+            bytes("contentA", "utf-8"),
+            bytes("contentBB", "utf-8"),
+        ]
+        mock_dataflux_core.download.dataflux_download_threaded.return_value = (
+            dataflux_download_return_val)
+
+        def data_format_fn(content):
+            return len(content)
+
+        want_indices = [0, 1]
+
+        # Act.
+        ds = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
+            project_name=self.project_name,
+            bucket_name=self.bucket_name,
+            config=self.config,
+            data_format_fn=data_format_fn,
+            storage_client=self.storage_client,
+        )
+        ds.__getitems__(want_indices)
+
+        # Assert.
+        self.assertIsNotNone(ds.storage_client,
+                             "storage_client is not constructed on getitems.")
 
     @mock.patch(
         "dataflux_pytorch.dataflux_mapstyle_dataset.dataflux_core.fast_list.ListingController"
