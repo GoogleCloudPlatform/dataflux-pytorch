@@ -8,6 +8,7 @@ import struct
 
 import numpy as np
 import torch
+from dataflux_pytorch import dataflux_iterable_dataset as df_iter
 from torch.utils.data import IterableDataset, get_worker_info
 
 dtypes = {

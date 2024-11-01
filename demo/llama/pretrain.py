@@ -11,12 +11,17 @@ from typing import Optional, Tuple
 
 import lightning as L
 import torch
+from dataflux_pytorch import dataflux_iterable_dataset
 from dataset import CombinedDataset, PackedDataset
 from lightning.fabric.strategies import FSDPStrategy
 from model import Block, LLaMA, LLaMAConfig
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
 from utils import save_model_checkpoint
+
+# dataflux vars
+project_name = "gcs-tess"
+bucket_name = "redpajama-1b"
 
 # support running without installing as a package
 wd = Path(__file__).parent.parent.resolve()
@@ -137,7 +142,6 @@ def train(
 
     step_time = 0.0
     tokens = 0
-    tokens_sec = 0.0
     prev_t1 = time.time()
 
     for iter_num, train_data in enumerate(train_dataloader):
@@ -236,6 +240,13 @@ def validate(fabric: L.Fabric, model: torch.nn.Module,
     return out
 
 
+def list_with_dataflux(project_name, bucket_name):
+    dataset = dataflux_iterable_dataset.DataFluxIterableDataset(
+        project_name=project_name, bucket_name=bucket_name)
+    filenames = [name for name, _ in dataset.objects]
+    return filenames
+
+
 def create_dataloader(
     batch_size: int,
     block_size: int,
@@ -245,10 +256,14 @@ def create_dataloader(
     seed: int = 12345,
 ) -> DataLoader:
     datasets = []
+    filenames = list_with_dataflux(project_name, bucket_name)
     for prefix, _ in data_config:
-        filenames = glob.glob(os.path.join(data_dir, prefix + "*"))
+        files_in_this_dataset = [
+            name for name in filenames if name.startswith(prefix)
+        ]
+        # filenames = glob.glob(os.path.join(data_dir, prefix + "*"))
         dataset = PackedDataset(
-            filenames,
+            files_in_this_dataset,
             n_chunks=4,
             block_size=block_size,
             shuffle=shuffle,
