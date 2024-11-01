@@ -3,7 +3,6 @@
 # Very loosely inspired by indexed_dataset in Fairseq, Megatron
 # https://github.com/NVIDIA/Megatron-LM/blob/main/megatron/data/indexed_dataset.py
 
-import os
 import random
 import struct
 
