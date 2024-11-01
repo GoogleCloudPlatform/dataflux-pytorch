@@ -11,6 +11,7 @@ from pathlib import Path
 import torch
 import torch.utils._device
 from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy
+from sentencepiece import SentencePieceProcessor, SentencePieceTrainer
 from torch.distributed.fsdp import FullStateDictConfig
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp import StateDictType
@@ -517,3 +518,46 @@ class incremental_save:
 
     def __exit__(self, type, value, traceback):
         self.zipfile.write_end_of_file()
+
+
+class Tokenizer:
+    """Tokenizer for LLaMA."""
+
+    def __init__(self, model_path: Path) -> None:
+        self.processor = SentencePieceProcessor(model_file=str(model_path))
+        self.bos_id = self.processor.bos_id()
+        self.eos_id = self.processor.eos_id()
+        self.pad_id = self.processor.pad_id()
+
+    @property
+    def vocab_size(self) -> int:
+        return self.processor.vocab_size()
+
+    def encode(self,
+               string: str,
+               bos: bool = True,
+               eos: bool = False,
+               max_length: int = -1,
+               pad: bool = False,
+               device: Optional[torch.device] = None) -> torch.Tensor:
+        tokens = self.processor.encode(string)
+        if bos:
+            tokens = [self.bos_id] + tokens
+        if eos:
+            tokens = tokens + [self.eos_id]
+        if max_length > 0:
+            tokens = tokens[:max_length]
+        if pad and len(tokens) < max_length:
+            tokens += [self.pad_id] * (max_length - len(tokens))
+
+        return torch.tensor(tokens, dtype=torch.int, device=device)
+
+    def decode(self, tokens: torch.Tensor) -> str:
+        return self.processor.decode(tokens.tolist())
+
+    @staticmethod
+    def train(input: str, destination: str, vocab_size=32000) -> None:
+        model_prefix = os.path.join(destination, "tokenizer")
+        SentencePieceTrainer.Train(input=input,
+                                   model_prefix=model_prefix,
+                                   vocab_size=vocab_size)
