@@ -144,7 +144,7 @@ class ListingTestCase(unittest.TestCase):
         )
 
         # Assert.
-        # Ensure that client is not constructed  in init when not passes by the user.
+        # Ensure that client is not constructed in init when not passed by the user.
         self.assertIsNone(
             ds.storage_client,
             "storage_client was unexpectedly constructed on init.")
