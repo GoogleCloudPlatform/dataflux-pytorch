@@ -60,7 +60,8 @@ def main():
 
     rank = 0
     if os.environ.get("COORDINATOR_ADDRESS"):
-        rank = init_processes()
+        init_processes()
+        rank = int(os.environ.get("NODE_RANK", 0))
         dist.init_process_group("gloo", rank=rank, world_size=num_nodes)
 
     torch.cuda.device(rank)
@@ -117,11 +118,11 @@ def main():
         trainer.fit(model, dataloader)
         init_end_event.record()
 
-        total_secs = init_start_event.elapsed_time(init_end_event) / 1000
+        total_time = init_start_event.elapsed_time(init_end_event) / 1000
         print(
-            f"Individual run {i+1} of {run_count} trainer.fit() #{rank} took {total_secs} seconds."
+            f"Individual run {i+1} of {run_count} trainer.fit() #{rank} took {total_time} seconds."
         )
-        run_total += total_secs
+        run_total += total_time
 
     # All runs complete.
     print(f"Average execution run time: {run_total/run_count} seconds.")
