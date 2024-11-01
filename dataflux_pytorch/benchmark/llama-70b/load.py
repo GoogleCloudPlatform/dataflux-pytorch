@@ -1,3 +1,4 @@
+import os
 import time
 
 import torch
@@ -5,8 +6,10 @@ import torch
 from dataflux_pytorch import dataflux_checkpoint
 
 start_time = time.time()
-ckpt = dataflux_checkpoint.DatafluxCheckpoint(project_name="<PROJECT_NAME>",
-                                              bucket_name="<BUCKET_NAME")
+project_name = os.getenv("PROJECT")
+bucket_name = os.getenv("BUCKET")
+ckpt = dataflux_checkpoint.DatafluxCheckpoint(project_name=project_name,
+                                              bucket_name=bucket_name)
 CKPT_PATH = "llama2/llama2-70b-hf/"
 LOAD_COUNT = 10
 files = [

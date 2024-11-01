@@ -6,15 +6,16 @@ This benchmark is designed to give an approximation of load times for the [Llama
 
 This benchmark was performed on an [n2-standard-64](https://cloud.google.com/compute/docs/general-purpose-machines#n2_machine_types) VM with 256GB of memory in a single-node configuration. The bucket under test was co-located with the VM in the us-central1 region.
 
-| Run | Time to Load Model (seconds) |
-| --- | --- |
-|  1  | 651 |
-|  2  | 646 |
-|  3  | 652 |
-|  4  | 712 |
-|  5  | 705 |
-|  6  | 682 |
-|  7  | 721 |
-|  8  | 703 |
+| Run | Time to Load Model (seconds) | Throughput (Mbps) |
+| --- | --- | --- |
+|  1  | 651 | 212 |
+|  2  | 646 | 214 |
+|  3  | 652 | 212 |
+|  4  | 712 | 194 |
+|  5  | 705 | 196 |
+|  6  | 682 | 202 |
+|  7  | 721 | 191 |
+|  8  | 703 | 196 |
 
-Average across 8 benchmark runs: 684 seconds
+Average Time: 684 seconds
+Average Throughput: 202 Mbps
