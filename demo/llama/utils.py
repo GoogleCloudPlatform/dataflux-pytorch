@@ -2,11 +2,13 @@
 """Utility functions for training and inference."""
 
 import functools
+import os
 import pickle
 import warnings
 from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
+from typing import Optional
 
 import torch
 import torch.utils._device
