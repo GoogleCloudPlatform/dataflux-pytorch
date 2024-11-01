@@ -38,7 +38,7 @@ def configure_master_addr():
     os.environ["MASTER_ADDR"] = str(coordinator_ip_address)
 
 
-def init_processes() -> int:
+def init_processes():
     """Initializes the distributed environment."""
     # Get the necessary environment variables from the GKE environment.
     job_index = int(os.environ.get("JOB_INDEX"))
