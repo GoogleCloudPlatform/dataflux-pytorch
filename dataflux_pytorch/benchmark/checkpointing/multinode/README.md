@@ -60,13 +60,13 @@ python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train
 
 ### Distributed Async Checkpoint Save
 
-Additionally, you can make your distributed checkpointing save calls asynchronous by using the `AsyncDatafluxFSDPStrategy`. Under the hood, this will leverage the [torch.distributed.checkpoint.async_save](https://pytorch.org/docs/stable/distributed.checkpoint.html#torch.distributed.checkpoint.state_dict_saver.async_save) to launch the checkpoint save in a separate thread.
+Additionally, you can make your distributed checkpointing save calls asynchronous by initializing `DatafluxFSDPStrategy` with the kwarg `use_async=True`. Under the hood, this will leverage the [torch.distributed.checkpoint.async_save](https://pytorch.org/docs/stable/distributed.checkpoint.html#torch.distributed.checkpoint.state_dict_saver.async_save) to launch the checkpoint save in a separate thread.
 
-This separate demo introduces a new env var to increase the number of training steps between checkpoint saves, which results in more training cycles between checkpoint saves, as well as a var to select using distributed `save` or `async_save` behavior.
+This separate demo introduces a new env var to increase the number of training steps between checkpoint saves, as well as an env var to enable distributed save or async_save behavior:
 
   * `STEPS_PER_SAVE`: The number of training steps to complete before a new checkpoint save occurs.
 
-  * `STRATEGY`: The training strategy to use, providing the ability to compare the difference between DatafluxFSDPStrategy (`dataflux_fsdp`) and AsyncDatafluxFSDPStrategy (`async_dataflux_fsdp`).
+  * `USE_ASYNC`: Enable async checkpoint saves by setting this to `USE_ASYNC=1`.
 
 
 To run the script use the following command. 
