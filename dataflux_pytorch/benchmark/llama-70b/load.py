@@ -5,7 +5,6 @@ import torch
 
 from dataflux_pytorch import dataflux_checkpoint
 
-start_time = time.time()
 project_name = os.getenv("PROJECT")
 bucket_name = os.getenv("BUCKET")
 ckpt = dataflux_checkpoint.DatafluxCheckpoint(project_name=project_name,
@@ -25,6 +24,7 @@ files = [
 
 times = 0
 for i in range(LOAD_COUNT):
+    start_time = time.time()
     print(f"--------- RUN {i} ----------")
     print("Performing read...")
     for f in files:
