@@ -1,0 +1,58 @@
+The code in this directory is a the Llama 7B model. Everything except the data loading part is borrowed from lighting AI's lit-llama repo.
+
+
+### Download the data
+
+Follow the instructions in to download the dataset. Run pre-processing and upload the `.bin` files to your GCS bucket.
+
+
+### Run the pre-training script
+
+The training code leverages the GCS connector for Pytorch library to list and download files quickly and easily from your GCS bucket:
+
+```
+# pretrain.py; to list all the files in the dataset.
+def list_with_dataflux(project_name, bucket_name):
+    dataset = dataflux_iterable_dataset.DataFluxIterableDataset(
+        project_name=project_name, bucket_name=bucket_name)
+    filenames = [name for name, _ in dataset.objects]
+    return filenames
+
+```
+
+```
+# dataset.py; to download the `.bin` file to memory as bytes.
+def _read(self, path):
+    bytes_content = download_single(self.storage_client, self.bucket_name,
+                                    path)
+    bytes_io = io.BytesIO(bytes_content)
+    magic = bytes_io.read(len(HDR_MAGIC))
+    assert magic == HDR_MAGIC, "File doesn't match expected format."
+    version = struct.unpack("<Q", bytes_io.read(8))
+    assert (1, ) == version
+    (dtype_code, ) = struct.unpack("<B", bytes_io.read(1))
+    dtype = dtypes[dtype_code]
+    (chunk_size, ) = struct.unpack("<Q", bytes_io.read(8))
+    return dtype, chunk_size, bytes_io
+```
+
+### Download the tokenizer
+
+Follow the instructions here to download Llama Tokenzier.
+
+### Submit your prompt to the model and get tokens back!
+
+Run `generate.py` to get a response back from the model
+
+```
+you@your-machine:~/dataflux-pytorch/demo/llama$ python generate.py --prompt "Hello, my name is" --checkpoint_path out/training/iter-000119-ckpt.pth --tokenizer_path path/to/tokenizer
+Loading model ...
+Time to load model: 4.67 seconds.
+Seed set to 1234
+Hello, my name is.. a
+ live the
+ at,,.0,1);, in as may. already seems never . of,, and andure to the five a3, out.: and.er1,, to.If included
+Time for inference 1: 1.17 sec total, 42.78 tokens/sec
+Memory used: 13.57 GB
+```
+

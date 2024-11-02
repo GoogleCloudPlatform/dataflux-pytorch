@@ -261,7 +261,7 @@ def create_dataloader(
         files_in_this_dataset = [
             name for name in filenames if name.startswith(prefix)
         ]
-        # filenames = glob.glob(os.path.join(data_dir, prefix + "*"))
+
         dataset = PackedDataset(
             files_in_this_dataset,
             n_chunks=4,
