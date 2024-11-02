@@ -15,7 +15,7 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: yashsha-checkpoint-548
+  name: yashsha-checkpoint-fsspec
   labels:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
@@ -28,8 +28,8 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 10    # Equal to the number of VMs per slice
-          completions: 10    # Same as the above.
+          parallelism: 5    # Equal to the number of VMs per slice
+          completions: 5    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             spec:
@@ -60,12 +60,12 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "10"
+                  value: "5"
                 - name: WORLD_SIZE
-                  value: "10"
+                  value: "5"
 
                 - name: JOBSET_NAME
-                  value: "yashsha-checkpoint-548"
+                  value: "yashsha-checkpoint-fsspec"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
@@ -83,9 +83,8 @@ spec:
                 - name: LAYER_SIZE
                   value: "3000"
                 - name: PADDING_SIZE
-                  value: "8000"
-                - name: GCSFS_DEBUG
-                  value: DEBUG
+                  value: "5000"
+
 
                 ports:
                 - containerPort: 8471

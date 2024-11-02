@@ -125,6 +125,7 @@ class BenchmarkStrategy(FSDPStrategy):
         super().__init__(**kwargs)
         self.path = path
         if use_fsspec:
+            print("### Using FSSPEC###")
             self.reader = FsspecReader(path)
             self.writer = FsspecWriter(path, sync_files=False)
         else:
@@ -135,7 +136,10 @@ class BenchmarkStrategy(FSDPStrategy):
         try:
             path = os.path.join(self.path, f"{iteration}_{dist.get_rank()}.pt")
             buffer = io.BytesIO()
+            buffer_start_time = time.time()
             torch.save(state_dict, buffer)
+            buffer_end_time = time.time()
+            print(f"### Torch.save time = {buffer_end_time-buffer_start_time}")
             data = buffer.getvalue()
             start_time = time.time()
             print(f" Data size to write: {len(data)} bytes")
@@ -243,7 +247,7 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
         if i % world_size == rank:
             template_state_dict[f'dummy_tensor_{i}'] = torch.empty(
                 tensor_size, 1000)
-    for i in range(sample_count):
+    for i in range(2):
         checkpoint_path = os.path.join(filepath, f'checkpoints/ckpt_{i}.ckpt')
         dist.barrier()
         start_time = time.time()
@@ -274,9 +278,8 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
     for i in range(padding_size):
         if i % world_size == rank:
             state_dict[f'dummy_tensor_{i}'] = torch.randn(layer_size, 1000)
-
-    benchmark_strategy.do_something(state_dict)
-    exit(0)
+    for i in range(3):
+        benchmark_strategy.do_something(state_dict, i)
 
     if rank == 0 and debug:
         print("Writing state dict before saving to file...")

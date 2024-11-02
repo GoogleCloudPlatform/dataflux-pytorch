@@ -26,6 +26,7 @@ class FileSystem(FileSystemBase):
     @contextmanager
     def create_stream(self, path: Union[str, os.PathLike],
                       mode: str) -> Generator[io.IOBase, None, None]:
+        print("### Fsspec create_strem ###")
         assert self.fs is not None
         with self.fs.transaction:
             with fsspec.open(str(path), mode) as stream:
@@ -37,11 +38,7 @@ class FileSystem(FileSystemBase):
 
     def init_path(self, path: Union[str,
                                     os.PathLike]) -> Union[str, os.PathLike]:
-        if dist.get_rank() == 0:
-            start = time.time()
         self.fs, _ = url_to_fs(path)
-        if dist.get_rank() == 0:
-            end = time.time()
         return path
 
     def rename(self, path: Union[str, os.PathLike],

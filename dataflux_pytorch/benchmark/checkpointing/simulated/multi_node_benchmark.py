@@ -1,3 +1,4 @@
+import logging
 import os
 import socket
 import statistics
@@ -8,6 +9,10 @@ import torch.distributed as dist
 from demo.lightning.checkpoint.simulated.multiprocessing_train import (
     BenchmarkStrategy, cleanup, format_size, get_tensor_size_bytes,
     time_checkpoint_operation)
+
+logging.basicConfig(
+    level=logging.DEBUG,  # Set logging level
+    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def configure_master_addr():
@@ -55,7 +60,8 @@ def run_benchmark(world_size: int, layer_size: int, project: str,
     rank = init_processes() if os.environ.get("COORDINATOR_ADDRESS") else 0
 
     benchmark_strategy = BenchmarkStrategy(project=project,
-                                           path=filepath,
+                                           path=os.path.join(
+                                               filepath, "fsspec"),
                                            use_fsspec=True)
     # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/main/torch/distributed/checkpoint/default_planner.py#L343
     # each key will be read only once from the state_dict, hence assigning different names to different tensor will force the load function to only read
@@ -67,23 +73,25 @@ def run_benchmark(world_size: int, layer_size: int, project: str,
 
     # Wait until the state_dict is populated properly accross all the nodes.
     dist.barrier()
-    for i in range(3):
+    for i in range(2):
         dist.barrier()
         benchmark_strategy.do_something(state_dict=state_dict, iteration=i)
         print(
             f" Done with do_something, for node {dist.get_rank()} for iteration {i}"
         )
         dist.barrier()
-    # time.sleep(100)
-    # benchmark_strategy = BenchmarkStrategy(project=project,
-    #                                        path=filepath,
-    #                                        use_fsspec=false)
-    # benchmark_strategy.do_something()
-    # save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
-    #                                                   state_dict, filepath,
-    #                                                   sample_count, 'save',
-    #                                                   rank, world_size,
-    #                                                   padding_size, layer_size)
+
+    time.sleep(100)
+    print("###### STARTING WITH SAVE CHECKPOINT NOW")
+    benchmark_strategy = BenchmarkStrategy(project=project,
+                                           path=os.path.join(
+                                               filepath, "fsspec_save"),
+                                           use_fsspec=True)
+    save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
+                                                      state_dict, filepath,
+                                                      sample_count, 'save',
+                                                      rank, world_size,
+                                                      padding_size, layer_size)
 
     # load_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
     #                                                   state_dict, filepath,
