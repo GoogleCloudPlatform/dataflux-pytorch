@@ -53,7 +53,7 @@ def validate(args):
         )
 
 
-def get_strategy(args, project, model, ckpt_dir_path):
+def get_strategy(args, project, ckpt_dir_path):
     strategy = None
     policy = {nn.TransformerEncoderLayer, nn.TransformerDecoderLayer}
     if args.strategy == DF_FSDP_STRATEGY:
@@ -62,7 +62,6 @@ def get_strategy(args, project, model, ckpt_dir_path):
             path=ckpt_dir_path,
             project_name=project,
             storage_client=None,
-            model=model,
             state_dict_type="sharded",
             use_orig_params=False,
             auto_wrap_policy=policy,
@@ -71,7 +70,6 @@ def get_strategy(args, project, model, ckpt_dir_path):
         print("Using FSSpecFSDPStrategy")
         strategy = FSSpecFSDPStrategy(
             path=ckpt_dir_path,
-            model=model,
             state_dict_type="sharded",
             use_orig_params=False,
             auto_wrap_policy=policy,
@@ -134,9 +132,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
 
-    model = DemoTransformer(vocab_size=dataset.vocab_size,
-                            nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-    strategy = get_strategy(args, os.getenv("PROJECT"), model, ckpt_dir_path)
+    strategy = get_strategy(args, os.getenv("PROJECT"), ckpt_dir_path)
     num_save_calls = int(os.environ.get("NUM_SAVE_CALLS", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
 
@@ -153,19 +149,35 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         devices=os.environ.get("NUM_DEVICES", 'auto'),
         num_nodes=num_nodes,
     )
-    trainer.fit(model, dataloader)
+
+    init_from_checkpoint = os.environ.get("CKPT_RESTORE_PATH") is not None
+    with trainer.init_module(empty_init=init_from_checkpoint):
+        if init_from_checkpoint:
+            model = DemoTransformer.load_from_checkpoint(
+                os.environ.get("CKPT_RESTORE_PATH"),
+                nlayers=int(os.environ.get("NUM_LAYERS", 10)))
+        else:
+            model = DemoTransformer(vocab_size=dataset.vocab_size,
+                                    nlayers=int(
+                                        os.environ.get("NUM_LAYERS", 10)))
+            trainer.fit(model, dataloader)
     trainer.print(torch.cuda.memory_summary())
     print(f"Saving checkpoint to {ckpt_dir_path} {num_save_calls} times.")
-    start = time.time()
+    checkpoint_paths = []
+    save_checkpoint_times = []
     for i in range(num_save_calls):
-        trainer.save_checkpoint(
-            os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
-    end = time.time()
+        checkpoint_path = os.path.join(ckpt_dir_path,
+                                       f'checkpoints/ckpt_{i}.ckpt/')
+        checkpoint_paths.append(checkpoint_path)
+        start = time.time()
+        trainer.save_checkpoint(checkpoint_path)
+        end = time.time()
+        save_checkpoint_times.append(end - start)
     if torch.distributed.get_rank() == 0:
         print(f"Saved checkpoint to {ckpt_dir_path} {num_save_calls} times.")
-    avg_save_time = (end - start) / num_save_calls
     num_load_calls = int(os.environ.get("NUM_LOAD_CALLS", 3))
     load_checkpoint_times = []
+    # TODO deal with these
     if args.save_only:
         print("Skipping loads because you set --save_only")
         num_load_calls = 0
@@ -176,36 +188,24 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
                              os.path.dirname(ckpt_restore_path))
         avg_save_time = 0
     for i in range(num_load_calls):
-        model = DemoTransformer(vocab_size=dataset.vocab_size,
-                                nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-        new_ckpt_dir_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
-        strategy = get_strategy(args, os.getenv("PROJECT"), model,
-                                new_ckpt_dir_path)
-        trainer = Trainer(
-            enable_checkpointing=False,
-            logger=False,
-            default_root_dir=ckpt_dir_path,
-            plugins=[],
-            min_epochs=1,
-            max_epochs=1,
-            max_steps=1,
-            accelerator=os.environ.get("ACCELERATOR", "gpu"),
-            strategy=strategy,
-            devices=os.environ.get("NUM_DEVICES", 'auto'),
-            num_nodes=num_nodes,
-        )
-        trainer.fit(model, dataloader, ckpt_path=new_ckpt_dir_path)
-        start = time.time()
-        trainer.strategy.load_checkpoint(new_ckpt_dir_path)
-        end = time.time()
-
+        new_ckpt_dir_path = checkpoint_paths[i]
+        with trainer.init_module(empty_init=True):
+            start = time.time()
+            model = DemoTransformer.load_from_checkpoint(new_ckpt_dir_path)
+            end = time.time()
+        total = end - start
         if torch.distributed.get_rank() == 0:
-            print(f"Loaded checkpoint from {new_ckpt_dir_path}.")
-        load_checkpoint_times.append(end - start)
+            print(
+                f"Iteration {i}: Loaded checkpoint from {new_ckpt_dir_path} in {total} seconds"
+            )
+        load_checkpoint_times.append(total)
 
     if torch.distributed.get_rank() == 0:
         avg_load_time = statistics.mean(load_checkpoint_times)
+        avg_save_time = statistics.mean(save_checkpoint_times)
         print_times(args, avg_save_time, avg_load_time)
+        print(f"All save times: {save_checkpoint_times}")
+        print(f"All load times: {load_checkpoint_times}")
 
 
 if __name__ == "__main__":

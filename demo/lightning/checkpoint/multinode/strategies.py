@@ -34,13 +34,12 @@ def save_checkpoint_helper(rank, checkpoint, path, checkpoint_io, writer):
 
 class DatafluxFSDPStrategy(FSDPStrategy):
 
-    def __init__(self, path, project_name, storage_client, model, **kwargs):
+    def __init__(self, path, project_name, storage_client, **kwargs):
         super().__init__(**kwargs)
         self.writer = GCSDistributedWriter(path, project_name, storage_client)
         self.reader = GCSDistributedReader(path, project_name, storage_client)
         self.checkpoint_io = DatafluxLightningCheckpoint(
             project_name, storage_client)
-        self.model = model
         self.storage_client = storage.Client(project=project_name)
         user_agent.add_dataflux_user_agent(self.storage_client)
 
@@ -123,9 +122,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
 
 class FSSpecFSDPStrategy(FSDPStrategy):
 
-    def __init__(self, path, model, **kwargs):
+    def __init__(self, path, **kwargs):
         super().__init__(**kwargs)
-        self.model = model
         self.path = path
         self.reader = FF.FsspecReader(path)
         self.writer = FF.FsspecWriter(self.path, sync_files=False)
