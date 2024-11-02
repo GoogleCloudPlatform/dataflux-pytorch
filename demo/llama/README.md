@@ -45,7 +45,7 @@ python pretrain.py --devices 2
 
 ### Download the tokenizer
 
-Follow the instructions [here](https://github.com/Lightning-AI/lit-llama/blob/main/howto/download_weights.md#openllama) to download the Llama Tokenzier. This is needed to test them model you just trained.
+Follow the instructions [here](https://github.com/Lightning-AI/lit-llama/blob/main/howto/download_weights.md#openllama) to download the Llama Tokenzier. This is needed to test the model you just trained.
 
 ### Submit your prompt to the model and get tokens back!
 
