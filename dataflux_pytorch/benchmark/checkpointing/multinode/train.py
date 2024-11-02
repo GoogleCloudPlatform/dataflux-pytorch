@@ -137,7 +137,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     trainer = Trainer(
         enable_checkpointing=False,
         logger=False,
-        default_root_dir=None,
+        default_root_dir=ckpt_dir_path,
         plugins=[],
         min_epochs=1,
         max_epochs=1,
@@ -186,6 +186,23 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
                              os.path.dirname(ckpt_restore_path))
         avg_save_time = 0
     for i in range(num_load_calls):
+        # Re-create the trainer, strategy, and model to avoid memory leaks.
+        del trainer, strategy, model
+        torch.cuda.empty_cache()
+        strategy = get_strategy(args, os.getenv("PROJECT"))
+        trainer = Trainer(
+            enable_checkpointing=False,
+            logger=False,
+            default_root_dir=ckpt_dir_path,
+            plugins=[],
+            min_epochs=1,
+            max_epochs=1,
+            max_steps=1,
+            accelerator=os.environ.get("ACCELERATOR", "gpu"),
+            strategy=strategy,
+            devices=os.environ.get("NUM_DEVICES", 'auto'),
+            num_nodes=num_nodes,
+        )
         new_ckpt_dir_path = checkpoint_paths[i]
         print(f"Loading checkpoint from {new_ckpt_dir_path}")
         with trainer.init_module(empty_init=True):
