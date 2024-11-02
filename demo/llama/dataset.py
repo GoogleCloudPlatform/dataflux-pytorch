@@ -24,7 +24,7 @@ dtypes = {
     8: np.uint16,
 }
 
-bucket_name = "redpajama-1b"
+bucket_name = "<YOUR-BUCKET>"
 
 
 def code(dtype):
