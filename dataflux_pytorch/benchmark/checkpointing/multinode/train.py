@@ -135,11 +135,12 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     strategy = get_strategy(args, os.getenv("PROJECT"), ckpt_dir_path)
     num_save_calls = int(os.environ.get("NUM_SAVE_CALLS", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
+    ckpt_restore_path = os.environ.get("CKPT_RESTORE_PATH")
 
     trainer = Trainer(
         enable_checkpointing=False,
         logger=False,
-        default_root_dir=ckpt_dir_path,
+        default_root_dir=ckpt_restore_path,
         plugins=[],
         min_epochs=1,
         max_epochs=1,
@@ -150,12 +151,12 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         num_nodes=num_nodes,
     )
 
-    init_from_checkpoint = os.environ.get("CKPT_RESTORE_PATH") is not None
+    init_from_checkpoint = ckpt_restore_path is not None
     with trainer.init_module(empty_init=init_from_checkpoint):
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
     if init_from_checkpoint:
-        trainer.fit(model, ckpt_path=os.environ.get("CKPT_RESTORE_PATH"))
+        trainer.fit(model, ckpt_path=ckpt_restore_path)
     else:
         trainer.fit(model, dataloader)
     trainer.print(torch.cuda.memory_summary())
