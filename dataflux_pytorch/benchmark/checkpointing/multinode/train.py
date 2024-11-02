@@ -152,15 +152,12 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
 
     init_from_checkpoint = os.environ.get("CKPT_RESTORE_PATH") is not None
     with trainer.init_module(empty_init=init_from_checkpoint):
-        if init_from_checkpoint:
-            model = DemoTransformer.load_from_checkpoint(
-                os.environ.get("CKPT_RESTORE_PATH"),
-                nlayers=int(os.environ.get("NUM_LAYERS", 10)))
-        else:
-            model = DemoTransformer(vocab_size=dataset.vocab_size,
-                                    nlayers=int(
-                                        os.environ.get("NUM_LAYERS", 10)))
-            trainer.fit(model, dataloader)
+        model = DemoTransformer(vocab_size=dataset.vocab_size,
+                                nlayers=int(os.environ.get("NUM_LAYERS", 10)))
+    if init_from_checkpoint:
+        trainer.fit(model, ckpt_path=os.environ.get("CKPT_RESTORE_PATH"))
+    else:
+        trainer.fit(model, dataloader)
     trainer.print(torch.cuda.memory_summary())
     print(f"Saving checkpoint to {ckpt_dir_path} {num_save_calls} times.")
     checkpoint_paths = []
@@ -189,10 +186,14 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         avg_save_time = 0
     for i in range(num_load_calls):
         new_ckpt_dir_path = checkpoint_paths[i]
+        print(f"Loading checkpoint from {new_ckpt_dir_path}")
         with trainer.init_module(empty_init=True):
-            start = time.time()
-            model = DemoTransformer.load_from_checkpoint(new_ckpt_dir_path)
-            end = time.time()
+            model = DemoTransformer(vocab_size=dataset.vocab_size,
+                                    nlayers=int(
+                                        os.environ.get("NUM_LAYERS", 10)))
+        start = time.time()
+        trainer.fit(model, ckpt_path=new_ckpt_dir_path)
+        end = time.time()
         total = end - start
         if torch.distributed.get_rank() == 0:
             print(
