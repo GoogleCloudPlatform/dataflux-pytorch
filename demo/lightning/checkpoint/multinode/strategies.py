@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from typing import Generator
 
@@ -86,32 +87,49 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         from torch.distributed.checkpoint.optimizer import \
             load_sharded_optimizer_state_dict
 
+        print("Started load...")
+        t1 = time.time()
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
+        t2 = time.time()
+        print(f"t2 - t1: {t2 - t1} s")
 
         reader = GCSDistributedReader(path, self.storage_client.project,
                                       self.storage_client)
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
+            t3 = time.time()
+            print(f"t3 - t2: {t3 - t2} s")
             load(module_state, reader)
+            t4 = time.time()
+            print(f"t4 - t3: {t4 - t3} s")
             self.model.load_state_dict(
                 module_state["model"],
                 strict=self.lightning_module.strict_loading)
+            t5 = time.time()
+            print(f"t5 - t4: {t5 - t4} s")
 
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
 
                 for idx, optim in enumerate(self.optimizers):
+                    t6 = time.time()
                     optim_key = f"optimizer_{idx}"
                     optim_state = load_sharded_optimizer_state_dict(
                         model_state_dict=module_state["model"],
                         optimizer_key=optim_key,
                         storage_reader=reader,
                     )
+                    t7 = time.time()
+                    print(f"t7 - t6: {t7 - t6} s")
                     flattened_osd = FSDP.optim_state_dict_to_load(
                         optim_state_dict=optim_state[optim_key],
                         model=self.model,
                         optim=optim,
                     )
+                    t8 = time.time()
+                    print(f"t8 - t7: {t8 - t7} s")
                     optim.load_state_dict(flattened_osd)
+                    t9 = time.time()
+                    print(f"t9 - t8: {t9 - t8} s")
 
         # Load metadata (anything not a module or optimizer)
         new_path = path / _METADATA_FILENAME
@@ -119,6 +137,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         with reader.fs.create_stream(path=new_path,
                                      mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
+        t10 = time.time()
+        print(f"t10 - t9: {t10 - t9} s")
         return metadata
 
 
