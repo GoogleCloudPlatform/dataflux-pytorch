@@ -53,13 +53,12 @@ def validate(args):
         )
 
 
-def get_strategy(args, project, ckpt_dir_path):
+def get_strategy(args, project):
     strategy = None
     policy = {nn.TransformerEncoderLayer, nn.TransformerDecoderLayer}
     if args.strategy == DF_FSDP_STRATEGY:
         print("Using DatafluxFSDPStrategy")
         strategy = DatafluxFSDPStrategy(
-            path=ckpt_dir_path,
             project_name=project,
             storage_client=None,
             state_dict_type="sharded",
@@ -69,7 +68,6 @@ def get_strategy(args, project, ckpt_dir_path):
     elif args.strategy == FSSPEC_FSDP_STRATEGY:
         print("Using FSSpecFSDPStrategy")
         strategy = FSSpecFSDPStrategy(
-            path=ckpt_dir_path,
             state_dict_type="sharded",
             use_orig_params=False,
             auto_wrap_policy=policy,
@@ -77,7 +75,6 @@ def get_strategy(args, project, ckpt_dir_path):
     elif args.strategy == FSDP_STRATEGY and args.load_only:
         print("Using CustomFSDPStrategy.")
         strategy = LoadFromBootDiskFSDP(
-            ckpt_path=ckpt_dir_path,
             project_name=project,
             state_dict_type="sharded",
             use_orig_params=False,
@@ -132,7 +129,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
 
-    strategy = get_strategy(args, os.getenv("PROJECT"), ckpt_dir_path)
+    strategy = get_strategy(args, os.getenv("PROJECT"))
     num_save_calls = int(os.environ.get("NUM_SAVE_CALLS", 3))
     num_nodes = int(os.environ.get("NUM_NODES", 1))
     ckpt_restore_path = os.environ.get("CKPT_RESTORE_PATH")
@@ -158,6 +155,9 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     if init_from_checkpoint:
         trainer.fit(model, ckpt_path=os.environ.get("CKPT_RESTORE_PATH"))
     else:
+        trainer.print(
+            "Initializing model without a preexisting checkpoint; this may take a while for large models."
+        )
         trainer.fit(model, dataloader)
     trainer.print(torch.cuda.memory_summary())
     print(f"Saving checkpoint to {ckpt_dir_path} {num_save_calls} times.")

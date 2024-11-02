@@ -34,10 +34,8 @@ def save_checkpoint_helper(rank, checkpoint, path, checkpoint_io, writer):
 
 class DatafluxFSDPStrategy(FSDPStrategy):
 
-    def __init__(self, path, project_name, storage_client, **kwargs):
+    def __init__(self, project_name, storage_client, **kwargs):
         super().__init__(**kwargs)
-        self.writer = GCSDistributedWriter(path, project_name, storage_client)
-        self.reader = GCSDistributedReader(path, project_name, storage_client)
         self.checkpoint_io = DatafluxLightningCheckpoint(
             project_name, storage_client)
         self.storage_client = storage.Client(project=project_name)
@@ -54,8 +52,10 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                     `CheckpointIO`.")
 
         path = Path(self.broadcast(filepath))
+        writer = GCSDistributedWriter(path, self.storage_client.project,
+                                      self.storage_client)
         save_checkpoint_helper(self.global_rank, checkpoint, path,
-                               self.checkpoint_io, self.writer)
+                               self.checkpoint_io, writer)
 
     def get_sharded_state_dict_context(
             self, module: Module) -> Generator[None, None, None]:
@@ -88,9 +88,11 @@ class DatafluxFSDPStrategy(FSDPStrategy):
 
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
 
+        reader = GCSDistributedReader(path, self.storage_client.project,
+                                      self.storage_client)
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
-            load(module_state, self.reader)
+            load(module_state, reader)
             self.model.load_state_dict(
                 module_state["model"],
                 strict=self.lightning_module.strict_loading)
@@ -102,7 +104,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                     optim_state = load_sharded_optimizer_state_dict(
                         model_state_dict=module_state["model"],
                         optimizer_key=optim_key,
-                        storage_reader=self.reader,
+                        storage_reader=reader,
                     )
                     flattened_osd = FSDP.optim_state_dict_to_load(
                         optim_state_dict=optim_state[optim_key],
@@ -114,19 +116,16 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         # Load metadata (anything not a module or optimizer)
         new_path = path / _METADATA_FILENAME
         metadata = None
-        with self.reader.fs.create_stream(path=new_path,
-                                          mode='rb') as metadata_file:
+        with reader.fs.create_stream(path=new_path,
+                                     mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
 
 
 class FSSpecFSDPStrategy(FSDPStrategy):
 
-    def __init__(self, path, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.path = path
-        self.reader = FF.FsspecReader(path)
-        self.writer = FF.FsspecWriter(self.path, sync_files=False)
         self.bucket = gcsfs.GCSFileSystem()
 
     def save_checkpoint(self,
@@ -147,9 +146,8 @@ class FSSpecFSDPStrategy(FSDPStrategy):
             for idx, optim_state in enumerate(
                 checkpoint.pop("optimizer_states", []))
         })
-        save(converted_state,
-             checkpoint_id=filepath,
-             storage_writer=self.writer)
+        writer = FF.FsspecWriter(filepath, sync_files=False)
+        save(converted_state, checkpoint_id=filepath, storage_writer=writer)
 
         with self.bucket.open(os.path.join(filepath, _METADATA_FILENAME),
                               'wb') as f:
@@ -185,9 +183,10 @@ class FSSpecFSDPStrategy(FSDPStrategy):
 
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
 
+        reader = FF.FsspecReader(checkpoint_path)
         with state_dict_ctx:
             module_state = {"model": self.model.state_dict()}
-            load(module_state, self.reader)
+            load(module_state, reader)
             self.model.load_state_dict(
                 module_state["model"],
                 strict=self.lightning_module.strict_loading)
@@ -199,7 +198,7 @@ class FSSpecFSDPStrategy(FSDPStrategy):
                     optim_state = load_sharded_optimizer_state_dict(
                         model_state_dict=module_state["model"],
                         optimizer_key=optim_key,
-                        storage_reader=self.reader,
+                        storage_reader=reader,
                     )
                     flattened_osd = FSDP.optim_state_dict_to_load(
                         optim_state_dict=optim_state[optim_key],
@@ -211,8 +210,8 @@ class FSSpecFSDPStrategy(FSDPStrategy):
         # Load metadata (anything not a module or optimizer)
         new_path = os.path.join(checkpoint_path, _METADATA_FILENAME)
         metadata = None
-        with self.reader.fs.create_stream(path=new_path,
-                                          mode='rb') as metadata_file:
+        with reader.fs.create_stream(path=new_path,
+                                     mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
         return metadata
 
@@ -238,7 +237,6 @@ class LoadFromBootDiskFSDP(FSDPStrategy):
 
     def __init__(self, ckpt_path, project_name, **kwargs):
         super().__init__(**kwargs)
-        self.writer = GCSDistributedWriter(ckpt_path, project_name)
         self.checkpoint_io = DatafluxLightningCheckpoint(project_name)
 
     def save_checkpoint(self,
@@ -252,5 +250,6 @@ class LoadFromBootDiskFSDP(FSDPStrategy):
                     `CheckpointIO`.")
 
         path = Path(self.broadcast(filepath))
+        writer = GCSDistributedWriter(path, self.checkpoint_io.project_name)
         save_checkpoint_helper(self.global_rank, checkpoint, path,
-                               self.checkpoint_io, self.writer)
+                               self.checkpoint_io, writer)
