@@ -37,6 +37,12 @@ def _read(self, path):
     return dtype, chunk_size, bytes_io
 ```
 
+Update the `bucket_name` and `project_name` variables in `pretrain.py` and `dataset.py`. Then run
+
+```
+python pretrain.py --devices 2
+```
+
 ### Download the tokenizer
 
 Follow the instructions [here](https://github.com/Lightning-AI/lit-llama/blob/main/howto/download_weights.md#openllama) to download the Llama Tokenzier. This is needed to test them model you just trained.

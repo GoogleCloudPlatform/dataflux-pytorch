@@ -20,8 +20,8 @@ from torch.utils.data import DataLoader
 from utils import save_model_checkpoint
 
 # dataflux vars
-project_name = "gcs-tess"
-bucket_name = "redpajama-1b"
+project_name = "<YOUR-PROJECT>"
+bucket_name = "<YOUR-BUCKET>"
 
 # support running without installing as a package
 wd = Path(__file__).parent.parent.resolve()
