@@ -1,5 +1,4 @@
-The code in this directory is a the Llama 7B model. Everything except the data loading part is borrowed from lighting AI's lit-llama repo.
-
+The code in this directory trains the Llama 7B model on [Huggingface's RedPajama dataset](https://huggingface.co/datasets/togethercomputer/RedPajama-Data-1T-Sample/tree/main). All the code in this directory is borrowed from [Lightning AI's lit-llama repo](https://github.com/Lightning-AI/lit-llama). Changes have been made in appropriate places to fetch the data from GCS instead of reading from disk.
 
 ### Download the data
 
