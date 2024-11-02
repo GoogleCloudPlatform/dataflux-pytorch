@@ -134,10 +134,10 @@ class DemoTransformer(LightningTransformer):
         # Use self.trainer.model.parameters so that we can set
         # use_orig_params=False on the Strategy. Using AdamW also results in a
         # checkpoint size roughly 20% of used GPU memory.
-        if self.optimizer == "adamw":
-            return torch.optim.AdamW(self.trainer.model.parameters(), lr=0.1)
-        else:
+        if self.optimizer == "sgd":
             return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
+        else:
+            return torch.optim.AdamW(self.trainer.model.parameters(), lr=0.1)
 
 
 if __name__ == "__main__":

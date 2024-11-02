@@ -5,15 +5,17 @@ import time
 
 import torch
 import torch.distributed
-from demo.lightning.checkpoint.multinode.strategies import (
-    DatafluxFSDPStrategy, FSSpecFSDPStrategy, LoadFromBootDiskFSDP)
-from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
-                                                       init_processes)
+import torch.nn as nn
 from google.cloud import storage
 from lightning import Trainer
 from lightning.pytorch.demos import WikiText2
 from lightning.pytorch.strategies import FSDPStrategy
 from torch.utils.data import DataLoader
+
+from demo.lightning.checkpoint.multinode.strategies import (
+    DatafluxFSDPStrategy, FSSpecFSDPStrategy, LoadFromBootDiskFSDP)
+from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
+                                                       init_processes)
 
 DF_FSDP_STRATEGY = "dataflux_fsdp"
 FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
@@ -53,6 +55,7 @@ def validate(args):
 
 def get_strategy(args, project, model, ckpt_dir_path):
     strategy = None
+    policy = {nn.TransformerEncoderLayer, nn.TransformerDecoderLayer}
     if args.strategy == DF_FSDP_STRATEGY:
         print("Using DatafluxFSDPStrategy")
         strategy = DatafluxFSDPStrategy(
@@ -62,24 +65,34 @@ def get_strategy(args, project, model, ckpt_dir_path):
             model=model,
             state_dict_type="sharded",
             use_orig_params=False,
+            auto_wrap_policy=policy,
         )
     elif args.strategy == FSSPEC_FSDP_STRATEGY:
         print("Using FSSpecFSDPStrategy")
-        strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
-                                      model=model,
-                                      state_dict_type="sharded",
-                                      use_orig_params=False)
+        strategy = FSSpecFSDPStrategy(
+            path=ckpt_dir_path,
+            model=model,
+            state_dict_type="sharded",
+            use_orig_params=False,
+            auto_wrap_policy=policy,
+        )
     elif args.strategy == FSDP_STRATEGY and args.load_only:
         print("Using CustomFSDPStrategy.")
-        strategy = LoadFromBootDiskFSDP(ckpt_path=ckpt_dir_path,
-                                        project_name=project,
-                                        state_dict_type="sharded",
-                                        use_orig_params=False)
+        strategy = LoadFromBootDiskFSDP(
+            ckpt_path=ckpt_dir_path,
+            project_name=project,
+            state_dict_type="sharded",
+            use_orig_params=False,
+            auto_wrap_policy=policy,
+        )
     elif (args.strategy == FSDP_STRATEGY
           and args.save_only) or args.distributed_filesystem:
         print("Using FSDPStrategy.")
-        strategy = FSDPStrategy(state_dict_type="sharded",
-                                use_orig_params=False)
+        strategy = FSDPStrategy(
+            state_dict_type="sharded",
+            use_orig_params=False,
+            auto_wrap_policy=policy,
+        )
     else:
         raise ValueError("Invalid strategy.")
     return strategy
@@ -135,12 +148,13 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         min_epochs=1,
         max_epochs=1,
         max_steps=1,
-        accelerator="gpu",
+        accelerator=os.environ.get("ACCELERATOR", "gpu"),
         strategy=strategy,
         devices=os.environ.get("NUM_DEVICES", 'auto'),
         num_nodes=num_nodes,
     )
     trainer.fit(model, dataloader)
+    trainer.print(torch.cuda.memory_summary())
     print(f"Saving checkpoint to {ckpt_dir_path} {num_save_calls} times.")
     start = time.time()
     for i in range(num_save_calls):
@@ -175,7 +189,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
             min_epochs=1,
             max_epochs=1,
             max_steps=1,
-            accelerator="gpu",
+            accelerator=os.environ.get("ACCELERATOR", "gpu"),
             strategy=strategy,
             devices=os.environ.get("NUM_DEVICES", 'auto'),
             num_nodes=num_nodes,
