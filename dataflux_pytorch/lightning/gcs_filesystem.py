@@ -6,10 +6,11 @@ from typing import Generator, Optional, Union
 
 import torch.distributed as dist
 from dataflux_core import user_agent
-from dataflux_pytorch.dataflux_checkpoint import DatafluxCheckpointBuffer
-from dataflux_pytorch.lightning.path_utils import parse_gcs_path
 from google.cloud import storage
 from torch.distributed.checkpoint import FileSystemReader, FileSystemWriter
+
+from dataflux_pytorch.dataflux_checkpoint import DatafluxCheckpointBuffer
+from dataflux_pytorch.lightning.path_utils import parse_gcs_path
 
 
 class GCSFileSystem():
@@ -108,7 +109,7 @@ class GCSDistributedWriter(FileSystemWriter):
                  debug: Optional[bool] = False,
                  **kwargs):
         super().__init__(path, **kwargs)
-        self.fs = GCSFileSystem(project_name, storage_client, debug)
+        self.fs = GCSFileSystem(project_name, debug, storage_client)
         self.sync_files = False
 
 
@@ -121,4 +122,4 @@ class GCSDistributedReader(FileSystemReader):
                  debug: Optional[bool] = False,
                  **kwargs):
         super().__init__(path, **kwargs)
-        self.fs = GCSFileSystem(project_name, storage_client, debug)
+        self.fs = GCSFileSystem(project_name, debug, storage_client)
