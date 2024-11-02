@@ -128,7 +128,17 @@ class DemoTransformer(LightningTransformer):
     ) -> None:
         super().__init__()
         self.optimizer = optimizer
-        self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
+        self.model = None
+        self.vocab_size = vocab_size
+        self.nlayers = nlayers
+
+    # Initialize the model here to allow it to be initialized on the GPU; see
+    # https://lightning.ai/docs/pytorch/stable/advanced/model_parallel/fsdp.html#speed-up-model-initialization
+    def configure_model(self):
+        if self.model is not None:
+            return
+        self.model = Transformer(vocab_size=self.vocab_size,
+                                 nlayers=self.nlayers)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         # Use self.trainer.model.parameters so that we can set
