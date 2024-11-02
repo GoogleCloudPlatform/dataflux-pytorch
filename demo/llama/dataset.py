@@ -3,12 +3,14 @@
 # Very loosely inspired by indexed_dataset in Fairseq, Megatron
 # https://github.com/NVIDIA/Megatron-LM/blob/main/megatron/data/indexed_dataset.py
 
+import io
 import random
 import struct
 
 import numpy as np
 import torch
-from dataflux_pytorch import dataflux_iterable_dataset as df_iter
+from dataflux_core.download import download_single
+from google.cloud import storage
 from torch.utils.data import IterableDataset, get_worker_info
 
 dtypes = {
@@ -21,6 +23,8 @@ dtypes = {
     7: np.float64,
     8: np.uint16,
 }
+
+bucket_name = "redpajama-1b"
 
 
 def code(dtype):
@@ -84,9 +88,6 @@ class PackedDatasetIterator:
 
         self._wrap = wrap
 
-        # TODO: instead of filenames, we could have a single text stream
-        #       (or text file) with the sequence of all files to be
-        #       fetched/loaded.
         self._filenames = filenames
         self._file_idx = 0
 
@@ -102,18 +103,22 @@ class PackedDatasetIterator:
         self._block_idxs = []
         self._curr_idx = 0
 
+        self.storage_client = storage.Client()
+        self.bucket_name = bucket_name
         self._load_n_chunks()
 
-    def _read_header(self, path):
-        with open(path, "rb") as f:
-            magic = f.read(len(HDR_MAGIC))
-            assert magic == HDR_MAGIC, "File doesn't match expected format."
-            version = struct.unpack("<Q", f.read(8))
-            assert (1, ) == version
-            (dtype_code, ) = struct.unpack("<B", f.read(1))
-            dtype = dtypes[dtype_code]
-            (chunk_size, ) = struct.unpack("<Q", f.read(8))
-        return dtype, chunk_size
+    def _read(self, path):
+        bytes_content = download_single(self.storage_client, self.bucket_name,
+                                        path)
+        bytes_io = io.BytesIO(bytes_content)
+        magic = bytes_io.read(len(HDR_MAGIC))
+        assert magic == HDR_MAGIC, "File doesn't match expected format."
+        version = struct.unpack("<Q", bytes_io.read(8))
+        assert (1, ) == version
+        (dtype_code, ) = struct.unpack("<B", bytes_io.read(1))
+        dtype = dtypes[dtype_code]
+        (chunk_size, ) = struct.unpack("<Q", bytes_io.read(8))
+        return dtype, chunk_size, bytes_io
 
     def _close_mmaps(self):
         for mmap in self._mmaps:
@@ -133,12 +138,12 @@ class PackedDatasetIterator:
         for i in range(self._n_chunks):
             filename = self._filenames[self._file_idx + i]
             if self._dtype is None:
-                self._dtype, self._chunk_size = self._read_header(filename)
+                self._dtype, self._chunk_size, bytes_io = self._read(filename)
                 self._n_blocks = self._chunk_size // self._block_size
-            # TODO: check header matches with previous files
-            mmap = np.memmap(filename, mode="r", order="C", offset=HDR_SIZE)
-            self._mmaps.append(mmap)
-            self._buffers.append(memoryview(mmap))
+
+            # mmap = np.memmap(bytes_io, mode="r", order="C", offset=HDR_SIZE)
+            # self._mmaps.append(mmap)
+            self._buffers.append(bytes_io.seek(HDR_SIZE))
 
         self._file_idx += self._n_chunks
         n_all_blocks = self._n_chunks * self._n_blocks
@@ -159,7 +164,7 @@ class PackedDatasetIterator:
     def __next__(self):
         if self._curr_idx >= len(self._block_idxs):
             self._load_n_chunks()
-            # TODO: trigger fetching next next n_chunks if remote
+
         block_idx = self._block_idxs[self._curr_idx]
         chunk_id = block_idx // self._n_blocks
         buffer = self._buffers[chunk_id]
