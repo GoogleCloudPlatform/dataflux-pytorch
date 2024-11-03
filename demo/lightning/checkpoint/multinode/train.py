@@ -124,7 +124,7 @@ class DemoTransformer(LightningTransformer):
         self,
         vocab_size: int = 33278,
         nlayers: int = 2,
-        optimizer: str = "sgd",
+        optimizer: str = "adamw",
     ) -> None:
         super().__init__()
         self.optimizer = optimizer
