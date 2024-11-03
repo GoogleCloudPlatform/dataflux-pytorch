@@ -137,12 +137,12 @@ class DemoTransformer(LightningTransformer):
     def configure_model(self):
         if self.model is not None:
             return
-        # Use the nhid, nimp, and nhead parameters from the guide linked above.
+        # Use the nhid, ninp, and nhead parameters from the guide linked above.
         # This means that 1B parameters corresponds to 32 layers.
         self.model = Transformer(vocab_size=self.vocab_size,
                                  nlayers=self.nlayers,
                                  nhid=4096,
-                                 nimp=1024,
+                                 ninp=1024,
                                  nhead=64)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
