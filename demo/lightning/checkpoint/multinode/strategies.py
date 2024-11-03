@@ -87,7 +87,6 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         from torch.distributed.checkpoint.optimizer import \
             load_sharded_optimizer_state_dict
 
-        print("Started load...")
         state_dict_ctx = self.get_sharded_state_dict_context(self.model)
 
         reader = GCSDistributedReader(path, self.storage_client.project,
@@ -121,8 +120,6 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         with reader.fs.create_stream(path=new_path,
                                      mode='rb') as metadata_file:
             metadata = torch.load(metadata_file)
-        t10 = time.time()
-        print(f"t10 - t9: {t10 - t9} s")
         return metadata
 
 

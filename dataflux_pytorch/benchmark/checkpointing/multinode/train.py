@@ -64,6 +64,7 @@ def get_strategy(args, project):
             state_dict_type="sharded",
             use_orig_params=False,
             auto_wrap_policy=policy,
+            cpu_offload=True,
         )
     elif args.strategy == FSSPEC_FSDP_STRATEGY:
         print("Using FSSpecFSDPStrategy")
@@ -71,6 +72,7 @@ def get_strategy(args, project):
             state_dict_type="sharded",
             use_orig_params=False,
             auto_wrap_policy=policy,
+            cpu_offload=True,
         )
     elif args.strategy == FSDP_STRATEGY and args.load_only:
         print("Using CustomFSDPStrategy.")
@@ -79,6 +81,7 @@ def get_strategy(args, project):
             state_dict_type="sharded",
             use_orig_params=False,
             auto_wrap_policy=policy,
+            cpu_offload=True,
         )
     elif (args.strategy == FSDP_STRATEGY
           and args.save_only) or args.distributed_filesystem:
@@ -87,6 +90,7 @@ def get_strategy(args, project):
             state_dict_type="sharded",
             use_orig_params=False,
             auto_wrap_policy=policy,
+            cpu_offload=True,
         )
     else:
         raise ValueError("Invalid strategy.")
