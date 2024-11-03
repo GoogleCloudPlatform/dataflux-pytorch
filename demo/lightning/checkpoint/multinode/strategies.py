@@ -12,6 +12,7 @@ from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
 from lightning.pytorch.trainer.states import TrainerFn
 from torch.distributed.checkpoint import _fsspec_filesystem as FF
 from torch.distributed.checkpoint import load, save
+from torch.distributed.checkpoint.state_dict import get_model_state_dict
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn import Module
 
@@ -96,7 +97,8 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         reader = GCSDistributedReader(path, self.storage_client.project,
                                       self.storage_client)
         with state_dict_ctx:
-            module_state = {"model": self.model.state_dict()}
+            module_state = get_model_state_dict(self.model)
+            # module_state = {"model": self.model.state_dict()}
             t3 = time.time()
             print(f"t3 - t2: {t3 - t2} s")
             load(module_state, reader)
