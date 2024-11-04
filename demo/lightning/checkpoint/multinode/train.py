@@ -85,10 +85,8 @@ def main(project: str,
                       max_steps=max_steps_save,
                       accelerator=accelerator,
                       strategy=DatafluxFSDPStrategy(
-                          path=ckpt_dir_path,
                           project_name=project,
                           storage_client=None,
-                          model=model,
                           state_dict_type="sharded",
                       ),
                       num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
@@ -108,10 +106,8 @@ def main(project: str,
                       max_steps=max_steps_restore,
                       accelerator=accelerator,
                       strategy=DatafluxFSDPStrategy(
-                          path=ckpt_restore_path,
                           project_name=project,
                           storage_client=None,
-                          model=model,
                           state_dict_type="sharded",
                       ),
                       num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
