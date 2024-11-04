@@ -201,8 +201,10 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         avg_load_time = statistics.mean(load_checkpoint_times)
         avg_save_time = statistics.mean(save_checkpoint_times)
         print_times(args, avg_save_time, avg_load_time)
-        print(f"All save times: {save_checkpoint_times}")
-        print(f"All load times: {load_checkpoint_times}")
+        if not args.load_only:
+            print(f"All save times: {save_checkpoint_times}")
+        if not args.save_only:
+            print(f"All load times: {load_checkpoint_times}")
 
 
 if __name__ == "__main__":
