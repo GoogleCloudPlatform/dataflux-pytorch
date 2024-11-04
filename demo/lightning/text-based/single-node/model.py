@@ -23,7 +23,7 @@ import lightning.pytorch as pl
 from dataflux_pytorch import dataflux_iterable_dataset as df_iter
 from torch import nn
 from torch.utils import data
-from text_model import TextDemoModel, format_data, tokenize
+from demo.shared.text_based_model import TextDemoModel, format_data
 
 # This demo was built around the huggingface fineweb dataset.
 # Details of the dataset can be found at https://huggingface.co/datasets/HuggingFaceFW/fineweb/tree/main/sample/10BT
