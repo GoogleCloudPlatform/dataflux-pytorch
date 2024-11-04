@@ -62,16 +62,16 @@ def main():
     rank = 0
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
-        rank = int(os.environ.get("NODE_RANK", 0))
-        dist.init_process_group("gloo", rank=rank, world_size=num_nodes)
+        dist.init_process_group("gloo",
+                                rank=int(os.environ.get("NODE_RANK", 0)),
+                                world_size=num_nodes)
 
-    torch.cuda.device(rank)
     torch.cuda.empty_cache()
 
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
 
-    save_checkpoint_times = []
+    trainer_fit_times = []
     for i in range(run_count):
 
         model = DemoTransformer(
@@ -89,10 +89,8 @@ def main():
         )
 
         strategy = DatafluxFSDPStrategy(
-            path=ckpt_dir_path,
             project_name=project,
             storage_client=None,
-            model=model,
             state_dict_type="sharded",
             use_orig_params=False,
             use_async=use_async,
@@ -120,19 +118,20 @@ def main():
         init_end_event.record()
 
         total_time = init_start_event.elapsed_time(init_end_event) / 1000
+        rank = int(os.environ.get("NODE_RANK", 0))
         print(
             f"Individual run {i+1} of {run_count} trainer.fit() #{rank} took {total_time} seconds."
         )
-        save_checkpoint_times.append(total_time)
+        trainer_fit_times.append(total_time)
 
     # All runs complete.
-    if rank == 0:
-        avg_save_time = statistics.mean(save_checkpoint_times)
-        avg_save_time_str = str(avg_save_time) + " seconds"
+    if int(os.environ.get("NODE_RANK", 0)) == 0:
+        avg_trainer_fit_time = statistics.mean(trainer_fit_times)
+        avg_trainer_fit_time_str = str(avg_trainer_fit_time) + " seconds"
         print("##################################")
-        print("Average time to save one checkpoint: " + avg_save_time_str)
+        print("Average time for trainer.fit(): " + avg_trainer_fit_time_str)
         print("##################################")
-        print(f"All save times: {save_checkpoint_times}")
+        print(f"All trainer.fit() times: {trainer_fit_times}")
 
     # Cleanup.
     torch.distributed.destroy_process_group()
