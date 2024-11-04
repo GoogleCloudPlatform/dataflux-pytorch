@@ -5,15 +5,16 @@ import time
 
 import torch
 import torch.distributed
-from demo.lightning.checkpoint.multinode.strategies import (
-    DatafluxFSDPStrategy, FSSpecFSDPStrategy, LoadFromBootDiskFSDP)
-from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
-                                                       init_processes)
 from google.cloud import storage
 from lightning import Trainer
 from lightning.pytorch.demos import WikiText2
 from lightning.pytorch.strategies import FSDPStrategy
 from torch.utils.data import DataLoader
+
+from demo.lightning.checkpoint.multinode.strategies import (
+    DatafluxFSDPStrategy, FSSpecFSDPStrategy, LoadFromBootDiskFSDP)
+from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
+                                                       init_processes)
 
 DF_FSDP_STRATEGY = "dataflux_fsdp"
 FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
@@ -142,14 +143,19 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
     )
     trainer.fit(model, dataloader)
     print(f"Saving checkpoint to {ckpt_dir_path} {num_save_calls} times.")
-    start = time.time()
+    save_checkpoint_times = []
     for i in range(num_save_calls):
+        start = time.time()
         trainer.save_checkpoint(
             os.path.join(ckpt_dir_path, f'checkpoints/ckpt_{i}.ckpt/'))
-    end = time.time()
+        end = time.time()
+        if torch.distributed.get_rank() == 0:
+            print(
+                f"Saved checkpoint to {ckpt_dir_path} in {end - start} seconds."
+            )
+        save_checkpoint_times.append(end - start)
     if torch.distributed.get_rank() == 0:
         print(f"Saved checkpoint to {ckpt_dir_path} {num_save_calls} times.")
-    avg_save_time = (end - start) / num_save_calls
     num_load_calls = int(os.environ.get("NUM_LOAD_CALLS", 3))
     load_checkpoint_times = []
     if args.save_only:
@@ -160,7 +166,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         print(f"Copying contents of {ckpt_dir_path} to {ckpt_restore_path}")
         copy_bucket_to_local(ckpt_dir_path.removeprefix("gs://"),
                              os.path.dirname(ckpt_restore_path))
-        avg_save_time = 0
+        save_checkpoint_times = [0]
     for i in range(num_load_calls):
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
@@ -186,12 +192,19 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
         end = time.time()
 
         if torch.distributed.get_rank() == 0:
-            print(f"Loaded checkpoint from {new_ckpt_dir_path}.")
+            print(
+                f"Loaded checkpoint from {new_ckpt_dir_path} in {end - start} seconds"
+            )
         load_checkpoint_times.append(end - start)
 
     if torch.distributed.get_rank() == 0:
         avg_load_time = statistics.mean(load_checkpoint_times)
+        avg_save_time = statistics.mean(save_checkpoint_times)
         print_times(args, avg_save_time, avg_load_time)
+        if not args.load_only:
+            print(f"All save times: {save_checkpoint_times}")
+        if not args.save_only:
+            print(f"All load times: {load_checkpoint_times}")
 
 
 if __name__ == "__main__":
