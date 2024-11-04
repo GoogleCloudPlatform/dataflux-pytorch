@@ -6,16 +6,15 @@ import time
 import torch
 import torch.distributed
 import torch.nn
+from demo.lightning.checkpoint.multinode.strategies import (
+    DatafluxFSDPStrategy, FSSpecFSDPStrategy, LoadFromBootDiskFSDP)
+from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
+                                                       init_processes)
 from google.cloud import storage
 from lightning import Trainer
 from lightning.pytorch.demos import WikiText2
 from lightning.pytorch.strategies import FSDPStrategy
 from torch.utils.data import DataLoader
-
-from demo.lightning.checkpoint.multinode.strategies import (
-    DatafluxFSDPStrategy, FSSpecFSDPStrategy, LoadFromBootDiskFSDP)
-from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
-                                                       init_processes)
 
 DF_FSDP_STRATEGY = "dataflux_fsdp"
 FSSPEC_FSDP_STRATEGY = "fsspec_fsdp"
