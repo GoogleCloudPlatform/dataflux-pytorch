@@ -5,6 +5,7 @@ import time
 
 import torch
 import torch.distributed
+import torch.nn
 from google.cloud import storage
 from lightning import Trainer
 from lightning.pytorch.demos import WikiText2
@@ -54,6 +55,9 @@ def validate(args):
 
 def get_strategy(args, project, model, ckpt_dir_path):
     strategy = None
+    policy = {
+        torch.nn.TransformerEncoderLayer, torch.nn.TransformerDecoderLayer
+    }
     if args.strategy == DF_FSDP_STRATEGY:
         print("Using DatafluxFSDPStrategy")
         strategy = DatafluxFSDPStrategy(
@@ -63,24 +67,34 @@ def get_strategy(args, project, model, ckpt_dir_path):
             model=model,
             state_dict_type="sharded",
             use_orig_params=False,
+            auto_wrap_policy=policy,
         )
     elif args.strategy == FSSPEC_FSDP_STRATEGY:
         print("Using FSSpecFSDPStrategy")
-        strategy = FSSpecFSDPStrategy(path=ckpt_dir_path,
-                                      model=model,
-                                      state_dict_type="sharded",
-                                      use_orig_params=False)
+        strategy = FSSpecFSDPStrategy(
+            path=ckpt_dir_path,
+            model=model,
+            state_dict_type="sharded",
+            use_orig_params=False,
+            auto_wrap_policy=policy,
+        )
     elif args.strategy == FSDP_STRATEGY and args.load_only:
         print("Using CustomFSDPStrategy.")
-        strategy = LoadFromBootDiskFSDP(ckpt_path=ckpt_dir_path,
-                                        project_name=project,
-                                        state_dict_type="sharded",
-                                        use_orig_params=False)
+        strategy = LoadFromBootDiskFSDP(
+            ckpt_path=ckpt_dir_path,
+            project_name=project,
+            state_dict_type="sharded",
+            use_orig_params=False,
+            auto_wrap_policy=policy,
+        )
     elif (args.strategy == FSDP_STRATEGY
           and args.save_only) or args.distributed_filesystem:
         print("Using FSDPStrategy.")
-        strategy = FSDPStrategy(state_dict_type="sharded",
-                                use_orig_params=False)
+        strategy = FSDPStrategy(
+            state_dict_type="sharded",
+            use_orig_params=False,
+            auto_wrap_policy=policy,
+        )
     else:
         raise ValueError("Invalid strategy.")
     return strategy
@@ -168,6 +182,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
                              os.path.dirname(ckpt_restore_path))
         save_checkpoint_times = [0]
     for i in range(num_load_calls):
+        del trainer, strategy, model
         model = DemoTransformer(vocab_size=dataset.vocab_size,
                                 nlayers=int(os.environ.get("NUM_LAYERS", 10)))
         new_ckpt_dir_path = os.path.join(ckpt_restore_path, f'ckpt_{i}.ckpt/')
@@ -186,7 +201,7 @@ def main(ckpt_dir_path: str, ckpt_restore_path: str = ""):
             devices=os.environ.get("NUM_DEVICES", 'auto'),
             num_nodes=num_nodes,
         )
-        trainer.fit(model, dataloader, ckpt_path=new_ckpt_dir_path)
+        trainer.fit(model, dataloader)
         start = time.time()
         trainer.strategy.load_checkpoint(new_ckpt_dir_path)
         end = time.time()
