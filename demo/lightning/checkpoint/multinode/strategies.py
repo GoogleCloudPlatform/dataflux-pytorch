@@ -88,7 +88,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
             self._save(converted_state, path)
         duration_ms = (time.time() - start_time) / 1000
         strategy = "async_save" if self.use_async else "save"
-        print(f"Checkpoint rank #{self.global_rank} {strategy} result() "
+        print(f"Checkpoint rank #{self.global_rank} {strategy} "
               f"duration: {duration_ms:.4f} ms.")
 
         if self.global_rank == 0:
@@ -108,7 +108,7 @@ class DatafluxFSDPStrategy(FSDPStrategy):
             process_group=self.checkpoint_group)
 
     def _resolve_future(self):
-        """Resolve previous future if one exists.
+        """Resolve previous async future if one exists.
 
         If a previous future exists, wait for checkpointing to finish,
         avoiding queuing more then one checkpoint request at a time.

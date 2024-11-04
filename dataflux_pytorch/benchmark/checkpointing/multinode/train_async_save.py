@@ -1,4 +1,5 @@
 import os
+import statistics
 import time
 
 import torch
@@ -70,7 +71,7 @@ def main():
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=1)
 
-    run_total = 0
+    save_checkpoint_times = []
     for i in range(run_count):
 
         model = DemoTransformer(
@@ -122,10 +123,16 @@ def main():
         print(
             f"Individual run {i+1} of {run_count} trainer.fit() #{rank} took {total_time} seconds."
         )
-        run_total += total_time
+        save_checkpoint_times.append(total_time)
 
     # All runs complete.
-    print(f"Average execution run time: {run_total/run_count} seconds.")
+    if rank == 0:
+        avg_save_time = statistics.mean(save_checkpoint_times)
+        avg_save_time_str = str(avg_save_time) + " seconds"
+        print("##################################")
+        print("Average time to save one checkpoint: " + avg_save_time_str)
+        print("##################################")
+        print(f"All save times: {save_checkpoint_times}")
 
     # Cleanup.
     torch.distributed.destroy_process_group()
