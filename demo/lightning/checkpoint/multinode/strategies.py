@@ -28,7 +28,7 @@ def checkpoint_helper(checkpoint):
         checkpoint (dict): dict containing model and trainer state.
 
     Returns:
-        converted_state (dict): Checkpoint state containing just the model and flattened optimizer states.
+        converted_state (dict): Checkpoint state containing just the model and optimizer states.
 
         checkpoint (dict): Remaining metadata from the checkpoint.
     """
