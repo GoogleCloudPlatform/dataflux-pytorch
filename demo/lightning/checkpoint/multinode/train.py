@@ -72,6 +72,7 @@ def main(project: str,
         every_n_train_steps=1,
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
+        dirpath=ckpt_dir_path,
     )
     accelerator = os.environ.get("ACCELERATOR", "cpu")
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
