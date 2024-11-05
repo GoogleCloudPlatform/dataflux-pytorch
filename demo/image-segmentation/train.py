@@ -25,7 +25,7 @@ import torch
 from arguments import PARSER
 from data_loader import get_data_loaders
 from filelock import FileLock
-from model.losses import DiceCELoss, DiceScore
+from shared.losses import DiceCELoss, DiceScore
 from model.unet3d import Unet3D
 from ray.air import ScalingConfig, session
 from ray.train.torch import TorchTrainer, get_device
