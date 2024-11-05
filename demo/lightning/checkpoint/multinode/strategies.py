@@ -22,7 +22,7 @@ from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
 
 
 def checkpoint_helper(checkpoint):
-    """Flatten the model and optimizer states into a new dict.
+    """Extract the list of optimizer states from the checkpoint into a dict.
 
     Args:
         checkpoint (dict): dict containing model and trainer state.
