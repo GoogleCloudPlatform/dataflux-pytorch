@@ -48,7 +48,6 @@ def init_processes() -> None:
     torch.distributed.init_process_group(backend='gloo',
                                          rank=rank,
                                          world_size=world_size)
-    return rank
 
 
 def run_benchmark(world_size: int, layer_size: int, project: str,
