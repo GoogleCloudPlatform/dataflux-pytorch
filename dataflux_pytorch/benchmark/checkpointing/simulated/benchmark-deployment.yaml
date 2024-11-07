@@ -15,7 +15,7 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: yashsha-var-layers-df-35
+  name: {GKE_JOB_NAME}
   labels:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
@@ -24,12 +24,12 @@ spec:
   failurePolicy:
     maxRestarts: 0
   replicatedJobs:
-    - name: yashsha-ckpt
+    - name: {GKE_JOB_NAME}
       replicas: 1
       template:
         spec:
-          parallelism: 35    # Equal to the number of VMs per slice
-          completions: 35    # Same as the above.
+          parallelism: {NUM_NODES}    # Equal to the number of VMs per slice
+          completions: {NUM_NODES}    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
             spec:
@@ -41,8 +41,8 @@ spec:
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: yashsha-container
-                image: gcr.io/gcs-tess/yashsha-container
+              - name: {CONTAINER_NAME}
+                image: gcr.io/{PROJECT_NAME/{CONTAINER_NAME}
 
                 env: 
                 - name: PYTHONPATH
@@ -60,20 +60,20 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "35"
+                  value: "{NUM_NODES}"
                 - name: WORLD_SIZE
-                  value: "35"
+                  value: "{NUM_NODES}"
 
                 - name: JOBSET_NAME
-                  value: "yashsha-var-layers-df-35"
+                  value: "{GKE_JOB_NAME}"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
                   value: "1234"
                 - name: PROJECT
-                  value: "gcs-tess"
+                  value: "{GCP_PROJECT}"
                 - name: CKPT_DIR_PATH
-                  value: "gs://yashsha-benchmarks-us-central1/"
+                  value: "gs://{GCS_BUCKET_NAME}/"
                 - name: PJRT_DEVICE
                   value: "CPU"
                 - name: NCCL_SOCKET_IFNAME
@@ -81,9 +81,9 @@ spec:
                 - name: NCCL_DEBUG
                   value: "WARN"
                 - name: LAYER_SIZE
-                  value: "20000"
+                  value: "{LAYER_SIZE}"
                 - name: PADDING_SIZE
-                  value: "10000"
+                  value: "{PADDING_SIZE}"
                 - name: USE_FSSPEC
                   value: "False"
                 - name: SAMPLE_COUNT
