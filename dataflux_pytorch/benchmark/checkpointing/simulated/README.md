@@ -52,7 +52,7 @@ Set the following environment variables by updating the deployment file to run o
 
 ### Installing Requirements:
  
-* Install the required dependencies using the following commands:
+Install the required dependencies using the following commands:
 
 ```shell
  pip install -r dataflux_pytorch/benchmark/requirements.txt
