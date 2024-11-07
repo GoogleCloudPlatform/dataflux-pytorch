@@ -1,12 +1,11 @@
-# Benchmarking PyTorch Lightning Checkpoints with Google Cloud Storage
+# Multi-node Checkpoint Save/Restore Benchmarks
 
 This benchmarking script will allow you to run and benchmark the performance of the PyTorch Lightning Checkpoint save/load function. The multinode benchmarking script does require a GPU. The script runs the `WikiText2` PyTorch Lightning demo code with some modifications.
 
-## Getting started
 
-### Setup
- 
-#### Install requirements
+## Setup
+
+### Install requirements
 Create a Python virtual environment and activate it
 ```shell
 python3 -m venv .venv
@@ -20,7 +19,7 @@ pip install -r dataflux_pytorch/benchmark/requirements.txt
 pip install .
 ```
 
-#### Auth
+### Auth
 
 Set up credentials for the benchmark code to be able to access your GCS bucket
 
@@ -30,7 +29,6 @@ gcloud auth application-default login
 ```
 
 ## Run
-
 
 ### Environment variables
 
