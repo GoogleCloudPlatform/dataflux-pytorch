@@ -14,7 +14,8 @@
 *   *   We wanted to provide a way for customers to test how GCS scales with increasing model/checkpoint sizes without requiring an actual GPU.
 *   *   These additional steps do not interact with GCS.
 
-*   However, if a customer wants to run the full FSDP implementation on an actual GPU, they can refer to the example in the `multinode` directory.
+*   If a user wishes to run an end to end FSDP implementation on an actual GPU, then please look at the example under the [multinode](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning/checkpoint/multinode) directory.
+
 ## Getting started
 
 ### Configuration
