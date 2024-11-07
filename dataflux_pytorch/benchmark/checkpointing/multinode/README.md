@@ -1,6 +1,10 @@
 # Multi-node Checkpoint Save/Restore Benchmarks
 
-This benchmarking script will allow you to run and benchmark the performance of the PyTorch Lightning Checkpoint save/load function. The multinode benchmarking script does require a GPU. The script runs the `WikiText2` PyTorch Lightning demo code with some modifications.
+Follow the instructions here to benchmark the speeds of saving and loading checkpoints to and from GCS bucket. Access to a machine with GPUs is needed to be able to run the benchmarks. 
+
+The benchmark code utilizes the Fully Sharded Data Parallel (FSDP) Strategy to perform multi-node checkpointing where each node writes a "shard" of the checkpoint to a shared location. This code currently supports benchmarking checkpoint saves/restores to/from GCS buckets using Dataflux, FSSpec, and GCSFuse. Additionally, there is an option to benchmark saves/restores to/from boot disk.
+
+As the default [FSDPStrategy](https://lightning.ai/docs/pytorch/stable/_modules/lightning/pytorch/strategies/fsdp.html#FSDPStrategy) does not support any of these options out of the box, custom strategies that inherit `lightning.pytorch.strategies.fsdp.FSDPStrategy` were implemented. The definitions of all the custom strategies referenced by the benchmark code can be found [here](https://github.com/GoogleCloudPlatform/dataflux-pytorch/blob/main/demo/lightning/checkpoint/multinode/strategies.py).
 
 
 ## Setup
@@ -122,7 +126,7 @@ and FSSpec these variables must be set to the name of the bucket with the `gs://
 
 #### Benchmarking Checkpoint Saves/Loads to/from Boot Disk
 >[!NOTE]
-> This option is only intended for mulit-node executions. 
+> This option is only intended for multi-node executions. 
 
 It is not possible to create a peristent volume backed by boot disk and make it accessible to all the nodes in a cluster. The benchmark code works around this limitation by letting us benchmark saves and loads separately. 
 
