@@ -5,6 +5,7 @@ import time
 
 import torch
 import torch.distributed as dist
+
 from demo.lightning.checkpoint.simulated.multiprocessing_train import (
     BenchmarkStrategy, cleanup, format_size, get_tensor_size_bytes,
     time_checkpoint_operation)
@@ -83,9 +84,13 @@ def run_benchmark(world_size: int, layer_size: int, project: str,
 
     if rank == 0:
         print(f"Time taken to save checkpoint:\
-                {statistics.mean(save_checkpoint_times):.4f} seconds")
+                {statistics.mean(save_checkpoint_times):.4f} seconds (stdev {statistics.stdev(save_checkpoint_times):.4f})"
+              )
+        print(f"All save times: {save_checkpoint_times}")
         print(f"Time taken to load checkpoint:\
-                 {statistics.mean(load_checkpoint_times):.4f} seconds")
+                 {statistics.mean(load_checkpoint_times):.4f} seconds (stdev {statistics.stdev(load_checkpoint_times):.4f})"
+              )
+        print(f"All load times: {load_checkpoint_times}")
 
         tensor_size_per_instance = 1000 * layer_size * state_dict[
             f'dummy_tensor_0'].element_size()

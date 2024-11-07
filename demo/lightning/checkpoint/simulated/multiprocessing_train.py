@@ -24,10 +24,11 @@ import torch.distributed as dist
 import torch.distributed.checkpoint as dist_cp
 import torch.multiprocessing as mp
 import torch.nn as nn
-from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
-                                                       GCSDistributedWriter)
 from lightning.pytorch.strategies import FSDPStrategy
 from torch.distributed.checkpoint import _fsspec_filesystem as FF
+
+from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
+                                                       GCSDistributedWriter)
 
 # Constants for distributed setup
 MASTER_ADDR = 'localhost'
@@ -222,6 +223,7 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
     for i in range(sample_count):
         checkpoint_path = os.path.join(filepath, f'checkpoints/ckpt_{i}.ckpt')
         dist.barrier()
+        print(f"Started iteration {i} for {operation} on rank {rank}...")
         start_time = time.time()
         if operation == 'save':
             benchmark_strategy.save_checkpoint(distributed_state_dict,
@@ -233,7 +235,7 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
         dist.barrier()
         end_time = time.time()
         times.append(end_time - start_time)
-        print(f"Completed iteration {i} for {operation} ...")
+        print(f"Completed iteration {i} for {operation} on rank {rank}")
     return times
 
 
@@ -274,9 +276,13 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
 
     if rank == 0:
         print(f"Time taken to save checkpoint:\
-                {statistics.mean(save_checkpoint_times):.4f} seconds")
+                {statistics.mean(save_checkpoint_times):.4f} seconds (stdev {statistics.stdev(save_checkpoint_times):.4f})"
+              )
+        print(f"All save times: {save_checkpoint_times}")
         print(f"Time taken to load checkpoint:\
-                 {statistics.mean(load_checkpoint_times):.4f} seconds")
+                 {statistics.mean(load_checkpoint_times):.4f} seconds (stdev {statistics.stdev(load_checkpoint_times):.4f})"
+              )
+        print(f"All load times: {load_checkpoint_times}")
 
         tensor_size_per_instance = 1000 * layer_size * state_dict[
             f'dummy_tensor_0'].element_size()

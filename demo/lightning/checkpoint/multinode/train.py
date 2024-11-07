@@ -72,6 +72,7 @@ def main(project: str,
         every_n_train_steps=1,
         filename="checkpoint-{epoch:02d}-{step:02d}",
         enable_version_counter=True,
+        dirpath=ckpt_dir_path,
     )
     accelerator = os.environ.get("ACCELERATOR", "cpu")
     min_epochs_save = int(os.environ.get("MIN_EPOCHS_SAVE", 4))
@@ -85,10 +86,8 @@ def main(project: str,
                       max_steps=max_steps_save,
                       accelerator=accelerator,
                       strategy=DatafluxFSDPStrategy(
-                          path=ckpt_dir_path,
                           project_name=project,
                           storage_client=None,
-                          model=model,
                           state_dict_type="sharded",
                       ),
                       num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
@@ -108,10 +107,8 @@ def main(project: str,
                       max_steps=max_steps_restore,
                       accelerator=accelerator,
                       strategy=DatafluxFSDPStrategy(
-                          path=ckpt_restore_path,
                           project_name=project,
                           storage_client=None,
-                          model=model,
                           state_dict_type="sharded",
                       ),
                       num_nodes=int(os.environ.get("WORLD_SIZE", 5)))
@@ -128,7 +125,22 @@ class DemoTransformer(LightningTransformer):
     ) -> None:
         super().__init__()
         self.optimizer = optimizer
-        self.model = Transformer(vocab_size=vocab_size, nlayers=nlayers)
+        self.model = None
+        self.vocab_size = vocab_size
+        self.nlayers = nlayers
+
+    # Initialize the model here to allow it to be initialized on the GPU; see
+    # https://lightning.ai/docs/pytorch/stable/advanced/model_parallel/fsdp.html#speed-up-model-initialization
+    def configure_model(self):
+        if self.model is not None:
+            return
+        # Use the nhid, ninp, and nhead parameters from the guide linked above.
+        # This means that 1B parameters corresponds to 32 layers.
+        self.model = Transformer(vocab_size=self.vocab_size,
+                                 nlayers=self.nlayers,
+                                 nhid=4096,
+                                 ninp=1024,
+                                 nhead=64)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         # Use self.trainer.model.parameters so that we can set
