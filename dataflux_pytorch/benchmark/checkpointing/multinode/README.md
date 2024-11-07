@@ -22,7 +22,7 @@ pip install .
 
 #### Auth
 
-Set up credentials for the benchmarking code to be able to access your GCS bucket
+Set up credentials for the benchmark code to be able to access your GCS bucket
 
 ```shell
 gcloud config set project PROJECT_ID
@@ -34,15 +34,15 @@ gcloud auth application-default login
 
 ### Environment variables
 
-Set the following environment variables by updating the deployment file if deploying on a GKE cluster, or by running `set ENV_VAR=value` if running locally on your machine.
+Set the following environment variables by updating the deployment file if deploying on a GKE cluster, or by running `export ENV_VAR=value` if running locally on your machine.
 
 1. The following environment variables must be set:
   
     * `PROJECT`: Your GCP project.
     
-    * `CKPT_DIR_PATH`: The path to the directory towhich the checkpoints will be written.
+    * `CKPT_DIR_PATH`: The path to the directory the checkpoint files will be written to.
 
-    * `CKPT_RESTORE_PATH`: The path to the directory from which the checkpoints will be loaded.
+    * `CKPT_RESTORE_PATH`: The path to the directory the checkpoints will be loaded from.
 
 1. The following environment variables are optional. Default values will be used if not set:
   
@@ -59,29 +59,29 @@ Set the following environment variables by updating the deployment file if deplo
 
     * `NUM_DEVICES`: The number of devices per node. Defaults to `auto`. 
 
-### Local Execution
+### Local Execution 
 
 #### Dataflux
 ```shell
+export CKPT_DIR_PATH="gs://<your-bucket-name>"
+export CKPT_RESTORE_PATH="${CKPT_DIR_PATH}/checkpoints"
 python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=dataflux_fsdp
 ```
 
 #### FSSpec
 ```shell
+export CKPT_DIR_PATH="gs://<your-bucket-name>"
+export CKPT_RESTORE_PATH="${CKPT_DIR_PATH}/checkpoints"
 python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsspec_fsdp
 ```
 
-#### Boot Disk
-```shell
-# Benchmark checkopint saves first
-python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --save_only
-
-# Benchmark loads next
-python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --load_only
-```
-
 #### Distributed Filesystem
+> [!NOTE]
+> Currently only GCSFuse is supported by the benchmark code. Follow the instructions [here](https://cloud.google.com/storage/docs/cloud-storage-fuse/quickstart-mount-bucket) to mount your GCS bucket to a local directory.
+
 ```shell
+export CKPT_DIR_PATH=<path-to-local-directory> 
+export CKPT_RESTORE_PATH="${CKPT_DIR_PATH}/checkpoints"
 python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --distributed_filesystem
 ```
 
@@ -109,10 +109,33 @@ _Note: the following instructions assume that you have Jobset and Kueue enabled 
     docker push gcr.io/{YOUR-GCP-PROJECT}/dataflux-demo
     ```
 
-1. Update the arguments to `train.py` (`spec.command`) as needed. See the previous section for details.
+1. Update the environment variables and the arguments to `train.py` (`spec.command`) as needed. See the previous section for details.
+   >[!NOTE]
+   >Update the environment variables `CKPT_DIR_PATH` and `CKPT_RESTORE_PATH` by editing the deployment file. In the cases of Dataflux and FSSpec these variables must be set to the name of the bucket with the `gs://` prefix. In all other cases, they must be set to a POSIX path that points to some local directory.
 
 1. Apply deployment  
 
    ```shell
    kubectl apply -f dataflux_pytorch/benchmark/checkpointing/multinode/benchmark-deploy.yaml
    ```
+
+
+#### Benchmarking Checkpoint Saves/Loads to/from Boot Disk
+>[!NOTE]
+> This option is only intended for mulit-node executions. 
+
+It is not possible to create a peristent volume backed by boot disk and make it accessible to all the nodes in a cluster. The benchmark code works around this limitation by letting us benchmark saves and loads separately. 
+
+When `--save_only` is set, only the save calls are timed and executed. All nodes writes their checkpoint shards to directories local to them, saved on their respective boot disks. 
+
+When `--load_only` is set, all nodes write the checkopint to a GCS bucket using Dataflux. All nodes then copy the contents of this bucket to directories local to them, saved on their respective boot disks. Checkpoint load operations proceed as usual from these local directories.  
+
+```shell
+export CKPT_DIR_PATH=<path-to-local-directory>
+export CKPT_RESTORE_PATH="${CKPT_DIR_PATH}/checkpoints"
+# Benchmark checkopint saves first
+python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --save_only
+
+# Benchmark loads next
+python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --load_only
+```
