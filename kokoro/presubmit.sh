@@ -46,6 +46,8 @@ function install_requirements() {
 
     echo Installing requirements.
     pip install -r requirements.txt
+    pip install -r ./demo/lightning/text-based/single-node/requirements.txt
+
 
     echo Installing required dependencies.
     pip install .
