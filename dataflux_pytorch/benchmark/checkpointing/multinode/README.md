@@ -109,9 +109,8 @@ _Note: the following instructions assume that you have Jobset and Kueue enabled 
     docker push gcr.io/{YOUR-GCP-PROJECT}/dataflux-demo
     ```
 
-1. Update the environment variables and the arguments to `train.py` (`spec.command`) as needed. See the previous section for details.
-> [!NOTE]
-> Update the environment variables `CKPT_DIR_PATH` and `CKPT_RESTORE_PATH` by editing the deployment file. In the cases of Dataflux and FSSpec these variables must be set to the name of the bucket with the `gs://` prefix. In all other cases, they mustbe set to a POSIX path that points to some local directory.
+1. Update the environment variables `CKPT_DIR_PATH` and `CKPT_RESTORE_PATH` by editing the deployment file. In the cases of Dataflux
+and FSSpec these variables must be set to the name of the bucket with the `gs://` prefix. In all other cases, they mustbe set to a POSIX path that points to some local directory.
 
 1. Apply deployment  
 
