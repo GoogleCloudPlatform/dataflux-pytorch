@@ -44,6 +44,7 @@ def init_processes() -> int:
     os.environ["NODE_RANK"] = str(rank)
 
     configure_master_addr()
+    # Using gloo backend since the simulated version runs on CPU.
     torch.distributed.init_process_group(backend='gloo',
                                          rank=rank,
                                          world_size=world_size)

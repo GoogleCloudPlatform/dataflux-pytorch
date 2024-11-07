@@ -42,7 +42,7 @@ spec:
               terminationGracePeriodSeconds: 30
               containers:
               - name: {CONTAINER_NAME}
-                image: gcr.io/{PROJECT_NAME/{CONTAINER_NAME}
+                image: gcr.io/{PROJECT_NAME}/{CONTAINER_NAME}
 
                 env: 
                 - name: PYTHONPATH
