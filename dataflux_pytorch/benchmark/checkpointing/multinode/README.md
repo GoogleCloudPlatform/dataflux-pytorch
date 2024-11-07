@@ -89,6 +89,9 @@ python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=f
 
 _Note: the following instructions assume that you have Jobset and Kueue enabled on your GKE cluster. For easy compatability we recommend creating a cluster with [XPK](https://github.com/google/xpk) which will configure these features automatically._
 
+> [!IMPORTANT]  
+> If benchmarking GCSFuse, make sure to uncomment the `template.metadata`, `spec.volumes`, and `spec.container.volumeMounts` blocks in the `benchmark-deploy.yaml` file.
+
 1. Connect to your GKE cluster from your workstation
     ```shell
     # Connect to your cluster
