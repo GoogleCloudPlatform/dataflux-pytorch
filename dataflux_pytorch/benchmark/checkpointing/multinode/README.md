@@ -16,7 +16,7 @@ source .venv/bin/activate
 Run the following commands from the root of the repo to install the packages needed by the benchmarking code
 
 ```shell
-pip install -r dataflux_pytorch/benchmark/requirements.txt`
+pip install -r dataflux_pytorch/benchmark/requirements.txt
 pip install .
 ```
 
@@ -38,26 +38,26 @@ Set the following environment variables by updating the deployment file if deplo
 
 1. The following environment variables must be set:
   
-  * `PROJECT`: Your GCP project.
-  
-  * `CKPT_DIR_PATH`: The path to the directory towhich the checkpoints will be written.
+    * `PROJECT`: Your GCP project.
+    
+    * `CKPT_DIR_PATH`: The path to the directory towhich the checkpoints will be written.
 
-  * `CKPT_RESTORE_PATH`: The path to the directory from which the checkpoints will be loaded.
+    * `CKPT_RESTORE_PATH`: The path to the directory from which the checkpoints will be loaded.
 
 1. The following environment variables are optional. Default values will be used if not set:
   
-  * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints. Defaults to `10`.
-  
-  * `ACCELERATOR`: Set to `gpu` if running on a GPU, or `cpu` if running on a CPU. Defaults to `cpu`.
-    * If running on GPU(s) `PJRT_DEVICE` must be set to `CPU`.
-  
-  * `NUM_SAVE_CALLS`: The number of times `trainer.save_checkpoint` is called. Defaults to `3`.
-  
-  * `NUM_LOAD_CALLS`: The number of times `trainer.strategy.load_checkpoint` is called. Defaults to `3`. 
+    * `NUM_LAYERS`: The number of layers in the model, which affects the size of the model and therefore the size of the checkpoints. Defaults to `10`.
+    
+    * `ACCELERATOR`: Set to `gpu` if running on a GPU, or `cpu` if running on a CPU. Defaults to `cpu`.
+      * If running on GPU(s) `PJRT_DEVICE` must be set to `CPU`.
+    
+    * `NUM_SAVE_CALLS`: The number of times `trainer.save_checkpoint` is called. Defaults to `3`.
+    
+    * `NUM_LOAD_CALLS`: The number of times `trainer.strategy.load_checkpoint` is called. Defaults to `3`. 
 
-  * `NUM_NODES`: The number of nodes you wish to deploy the workload on. Defaults to `1`.
+    * `NUM_NODES`: The number of nodes you wish to deploy the workload on. Defaults to `1`.
 
-  * `NUM_DEVICES`: The number of devices per node. Defaults to `auto`. 
+    * `NUM_DEVICES`: The number of devices per node. Defaults to `auto`. 
 
 ### Local Execution
 
@@ -80,7 +80,7 @@ python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=f
 python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --load_only
 ```
 
-#### Distributes Filesystem
+#### Distributed Filesystem
 ```shell
 python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --distributed_filesystem
 ```
