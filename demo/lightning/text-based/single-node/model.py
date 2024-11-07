@@ -26,8 +26,7 @@ from torch import nn, utils, Tensor
 from torch.utils import data
 from torch.nn.functional import pad
 from transformers import AutoTokenizer
-from checkpoint.multinode.train import configure_master_addr
-from demo_model import TextDemoModel, format_data
+from text_demo_model import TextDemoModel, format_data
 
 # This demo was built around the huggingface fineweb dataset.
 # Details of the dataset can be found at https://huggingface.co/datasets/HuggingFaceFW/fineweb/tree/main/sample/10BT
