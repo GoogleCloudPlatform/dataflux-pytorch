@@ -64,6 +64,8 @@ function run_integration_tests(){
     python3 -m pytest dataflux_pytorch/integration_tests/integration_test.py -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/integration_tests/sponge_log.xml" --log-cli-level=DEBUG
     echo Running checkpoint integration test.
     python3 dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --project=dataflux-project --ckpt-dir-path=gs://df-ckpt-presubmit/ --layers=10 --steps=5
+
+    python3 demo/lightning/text-based/single-node/model.py --project=gcs-tess --bucket=fineweb-df-benchmark --batch-size=100 --prefix="11" --limit-train-batches=10
 }
 
 setup_virtual_envs
