@@ -1,25 +1,25 @@
 # Benchmarking PyTorch Lightning Checkpoints with Google Cloud Storage
 
-*   This benchmarking script will allow you to run and benchmark the performance of the [Fully Sharded Data Parallel (FSDP)](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.strategies.FSDPStrategy.html) save/load function in order to save and restore checkpoints from GCS. 
+*   This benchmarking script allows you to run and benchmark the performance of the [Fully Sharded Data Parallel (FSDP)](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.strategies.FSDPStrategy.html) save/load function in order to save and restore checkpoints from GCS. 
 
-*   This is simulated version of code to run on CPU so that performance of GCS as backing store can be tested. 
+*   This is a simulated version of the code that runs on CPU, allowing the performance of GCS as a backing store to be tested without GPU.
 
-*   The script generates [state_dict](https://pytorch.org/tutorials/recipes/recipes/what_is_state_dict.html#what-is-a-state-dict-in-pytorch) which represents the state of the model and then everynode saves a part of the state_dict to GCS (state_dict is divided among the nodes, such that size of each shard is same). During restore, each node reads each shard from the GCS parallely. The information which tells the node, which shard it should read is stored in `.metadata` file which is writeen and read by Rank_0 node which is also called co-ordinator node. 
+*   The script generates [state_dict](https://pytorch.org/tutorials/recipes/recipes/what_is_state_dict.html#what-is-a-state-dict-in-pytorch) that represents the state of the model. Each node then saves a part of the state_dict to GCS (the state_dict is divided among the nodes, such that the size of each shard is the same). During restore, each node reads its shard from GCS in parallel. The .metadata file, which is written and read by the Rank_0 (coordinator) node, contains information about which shard each node should read.
 
-*   Official implementation of FSDP pytorch lightning for save_checkpoint can be found [here]
+*   The official implementation of FSDP in PyTorch Lightning for save_checkpoint can be found [here]
 (https://github.com/Lightning-AI/pytorch-lightning/blob/3627c5bfac704d44c0d055a2cdf6f3f9e3f9e8c1/src/lightning/fabric/strategies/fsdp.py#L419)
-*   Official implementation of FSDP pytorch lightning for load_checkpoint can be found [here](https://github.com/Lightning-AI/pytorch-lightning/blob/3627c5bfac704d44c0d055a2cdf6f3f9e3f9e8c1/src/lightning/fabric/strategies/fsdp.py#L519)
+*   The official implementation of FSDP in PyTorch Lightning for load_checkpoint can be found [here](https://github.com/Lightning-AI/pytorch-lightning/blob/3627c5bfac704d44c0d055a2cdf6f3f9e3f9e8c1/src/lightning/fabric/strategies/fsdp.py#L519)
 
-*   While the official implementation for both save_checkpoint and load_checkpoint does many things other than just saving/loading state_dict, those steps have been omited for couple of reasons 
-*   *   We wanted to provide customer a way to see how GCS will scale with increasing model/ checkpoint sizes without needing actual GPU    
-*   *   Those steps dont interact with GCS.
+*   While the official implementation of both `save_checkpoint` and `load_checkpoint` does many things beyond just saving/loading the state_dict, these additional steps have been omitted for the following reasons: 
+*   *   We wanted to provide a way for customers to test how GCS scales with increasing model/checkpoint sizes without requiring an actual GPU.
+*   *   These additional steps do not interact with GCS.
 
-*   However if, for some reason, customer wants to run end to end FSDP implementation on an actual GPU, then please look at the example under multinode directory.
+*   However, if a customer wants to run the full FSDP implementation on an actual GPU, they can refer to the example in the `multinode` directory.
 ## Getting started
 
 ### Configuration
 
-First ensure you are running within a virtual python enviroment, make sure gcloud config project is set to correct value. Otherwise use the following command to set it 
+First, ensure you are running within a virtual Python environment. Also, make sure your gcloud configuration is set to the correct project. If not, use the following command to set it:
 
 ```shell
 gcloud config set project {PROJECT_ID}
@@ -27,35 +27,38 @@ gcloud config set project {PROJECT_ID}
 
 ### Environment variables:
 
-Set the following environment variables by updating the deployment file in order to run this on GKE cluster.
+Set the following environment variables by updating the deployment file to run this on a GKE cluster.
 1. Set the environment variables required to run the demo. These include:
   
-  * `PROJECT`: The GCP project you are using
+  * `PROJECT`: The GCP project you're using.
   
-  * `CKPT_DIR_PATH`: The full path of the directory in which to save checkpoints, in the format `gs://<bucket>/<directory>/`
+  * `CKPT_DIR_PATH`: The full path of the directory where checkpoints will be saved, in the formats `gs://<bucket>/<directory>/`
 
-  * `WORLD_SIZE`: Number of nodes.
+  * `WORLD_SIZE`: The number of nodes.
 
-  * `LAYER_SIZE`: Size of each layer.
+  * `LAYER_SIZE`: The size of each layer.
 
 2. Set the optional environment variables, if desired:
   
-  * `PADDING_SIZE`: Number of dummy tensors to add to state_dict in order to produce checkpoint of desired size. 
-    *   Both padding_size and layer_size will impact the sie of the checkpoint, hence in order to reduce the variables Set layer_size to appropriate value and then keep on changing padding_size until checkpoint of desired size is generated. Default value for padding_size has been set to 4000.
+  * `PADDING_SIZE`: The number of dummy tensors to add to the state_dict in order to produce a checkpoint of the desired size.
+    *   Both padding_size and layer_size will impact the size of the checkpoint. Therefore, set layer_size to an appropriate value first, and then adjust padding_size until the checkpoint of the desired size is generated. The default value for padding_size is 4000.
   
-  * `SAMPLE_COUNT`: The number of times save_checkpoint/load_checkpoint is called. Defaults to 8.
+  * `SAMPLE_COUNT`: The number of times save_checkpoint/load_checkpoint is called. The default is 8.
 
-  * `USE_FSSPEC`: If set to true the code will use [gcsfs/fsspec](https://github.com/fsspec/gcsfs) in order to save_checkpoint/restore_checkpoint from GCS.
-    *   If not set it will use dataflux. Defaults to dataflux.
-
+  * `USE_FSSPEC`: If set to true, the code will use [gcsfs/fsspec](https://github.com/fsspec/gcsfs) in order to save_checkpoint/restore_checkpoint from GCS.
+    *   If not set, it will use dataflux by default.
 
 ### Installing Requirements:
  
-* Install the requirements using following command `pip install -r dataflux_pytorch/benchmark/requirements.txt`; `pip install .`
+* Install the required dependencies using the following commands:
 
+```shell
+ pip install -r dataflux_pytorch/benchmark/requirements.txt; 
+ pip install .
+```
 ### GCS Auth
 
-Run following commands in order to authenticate your application so that it can access GCS buckets properly.
+Run the following commands to authenticate your application so that it can access GCS buckets properly:
 ```shell
 gcloud config set project PROJECT_ID
 gcloud auth application-default login
@@ -63,9 +66,9 @@ gcloud auth application-default login
 
 ### Running
 
-_Note: the following instructions assume that you have Jobset and Kueue enabled on your GKE cluster. For easy compatability we recommend creating a cluster with [XPK](https://github.com/google/xpk) which will configure these features automatically._
+_Note: The following instructions assume that you have Jobset and Kueue enabled on your GKE cluster. For easier compatibility, we recommend creating a cluster using [XPK](https://github.com/google/xpk) which will configure these features automatically._
 
-1.  In order to connect to GKE, kubeconfig needs to be generated, this can be done using following command
+1.  To connect to GKE, you need to generate a kubeconfig file. This can be done using the following command:
 
 ```shell
 gcloud container clusters get-credentials {YOUR-GKE-CLUSTER-NAME} --zone {ZONE} --project {YOUR-GCP-PROJECT}
@@ -73,21 +76,21 @@ gcloud container clusters get-credentials {YOUR-GKE-CLUSTER-NAME} --zone {ZONE} 
 
 2.  Build the container.
 
-Make sure your working directory is `dataflux-pytorch`
+Ensure that your working directory is `dataflux-pytorch`
 ```shell
 docker build -t {YOUR_CONTAINER_NAME} .
 ```
 
-3.  Upload your container to container registry
+3.  Upload your container to the container registry:
 
 ```shell
 docker tag {YOUR_CONTAINER_NAME} gcr.io/{YOUR-GCP-PROJECT}/{YOUR_CONTAINER_NAME}
 docker push gcr.io/{YOUR-GCP-PROJECT}/{YOUR_CONTAINER_NAME}
 ```
 
-4.  Update values in benchmark-deployment.yaml.
+4.  Update the values in `benchmark-deployment.yaml`.
 
-5.  Deploy the config using following command. 
+5.  Deploy the configuration using the following command:
 
 ```shell
 kubectl apply -f /app/dataflux_pytorch/benchmark/checkpointing/simulated/benchmark-deploy.yaml
@@ -96,7 +99,7 @@ kubectl apply -f /app/dataflux_pytorch/benchmark/checkpointing/simulated/benchma
 
 ### Benchmarking Results.
 
-The table below contains benchmarking times on saving checkpoints to GCS, the average save/load time is taken over 10 calls to save_checkpoint and load_checkpoint.  The tests were done from a single GKE cluster containing several nodes with each VM having `n2-standard-32` configuration. The GKE cluster was based in `us-central1` and the GCS bucket was located in the same region. 
+The table below contains benchmarking times for saving checkpoints to GCS. The average save/load time is taken over 8 calls to  save_checkpoint and load_checkpoint. The tests were conducted on a single GKE cluster containing several nodes, with each VM having the `n2-standard-32` configuration. The GKE cluster, and the GCS bucket were located in `us-central1`.
 
 ### Checkpoint Save & Load times.
 
