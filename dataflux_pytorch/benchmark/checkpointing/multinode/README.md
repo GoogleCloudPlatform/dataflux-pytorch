@@ -128,14 +128,23 @@ It is not possible to create a peristent volume backed by boot disk and make it 
 
 When `--save_only` is set, only the save calls are timed and executed. All nodes write their checkpoint shards to directories local to them, saved on their respective boot disks. 
 
-When `--load_only` is set, all nodes write the checkopint to a GCS bucket using Dataflux. All nodes then copy the contents of this bucket to directories local to them, saved on their respective boot disks. Checkpoint load operations proceed as usual, where each node loads its own shard from the local directory.  
+When `--load_only` is set, all nodes write the checkpoint to a GCS bucket using Dataflux. All nodes then copy the contents of this bucket to directories local to them, saved on their respective boot disks. Checkpoint load operations proceed as usual, where each node loads its own shard from the local directory.  
 
-```shell
-export CKPT_DIR_PATH=<path-to-local-directory>
-export CKPT_RESTORE_PATH="${CKPT_DIR_PATH}/checkpoints"
-# Benchmark checkopint saves first
-python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --save_only
+Update the values of the environment variables in the deployment file
 
-# Benchmark loads next
-python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --load_only
+```
+    - name: CKPT_DIR_PATH
+        value: "<path-to-local-directory>"
+    - name: CKPT_RESTORE_PATH
+        value: "<path-to-local-directory>/checkpoints"
+```
+
+Bemchmark saves first, by updating the command int he deployment file to 
+```
+python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py --strategy=fsdp --save_only;
+```
+
+Benchmark loads next
+```
+python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py --strategy=fsdp --load_only;
 ```
