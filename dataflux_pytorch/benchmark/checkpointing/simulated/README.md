@@ -36,12 +36,14 @@ Set the following environment variables by updating the deployment file to run o
 
     * `WORLD_SIZE`: The number of nodes.
 
-    * `LAYER_SIZE`: The size of each layer.
+    * `LAYER_SIZE`: The size of each layer. Each layer will have layer_size number of neurons and each neuron will receive input of 1000 features.
 
 2. Set the optional environment variables, if desired:
   
     * `PADDING_SIZE`: The number of dummy tensors to add to the state_dict in order to produce checkpoints of desired size.
         *   Both padding_size and layer_size will impact the size of the checkpoint. Therefore, set layer_size to an appropriate value first, and then adjust padding_size until the checkpoint of the desired size is generated. The default value for padding_size is 4000.
+        *   Increasing the padding_size by 2x while keeping the layer_size same will increase the checkpoint size by 2x.
+        *   Increasing the layer_size by 2x while keeping the padding_size same will increase the checkpoint size by 2x.
   
     * `SAMPLE_COUNT`: The number of times save_checkpoint/load_checkpoint is called. The default is 8.
 
