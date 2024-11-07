@@ -42,7 +42,7 @@ Set the following environment variables by updating the deployment file if deplo
     
     * `CKPT_DIR_PATH`: The path to the directory the checkpoint files will be written to.
 
-    * `CKPT_RESTORE_PATH`: The path to the directory the checkpoints will be loaded from.
+    * `CKPT_RESTORE_PATH`: The path to the directory the checkpoints will be loaded from. It must be `"${CKPT_DIR_PATH}/checkpoints"`. For example, if `CKPT_DIR_PATH` is `gs://my-bucket`, `CKPT_RESTORE_PATH` must be `gs://my-bucket/checkpoints`.
 
 1. The following environment variables are optional. Default values will be used if not set:
   
