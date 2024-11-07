@@ -95,7 +95,7 @@ docker push gcr.io/{YOUR-GCP-PROJECT}/{YOUR_CONTAINER_NAME}
 5.  Deploy the configuration using the following command:
 
 ```shell
-kubectl apply -f /app/dataflux_pytorch/benchmark/checkpointing/simulated/benchmark-deploy.yaml
+kubectl apply -f dataflux_pytorch/benchmark/checkpointing/simulated/benchmark-deploy.yaml
 ```
 
 
