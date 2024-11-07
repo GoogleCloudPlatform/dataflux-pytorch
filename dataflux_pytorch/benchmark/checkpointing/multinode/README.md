@@ -126,7 +126,7 @@ _Note: the following instructions assume that you have Jobset and Kueue enabled 
 
 It is not possible to create a peristent volume backed by boot disk and make it accessible to all the nodes in a cluster. The benchmark code works around this limitation by letting us benchmark saves and loads separately. 
 
-When `--save_only` is set, only the save calls are timed and executed. All nodes writes their checkpoint shards to directories local to them, saved on their respective boot disks. 
+When `--save_only` is set, only the save calls are timed and executed. All nodes write their checkpoint shards to directories local to them, saved on their respective boot disks. 
 
 When `--load_only` is set, all nodes write the checkopint to a GCS bucket using Dataflux. All nodes then copy the contents of this bucket to directories local to them, saved on their respective boot disks. Checkpoint load operations proceed as usual from these local directories.  
 
