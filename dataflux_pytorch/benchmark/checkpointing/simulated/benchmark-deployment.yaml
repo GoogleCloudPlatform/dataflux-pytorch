@@ -1,0 +1,103 @@
+#  Copyright 2024 Google LLC
+
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+
+#       https://www.apache.org/licenses/LICENSE-2.0
+
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+apiVersion: jobset.x-k8s.io/v1alpha2
+kind: JobSet
+metadata:
+  name: yashsha-var-layers-df-35
+  labels:
+    kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
+  annotations:
+    alpha.jobset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-nodepool # 1:1 job replica to node pool assignment
+spec:
+  failurePolicy:
+    maxRestarts: 0
+  replicatedJobs:
+    - name: yashsha-ckpt
+      replicas: 1
+      template:
+        spec:
+          parallelism: 35    # Equal to the number of VMs per slice
+          completions: 35    # Same as the above.
+          backoffLimit: 0   # When any pod fails, the job is failed
+          template:
+            spec:
+              schedulerName: default-scheduler
+              restartPolicy: Never
+
+              priorityClassName: medium
+              hostNetwork: true
+              dnsPolicy: ClusterFirstWithHostNet
+              terminationGracePeriodSeconds: 30
+              containers:
+              - name: yashsha-container
+                image: gcr.io/gcs-tess/yashsha-container
+
+                env: 
+                - name: PYTHONPATH
+                  value: /app
+                - name: REPLICATED_JOB_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
+                - name: JOB_INDEX
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
+                - name: JOB_COMPLETION_INDEX
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+                - name: PROCESSES_IN_JOB
+                  value: "35"
+                - name: WORLD_SIZE
+                  value: "35"
+
+                - name: JOBSET_NAME
+                  value: "yashsha-var-layers-df-35"
+                - name: COORDINATOR_ADDRESS
+                  value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
+                - name: MASTER_PORT
+                  value: "1234"
+                - name: PROJECT
+                  value: "gcs-tess"
+                - name: CKPT_DIR_PATH
+                  value: "gs://yashsha-benchmarks-us-central1/"
+                - name: PJRT_DEVICE
+                  value: "CPU"
+                - name: NCCL_SOCKET_IFNAME
+                  value: "eth0"
+                - name: NCCL_DEBUG
+                  value: "WARN"
+                - name: LAYER_SIZE
+                  value: "20000"
+                - name: PADDING_SIZE
+                  value: "10000"
+                - name: USE_FSSPEC
+                  value: "False"
+                - name: SAMPLE_COUNT
+                  value: "8"
+
+
+                ports:
+                - containerPort: 8471
+                - containerPort: 8080
+                - containerPort: 1234
+                securityContext: {}
+                  # privileged: true
+                command:
+                - bash
+                - -c
+                - |
+                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/simulated/benchmark.py;
