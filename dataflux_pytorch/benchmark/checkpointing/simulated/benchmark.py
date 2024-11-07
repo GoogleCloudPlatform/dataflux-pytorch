@@ -34,7 +34,7 @@ def configure_master_addr():
     os.environ["MASTER_ADDR"] = str(coordinator_ip_address)
 
 
-def init_processes() -> int:
+def init_processes() -> None:
     """Initializes the distributed environment."""
     world_size = int(os.environ["WORLD_SIZE"])
     job_index = int(os.environ.get("JOB_INDEX", 0))
@@ -54,12 +54,15 @@ def init_processes() -> int:
 def run_benchmark(world_size: int, layer_size: int, project: str,
                   filepath: str, padding_size: int, sample_count: int,
                   use_fsspec: bool) -> None:
-    rank = init_processes() if os.environ.get("COORDINATOR_ADDRESS") else 0
+
+    if os.environ.get("COORDINATOR_ADDRESS"):
+        init_processes()
+    rank = int(os.environ.get("NODE_RANK", 0))
 
     benchmark_strategy = BenchmarkStrategy(project=project,
                                            path=filepath,
                                            use_fsspec=use_fsspec)
-    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/main/torch/distributed/checkpoint/default_planner.py#L343
+    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/v2.3.1/torch/distributed/checkpoint/default_planner.py#L227
     # each key will be read only once from the state_dict, hence assigning different names to different tensor will force the load function to only read
     # tensor shard corresponding to given node.
     state_dict = dict()
