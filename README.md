@@ -6,6 +6,8 @@ The Accelerated Dataloader for PyTorch implements PyTorch’s [dataset primitive
 
 Furthermore, the Accelerated Dataloader for PyTorch provides a checkpointing interface to conveniently save and load checkpoints directly to and from a Google Cloud Storage (GCS) bucket.
 
+All of these features can be used out of the box for performant executions with single-node and multinode ML workflows. Demo code for multinode implementation using FSDP can be found in our [multinode README](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning/checkpoint/multinode).
+
 ## Getting started
 
 ### Prerequisites
@@ -114,7 +116,7 @@ for each_object in dataset:
 
 ##### Checkpointing
 
-The Accelerated Dataloader for PyTorch supports fast data loading and allows the user to save and load model checkpoints directly to/from a Google Cloud Storage (GCS) bucket.
+The Accelerated Dataloader for PyTorch supports fast data loading and allows the user to save and load model checkpoints directly to/from a Google Cloud Storage (GCS) bucket. The checkpointing implementation leverages multipart file upload to parallelize checkpoint writes to GCS, greatly increasing performance over single-threaded writes.
 
 ```python
 import torch
@@ -173,6 +175,10 @@ trainer.save_checkpoint(CKPT)
 ```
 
 Note that saving or restoring checkpoint files will stage the checkpoint file in CPU memory during save/restore, requiring additional available CPU memory equal to the size of the checkpoint file.
+
+##### Async Checkpointing
+
+Our checkpointing implementation has built-in support for the experimental [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) featureset. This is an optimzation that allows for non-blocking `save_checkpoint` calls during a training loop. For more details on our support for this feature please see the [checkpoint README](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning/checkpoint/singlenode#using-asynccheckpointio). This feature is supported in both single and multinode executions with the Accelerated Dataloader for Pytorch.
 
 ## Performance
 
