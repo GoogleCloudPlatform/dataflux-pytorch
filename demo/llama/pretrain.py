@@ -1,6 +1,5 @@
 # Copyright Lightning AI. Licensed under the Apache License 2.0, see LICENSE file.
 
-import glob
 import math
 import os
 import sys
@@ -14,10 +13,10 @@ import torch
 from dataflux_pytorch import dataflux_iterable_dataset
 from dataset import CombinedDataset, PackedDataset
 from lightning.fabric.strategies import FSDPStrategy
-from model import Block, LLaMA, LLaMAConfig
+from lit_llama.lit_llama.model import Block, LLaMA, LLaMAConfig
+from lit_llama.lit_llama.utils import save_model_checkpoint
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
-from utils import save_model_checkpoint
 
 # dataflux vars
 project_name = "<YOUR-PROJECT>"
