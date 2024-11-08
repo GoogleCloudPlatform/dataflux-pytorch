@@ -122,7 +122,6 @@ class BenchmarkStrategy(FSDPStrategy):
 
     def __init__(self, project: str, path: str, use_fsspec: bool, **kwargs):
         super().__init__(**kwargs)
-        self.path = path
         if use_fsspec:
             self.reader = FF.FsspecReader(path)
             self.writer = FF.FsspecWriter(path, sync_files=False)
@@ -265,7 +264,6 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
         })
 
     dist.barrier()
-
     save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'save',
