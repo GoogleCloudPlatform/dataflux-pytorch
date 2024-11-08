@@ -54,8 +54,7 @@ class TextDemoModel(pl.LightningModule):
         This function sets the loss parameter (lr) which determines the rate at which the model "learns".
         The parameters pass is a direct-passthrough of any existing parameters from the LightingModule.
         """
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer
+        return optim.Adam(self.parameters(), lr=1e-3)
 
     def training_step(self, train_batch, batch_idx):
         """
