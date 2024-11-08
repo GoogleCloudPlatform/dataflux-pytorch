@@ -28,7 +28,7 @@ from torch import optim, nn, utils, Tensor
 from torch.utils import data
 from torch.nn.functional import pad
 from transformers import AutoTokenizer
-from ..demo_model import TextDemoModel, format_data
+from demo.lightning.text_based.demo_model import TextDemoModel, format_data
 
 # This demo was built around the huggingface fineweb dataset.
 # Details of the dataset can be found at https://huggingface.co/datasets/HuggingFaceFW/fineweb/tree/main/sample/10BT

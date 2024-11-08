@@ -14,4 +14,7 @@
  limitations under the License.
  """
 
-from . import checkpoint
+from .checkpoint.multinode.train import (DemoTransformer, init_processes)
+from .text_based.demo_model import (TextDemoModel, format_data)
+
+__all__ = ["DemoTransformer", "init_processes", "TextDemoModel", "format_data"]

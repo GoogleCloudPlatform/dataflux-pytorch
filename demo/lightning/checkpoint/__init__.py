@@ -14,4 +14,7 @@
  limitations under the License.
  """
 
-from . import multinode
+from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
+                                                       init_processes)
+
+__all__ = ["DemoTransformer", "init_processes"]

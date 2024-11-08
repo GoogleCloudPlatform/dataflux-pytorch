@@ -9,7 +9,7 @@ WORKDIR /app
 # by Docker even if the code changes.
 COPY ./dataflux_pytorch/benchmark/standalone_dataloader/requirements.txt requirements-1.txt
 RUN pip install --no-cache-dir -r requirements-1.txt
-COPY ./demo/lightning/text-based/distributed/requirements.txt requirements-2.txt
+COPY ./demo/lightning/text_based/distributed/requirements.txt requirements-2.txt
 RUN pip install --no-cache-dir -r requirements-2.txt
 COPY ./demo/lightning/image-segmentation/requirements.txt requirements-3.txt
 RUN pip install --no-cache-dir -r requirements-3.txt
