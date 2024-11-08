@@ -141,8 +141,6 @@ class PackedDatasetIterator:
                 self._dtype, self._chunk_size, bytes_io = self._read(filename)
                 self._n_blocks = self._chunk_size // self._block_size
 
-            # mmap = np.memmap(bytes_io, mode="r", order="C", offset=HDR_SIZE)
-            # self._mmaps.append(mmap)
             bytes_io.seek(HDR_SIZE)
             self._buffers.append(bytes_io.read())
 
