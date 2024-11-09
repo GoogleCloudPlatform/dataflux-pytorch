@@ -14,7 +14,6 @@
  limitations under the License.
  """
 import argparse
-import io
 import os
 import statistics
 import time
@@ -25,10 +24,11 @@ import torch.distributed as dist
 import torch.distributed.checkpoint as dist_cp
 import torch.multiprocessing as mp
 import torch.nn as nn
-from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
-                                                       GCSDistributedWriter)
 from lightning.pytorch.strategies import FSDPStrategy
 from torch.distributed.checkpoint import _fsspec_filesystem as FF
+
+from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
+                                                       GCSDistributedWriter)
 
 # Constants for distributed setup
 MASTER_ADDR = 'localhost'
