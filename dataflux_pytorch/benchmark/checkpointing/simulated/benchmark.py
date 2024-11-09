@@ -5,7 +5,6 @@ import time
 
 import torch
 import torch.distributed as dist
-
 from demo.lightning.checkpoint.simulated.multiprocessing_train import (
     BenchmarkStrategy, cleanup, format_size, get_tensor_size_bytes,
     time_checkpoint_operation)
@@ -35,7 +34,7 @@ def configure_master_addr():
     os.environ["MASTER_ADDR"] = str(coordinator_ip_address)
 
 
-def init_processes() -> int:
+def init_processes() -> None:
     """Initializes the distributed environment."""
     world_size = int(os.environ["WORLD_SIZE"])
     job_index = int(os.environ.get("JOB_INDEX", 0))
@@ -45,21 +44,24 @@ def init_processes() -> int:
     os.environ["NODE_RANK"] = str(rank)
 
     configure_master_addr()
+    # Using gloo backend since the simulated version runs on CPU.
     torch.distributed.init_process_group(backend='gloo',
                                          rank=rank,
                                          world_size=world_size)
-    return rank
 
 
 def run_benchmark(world_size: int, layer_size: int, project: str,
-                  filepath: str, padding_size: int, sample_count: int) -> None:
-    rank = init_processes() if os.environ.get("COORDINATOR_ADDRESS") else 0
+                  filepath: str, padding_size: int, sample_count: int,
+                  use_fsspec: bool) -> None:
 
-    benchmark_strategy = BenchmarkStrategy(
-        project=project,
-        path=filepath,
-    )
-    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/main/torch/distributed/checkpoint/default_planner.py#L343
+    if os.environ.get("COORDINATOR_ADDRESS"):
+        init_processes()
+    rank = int(os.environ.get("NODE_RANK", 0))
+
+    benchmark_strategy = BenchmarkStrategy(project=project,
+                                           path=filepath,
+                                           use_fsspec=use_fsspec)
+    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/v2.3.1/torch/distributed/checkpoint/default_planner.py#L227
     # each key will be read only once from the state_dict, hence assigning different names to different tensor will force the load function to only read
     # tensor shard corresponding to given node.
     state_dict = dict()
@@ -69,7 +71,18 @@ def run_benchmark(world_size: int, layer_size: int, project: str,
 
     # Wait until the state_dict is populated properly accross all the nodes.
     dist.barrier()
-
+    for i in range(3):
+        dist.barrier()
+        benchmark_strategy.do_something(state_dict=state_dict, iteration=i)
+        print(
+            f" Done with do_something, for node {dist.get_rank()} for iteration {i}"
+        )
+        dist.barrier()
+    time.sleep(100)
+    benchmark_strategy = BenchmarkStrategy(project=project,
+                                           path=filepath,
+                                           use_fsspec=false)
+    benchmark_strategy.do_something()
     save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'save',
@@ -108,13 +121,14 @@ def run_benchmark(world_size: int, layer_size: int, project: str,
 def main() -> None:
     world_size = int(os.getenv("WORLD_SIZE"))
     layer_size = int(os.getenv("LAYER_SIZE"))
-    layer_size = int(os.getenv("LAYER_SIZE"))
     project = os.getenv("PROJECT")
     ckpt_dir_path = os.getenv("CKPT_DIR_PATH")
-    sample_count = int(os.getenv("SAMPLE_COUNT", 3))
+    sample_count = int(os.getenv("SAMPLE_COUNT", 8))
     padding_size = int(os.getenv("PADDING_SIZE", 4000))
+    use_fsspec = os.getenv("USE_FSSPEC",
+                           "False").lower() in ("true", "1", "yes")
     run_benchmark(world_size, layer_size, project, ckpt_dir_path, padding_size,
-                  sample_count)
+                  sample_count, use_fsspec)
 
 
 if __name__ == "__main__":
