@@ -14,7 +14,11 @@
  limitations under the License.
  """
 
-from demo.lightning.checkpoint.multinode.train import (DemoTransformer,
-                                                       init_processes)
+from .train import (DemoTransformer, init_processes)
+from .strategies import (DatafluxFSDPStrategy, FSSpecFSDPStrategy,
+                         LoadFromBootDiskFSDP)
 
-__all__ = ["DemoTransformer", "init_processes"]
+__all__ = [
+    "DemoTransformer", "init_processes", "DatafluxFSDPStrategy",
+    "FSSpecFSDPStrategy", "LoadFromBootDiskFSDP"
+]

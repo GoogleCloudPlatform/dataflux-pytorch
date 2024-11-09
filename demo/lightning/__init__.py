@@ -15,6 +15,13 @@
  """
 
 from .checkpoint.multinode.train import (DemoTransformer, init_processes)
+from .checkpoint.multinode.strategies import (DatafluxFSDPStrategy,
+                                              FSSpecFSDPStrategy,
+                                              LoadFromBootDiskFSDP)
 from .text_based.demo_model import (TextDemoModel, format_data)
 
-__all__ = ["DemoTransformer", "init_processes", "TextDemoModel", "format_data"]
+__all__ = [
+    "DemoTransformer", "init_processes", "DatafluxFSDPStrategy",
+    "FSSpecFSDPStrategy", "LoadFromBootDiskFSDP", "TextDemoModel",
+    "format_data"
+]
