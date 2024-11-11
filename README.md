@@ -425,7 +425,9 @@ QPS limits can trigger 429 errors with a body message indicating `Too many Reque
 If your workload is failing with messages similar to `TooManyRequests: 429 GET https://storage.googleapis.com/download/storage/v1/b/<MY-BUCKET>/o/dataflux-composed-objects%2Fa80727ae-7bc9-4ba3-8f9b-13ff001d6418` that contain the "dataflux-composed-objects" keyword, [disabling](#composite-objects) composed objects is the best first troubleshooting step. This can reduce QPS load brought on by the compose API when used at scale.
 
 ## Contributing
-We welcome your feedback, issues, and bug fixes. We have a tight roadmap at this time so if you have a major feature or change in functionality you'd like to contribute, please open a GitHub Issue for discussion prior to sending a pull request. Please see [CONTRIBUTING](docs/contributing.md) for more information on how to report bugs or submit pull requests.
+We welcome your feedback, issues, and bug fixes. If you have a major feature or change in functionality you'd like to contribute, please open a GitHub Issue for discussion prior to sending a pull request. Please see [CONTRIBUTING](docs/contributing.md) for more information on how to report bugs or submit pull requests.
+
+We aim to provide an initial response to all incoming issues, pull requests, etc. within 24 business hours. If it has been a while and you haven't heard from us, feel free to add a new comment to the issue.
 
 ### Code of Conduct
 
@@ -434,3 +436,5 @@ This project has adopted the Google Open Source Code of Conduct. Please see [cod
 ### License
 
 The Accelerated Dataloader for PyTorch library has an Apache License 2.0. Please see the [LICENSE](LICENSE) file for more information.
+
+*PyTorch, the PyTorch logo and any related marks are trademarks of The Linux Foundation.*
