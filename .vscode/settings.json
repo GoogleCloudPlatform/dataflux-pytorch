@@ -17,4 +17,10 @@
     },
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
+    "yapf.interpreter": [
+        "./.venv/bin/python"
+    ],
+    "isort.interpreter": [
+        "./.venv/bin/python"
+    ],
 }
