@@ -11,15 +11,12 @@ from typing import Optional, Tuple
 import lightning as L
 import torch
 from dataflux_pytorch import dataflux_iterable_dataset
-from dataset import CombinedDataset, PackedDataset
 from demo.lightning.checkpoint.multinode.strategies import DatafluxFSDPStrategy
-from lightning.fabric.strategies import FSDPStrategy
-from lit_llama.lit_llama.model import Block, LLaMA, LLaMAConfig
-from torch.distributed.fsdp import FullStateDictConfig
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp import StateDictType
+from lit_llama.model import Block, LLaMA, LLaMAConfig
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
+
+from .dataset import CombinedDataset, PackedDataset
 
 # dataflux vars
 project_name = "<YOUR-PROJECT>"
@@ -72,6 +69,8 @@ def main(
     auto_wrap_policy = partial(transformer_auto_wrap_policy,
                                transformer_layer_cls={Block})
     strategy = DatafluxFSDPStrategy(
+        project=project_name,
+        storage_client=None,
         auto_wrap_policy=auto_wrap_policy,
         activation_checkpointing=Block,
         limit_all_gathers=True,
