@@ -11,8 +11,11 @@ from typing import Optional, Tuple
 import lightning as L
 import torch
 from dataflux_pytorch import dataflux_iterable_dataset
-from demo.lightning.checkpoint.multinode.strategies import DatafluxFSDPStrategy
+from lightning.fabric.strategies import FSDPStrategy
 from lit_llama.model import Block, LLaMA, LLaMAConfig
+from torch.distributed.fsdp import FullStateDictConfig
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp import StateDictType
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
 
@@ -68,9 +71,7 @@ def main(
 ) -> None:
     auto_wrap_policy = partial(transformer_auto_wrap_policy,
                                transformer_layer_cls={Block})
-    strategy = DatafluxFSDPStrategy(
-        project_name=project_name,
-        storage_client=None,
+    strategy = FSDPStrategy(
         auto_wrap_policy=auto_wrap_policy,
         activation_checkpointing=Block,
         limit_all_gathers=True,
@@ -146,6 +147,7 @@ def train(
 
     step_time = 0.0
     tokens = 0
+    tokens_sec = 0.0
     prev_t1 = time.time()
 
     for iter_num, train_data in enumerate(train_dataloader):
@@ -193,7 +195,9 @@ def train(
 
             if step_count % save_interval == 0:
                 fabric.print(f"Saving checkpoint to {out_dir}")
-                fabric.save(checkpoint_save_dir, model.state_dict())
+                save_model_checkpoint(
+                    fabric, model,
+                    os.path.join(out_dir, f"iter-{iter_num:06d}-ckpt.pth"))
 
         dt = t1 - t0
 
@@ -336,6 +340,28 @@ def get_lr(it):
     assert 0 <= decay_ratio <= 1
     coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
     return min_lr + coeff * (learning_rate - min_lr)
+
+
+def save_model_checkpoint(fabric, model, file_path):
+    """Handles boilerplate logic for retrieving and saving the state_dict.
+
+    This will be upstreamed to Fabric soon.
+    """
+    file_path = Path(file_path)
+
+    if isinstance(fabric.strategy, FSDPStrategy):
+        save_policy = FullStateDictConfig(offload_to_cpu=(fabric.world_size
+                                                          > 1),
+                                          rank0_only=True)
+        with FSDP.state_dict_type(model, StateDictType.FULL_STATE_DICT,
+                                  save_policy):
+            state_dict = model._forward_module.state_dict()
+    else:
+        state_dict = model.state_dict()
+
+    if fabric.global_rank == 0:
+        torch.save(state_dict, file_path)
+    fabric.barrier()
 
 
 if __name__ == "__main__":
