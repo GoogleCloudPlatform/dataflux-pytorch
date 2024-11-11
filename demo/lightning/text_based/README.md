@@ -1,5 +1,5 @@
 # Parquet Demo Code
-The code examples in this directory demonstrate how dataflux can be used for text-based training alongside Pytorch-Lightning. To support this training, this example subclasses DataFluxIterableDataset for compatibility with parquet files from the HuggingFace FineWeb dataset.
+The code examples in this directory demonstrate how dataflux can be used for text_based training alongside Pytorch-Lightning. To support this training, this example subclasses DataFluxIterableDataset for compatibility with parquet files from the HuggingFace FineWeb dataset.
 
 Please note that these demos are for educational and example purposes only, and have not been optimized for performance.
 
@@ -49,7 +49,7 @@ docker tag my-container gcr.io/<PROJECT_NAME>/my-container
 docker push gcr.io/<PROJECT_NAME>/my-container
 ```
 
-To create an execution, please take a look at [example-deploy.yaml](demo/lightning/text-based/distributed/example-deploy.yaml). This can be run against your own cluster once configured via the `kubectl` command:
+To create an execution, please take a look at [example-deploy.yaml](demo/lightning/text_based/distributed/example-deploy.yaml). This can be run against your own cluster once configured via the `kubectl` command:
 ```
 kubectl apply -f deploy.yaml
 ```
