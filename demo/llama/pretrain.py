@@ -69,7 +69,7 @@ def main(
     auto_wrap_policy = partial(transformer_auto_wrap_policy,
                                transformer_layer_cls={Block})
     strategy = DatafluxFSDPStrategy(
-        project=project_name,
+        project_name=project_name,
         storage_client=None,
         auto_wrap_policy=auto_wrap_policy,
         activation_checkpointing=Block,
