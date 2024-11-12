@@ -11,6 +11,7 @@ from typing import Optional, Tuple
 import lightning as L
 import torch
 from dataflux_pytorch import dataflux_iterable_dataset
+from demo.lightning.checkpoint.multinode.strategies import DatafluxFSDPStrategy
 from lightning.fabric.strategies import FSDPStrategy
 from lit_llama.model import Block, LLaMA, LLaMAConfig
 from torch.distributed.fsdp import FullStateDictConfig
@@ -20,6 +21,7 @@ from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
 
 from .dataset import CombinedDataset, PackedDataset
+from .strategies import DatafluxFSDPStrategy
 
 # dataflux vars
 project_name = "<YOUR-PROJECT>"
@@ -195,9 +197,12 @@ def train(
 
             if step_count % save_interval == 0:
                 fabric.print(f"Saving checkpoint to {out_dir}")
-                save_model_checkpoint(
-                    fabric, model,
-                    os.path.join(out_dir, f"iter-{iter_num:06d}-ckpt.pth"))
+                state = {
+                    "model": model,
+                    "optimizer": optimizer,
+                    "iteration": iter_num
+                }
+                fabric.save(bucket_name, state)
 
         dt = t1 - t0
 
@@ -353,7 +358,7 @@ def save_model_checkpoint(fabric, model, file_path):
         save_policy = FullStateDictConfig(offload_to_cpu=(fabric.world_size
                                                           > 1),
                                           rank0_only=True)
-        with FSDP.state_dict_type(model, StateDictType.FULL_STATE_DICT,
+        with FSDP.state_dict_type(model, StateDictType.SHARDED_STATE_DICT,
                                   save_policy):
             state_dict = model._forward_module.state_dict()
     else:
