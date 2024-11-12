@@ -33,7 +33,6 @@ checkpoint_save_dir = "<YOUR-BUCKET>"
 wd = Path(__file__).parent.parent.resolve()
 sys.path.append(str(wd))
 
-out_dir = "out/training"
 save_interval = 1000
 eval_interval = 1000
 eval_iters = 100
@@ -88,9 +87,6 @@ def main(
                       strategy=strategy)
     fabric.launch()
     fabric.seed_everything(1337)
-
-    if fabric.global_rank == 0:
-        os.makedirs(out_dir, exist_ok=True)
 
     config = LLaMAConfig.from_name("7B")
 
@@ -198,14 +194,22 @@ def train(
                 })
 
             if step_count % save_interval == 0:
-                fabric.print(f"Saving checkpoint to {out_dir}")
+                cur_ckpt_save_dir = os.path.join(checkpoint_save_dir,
+                                                 f"iter-{iter_num:06d}")
+                fabric.print(f"Saving checkpoint to {cur_ckpt_save_dir}")
                 state = {
                     "model": model,
                     "optimizer": optimizer,
                     "iteration": iter_num
                 }
-                fabric.save(f"{checkpoint_save_dir}/iter-{iter_num:06d}/",
-                            state)
+                save_start = time.time()
+                fabric.save(cur_ckpt_save_dir, state)
+                save_end = time.time()
+
+                if fabric.global_rank == 0:
+                    fabric.print(
+                        f"Checkpoint save with dataflux took {save_end - save_start} seconds."
+                    )
 
         dt = t1 - t0
 
