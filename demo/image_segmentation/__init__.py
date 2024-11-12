@@ -3,5 +3,6 @@ from .model.losses import (DiceCELoss)
 from .model.layers import (DownsampleBlock, InputBlock, OutputLayer,
                           UpsampleBlock)
 
+from .pytorch_loader import (get_train_transforms)
 __all__ = ["Unet3D","DiceCELoss", "DownsampleBlock", "InputBlock", "OutputLayer",
-                          "UpsampleBlock"]
+                          "UpsampleBlock","get_train_transforms"]

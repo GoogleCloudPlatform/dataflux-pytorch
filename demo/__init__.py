@@ -21,8 +21,10 @@ from demo.lightning.checkpoint.multinode.strategies import (
 from demo.lightning.text_based.demo_model import (TextDemoModel, format_data)
 from demo.image_segmentation.model.unet3d import Unet3D
 from demo.image_segmentation.model.losses import DiceCELoss
+from demo.image_segmentation.pytorch_loader import get_train_transforms
+
 __all__ = [
     "DemoTransformer", "init_processes", "DatafluxFSDPStrategy",
     "FSSpecFSDPStrategy", "LoadFromBootDiskFSDP", "TextDemoModel",
-    "format_data","Unet3D","DiceCELoss"
+    "format_data","Unet3D","DiceCELoss","get_train_transforms"
 ]
