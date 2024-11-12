@@ -100,4 +100,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/simulated/benchmark.py;
+                  python3 -u /app/benchmark/checkpointing/simulated/benchmark.py;

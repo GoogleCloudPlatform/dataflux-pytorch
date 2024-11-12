@@ -103,7 +103,7 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py;
+                  python3 -u /app/benchmark/checkpointing/multinode/train.py;
               # Uncomment the lines below if using gcsfuse csi driver to mount your bucket to all pods.
               #   volumeMounts:
               #   - name: gcs-fuse-static

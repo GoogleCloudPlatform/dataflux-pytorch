@@ -7,7 +7,7 @@ WORKDIR /app
 # Install additional requirements for running demos.
 # Do this before copying the code so that these commands are still cached
 # by Docker even if the code changes.
-COPY ./dataflux_pytorch/benchmark/standalone_dataloader/requirements.txt requirements-1.txt
+COPY ./benchmark/standalone_dataloader/requirements.txt requirements-1.txt
 RUN pip install --no-cache-dir -r requirements-1.txt
 COPY ./demo/lightning/text_based/distributed/requirements.txt requirements-2.txt
 RUN pip install --no-cache-dir -r requirements-2.txt

@@ -19,7 +19,7 @@ source .venv/bin/activate
 Run the following commands from the root of the repo to install the packages needed by the benchmarking code
 
 ```shell
-pip install -r dataflux_pytorch/benchmark/requirements.txt
+pip install -r benchmark/requirements.txt
 pip install .
 ```
 
@@ -67,14 +67,14 @@ Set the following environment variables by updating the deployment file if deplo
 ```shell
 export CKPT_DIR_PATH="gs://<your-bucket-name>"
 export CKPT_RESTORE_PATH="${CKPT_DIR_PATH}/checkpoints"
-python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=dataflux_fsdp
+python3 -m benchmark.checkpointing.multinode.train --strategy=dataflux_fsdp
 ```
 
 #### FSSpec
 ```shell
 export CKPT_DIR_PATH="gs://<your-bucket-name>"
 export CKPT_RESTORE_PATH="${CKPT_DIR_PATH}/checkpoints"
-python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsspec_fsdp
+python3 -m benchmark.checkpointing.multinode.train --strategy=fsspec_fsdp
 ```
 
 #### Distributed Filesystem
@@ -84,7 +84,7 @@ python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=f
 ```shell
 export CKPT_DIR_PATH=<path-to-local-directory> 
 export CKPT_RESTORE_PATH="${CKPT_DIR_PATH}/checkpoints"
-python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train --strategy=fsdp --distributed_filesystem
+python3 -m benchmark.checkpointing.multinode.train --strategy=fsdp --distributed_filesystem
 ```
 
 ### Multi-node Execution
@@ -120,7 +120,7 @@ and FSSpec these variables must be set to the name of the bucket with the `gs://
 1. Apply deployment  
 
    ```shell
-   kubectl apply -f dataflux_pytorch/benchmark/checkpointing/multinode/benchmark-deploy.yaml
+   kubectl apply -f benchmark/checkpointing/multinode/benchmark-deploy.yaml
    ```
 
 
@@ -145,12 +145,12 @@ Update the values of the environment variables in the deployment file
 
 Bemchmark saves first, by updating the command int he deployment file to 
 ```
-python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py --strategy=fsdp --save_only;
+python3 -u /app/benchmark/checkpointing/multinode/train.py --strategy=fsdp --save_only;
 ```
 
 Benchmark loads next
 ```
-python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py --strategy=fsdp --load_only;
+python3 -u /app/benchmark/checkpointing/multinode/train.py --strategy=fsdp --load_only;
 ```
 
 
@@ -168,5 +168,5 @@ This separate demo introduces a new env var to increase the number of training s
 To run the script use the following command. 
 
 ```shell
-python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train_async_save
+python3 -m benchmark.checkpointing.multinode.train_async_save
 ```
