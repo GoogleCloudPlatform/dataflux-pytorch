@@ -92,7 +92,6 @@ class DatafluxFSDPStrategy(FSDPStrategy):
                     target_dict = metadata
                 _apply_filter(key, filter or {}, converted, target_dict)
 
-        # converted_state, metadata = checkpoint_helper(state)
         path = Path(self.broadcast(path))
         writer = GCSDistributedWriter(path, self.storage_client.project,
                                       self.storage_client)
@@ -200,25 +199,6 @@ class DatafluxFSDPStrategy(FSDPStrategy):
         # Ensure any async operation completes before shutting down.
         self._resolve_future()
         super().teardown()
-
-
-def checkpoint_helper(checkpoint):
-    """Extract the list of optimizer states from the checkpoint into a dict.
-
-    Args:
-        checkpoint (dict): dict containing model and trainer state.
-
-    Returns:
-        converted_state (dict): Checkpoint state containing just the model and optimizer states.
-
-        checkpoint (dict): Remaining metadata from the checkpoint.
-    """
-    converted_state = {"model": checkpoint.pop("state_dict")}
-    converted_state.update({
-        f"optimizer_{idx}": optim_state
-        for idx, optim_state in enumerate(
-            checkpoint.pop("optimizer_states", []))
-    })
 
 
 def _apply_filter(key: str, filter: Dict[str, Callable[[str, Any], bool]],

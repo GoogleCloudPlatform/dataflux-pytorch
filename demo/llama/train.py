@@ -12,6 +12,7 @@ import lightning as L
 import torch
 from dataflux_pytorch import dataflux_iterable_dataset
 from demo.lightning.checkpoint.multinode.strategies import DatafluxFSDPStrategy
+from google.cloud import storage
 from lightning.fabric.strategies import FSDPStrategy
 from lit_llama.model import Block, LLaMA, LLaMAConfig
 from torch.distributed.fsdp import FullStateDictConfig
@@ -73,7 +74,9 @@ def main(
 ) -> None:
     auto_wrap_policy = partial(transformer_auto_wrap_policy,
                                transformer_layer_cls={Block})
-    strategy = FSDPStrategy(
+    strategy = DatafluxFSDPStrategy(
+        project_name=project_name,
+        storage_client=storage.Client(project=project_name),
         auto_wrap_policy=auto_wrap_policy,
         activation_checkpointing=Block,
         limit_all_gathers=True,
@@ -149,7 +152,6 @@ def train(
 
     step_time = 0.0
     tokens = 0
-    tokens_sec = 0.0
     prev_t1 = time.time()
 
     for iter_num, train_data in enumerate(train_dataloader):
@@ -202,7 +204,8 @@ def train(
                     "optimizer": optimizer,
                     "iteration": iter_num
                 }
-                fabric.save(bucket_name, state)
+                fabric.save(f"{checkpoint_save_dir}/iter-{iter_num:06d}/",
+                            state)
 
         dt = t1 - t0
 
