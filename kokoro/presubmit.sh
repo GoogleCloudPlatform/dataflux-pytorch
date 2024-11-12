@@ -52,6 +52,13 @@ function install_requirements() {
 
     echo Installing checkpointing requirements
     pip install -r ./benchmark/requirements.txt
+
+    echo Installing parquet demo requirements.
+    pip install -r ./demo/lightning/text_based/distributed/requirements.txt
+
+    echo Installing image training demo requirements.
+    pip install -r ./demo/lightning/image-segmentation/requirements.txt
+
 }
 
 function run_unit_tests() {
@@ -64,7 +71,7 @@ function run_integration_tests(){
     python3 -m pytest dataflux_pytorch/integration_tests/integration_test.py -vv --junit-xml="${KOKORO_ARTIFACTS_DIR}/integration_tests/sponge_log.xml" --log-cli-level=DEBUG
     echo Running checkpoint integration test.
     python3 benchmark/checkpointing/singlenode/train.py --project=dataflux-project --ckpt-dir-path=gs://df-ckpt-presubmit/ --layers=10 --steps=5
-     echo Running benchmarks...
+    echo Running benchmarks...
     echo Running parquet-text benchmark.
     python3 -u ./demo/lightning/text_based/distributed/model.py --local --project=dataflux-project --bucket=fineweb-df-benchmark --num-workers=2 --num-nodes=1 --devices=5 --batch-size=512 --epochs=5 --limit-train-batches=1000 --log-level=ERROR;
     echo Running image-segmentation benchmark.
