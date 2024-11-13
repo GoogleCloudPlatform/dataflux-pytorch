@@ -17,7 +17,7 @@ kind: JobSet
 metadata:
   name: <my-job-run>
   labels:
-    kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
+    kueue.x-k8s.io/queue-name: multislice-queue # Name of the LocalQueue
   annotations:
     alpha.jobset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-nodepool # 1:1 job replica to node pool assignment
 spec:
@@ -28,9 +28,9 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 15    # Equal to the number of VMs per slice
-          completions: 15    # Same as the above.
-          backoffLimit: 0   # When any pod fails, the job is failed
+          parallelism: 15 # Equal to the number of VMs per slice
+          completions: 15 # Same as the above.
+          backoffLimit: 0 # When any pod fails, the job is failed
           template:
             # Uncomment the lines below if using gcsfuse csi driver to mount your bucket to all pods.
             # metadata:
@@ -44,66 +44,67 @@ spec:
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: <my-container>
-                image: gcr.io/<my-project>/<my-container>
+                - name: <my-container>
+                  image: gcr.io/<my-project>/<my-container>
 
-                resources:
-                  limits:
-                    nvidia.com/gpu: 1
+                  resources:
+                    limits:
+                      nvidia.com/gpu: 1
 
-                env: 
-                - name: PYTHONPATH
-                  value: /app
-                - name: REPLICATED_JOB_NAME
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
-                - name: JOB_INDEX
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
-                - name: JOB_COMPLETION_INDEX
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
-                - name: PROCESSES_IN_JOB
-                  value: "15"
-                - name: NUM_NODES
-                  value: "15"
-                - name: JOBSET_NAME
-                  value: "<my-job-run>"
-                - name: COORDINATOR_ADDRESS
-                  value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
-                - name: MASTER_PORT
-                  value: "1234"
-                - name: PROJECT
-                  value: "<gcs_project_name>"
-                - name: CKPT_DIR_PATH
-                  value: "<gs://my-bucket/checkpoint-path/>"
-                - name: CKPT_RESTORE_PATH
-                  value: "<gs://my-bucket/checkpoint-path/>"
-                - name: PJRT_DEVICE
-                  value: "CPU"
-                - name: NCCL_SOCKET_IFNAME
-                  value: "eth0"
-                - name: NCCL_DEBUG
-                  value: "WARN"
-                - name: NUM_LAYERS
-                  value: "10"
-                - name: ACCELERATOR
-                  value: "gpu"
+                  env:
+                    - name: PYTHONPATH
+                      value: /app
+                    - name: REPLICATED_JOB_NAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
+                    - name: JOB_INDEX
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
+                    - name: JOB_COMPLETION_INDEX
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+                    - name: PROCESSES_IN_JOB
+                      value: "15"
+                    - name: NUM_NODES
+                      value: "15"
+                    - name: JOBSET_NAME
+                      value: "<my-job-run>"
+                    - name: COORDINATOR_ADDRESS
+                      value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
+                    - name: MASTER_PORT
+                      value: "1234"
+                    - name: PROJECT
+                      value: "<gcs_project_name>"
+                    - name: CKPT_DIR_PATH
+                      value: "<gs://my-bucket/checkpoint-path/>"
+                    - name: CKPT_RESTORE_PATH
+                      value: "<gs://my-bucket/checkpoint-path/>"
+                    - name: PJRT_DEVICE
+                      value: "CPU"
+                    - name: NCCL_SOCKET_IFNAME
+                      value: "eth0"
+                    - name: NCCL_DEBUG
+                      value: "WARN"
+                    - name: NUM_LAYERS
+                      value: "10"
+                    - name: ACCELERATOR
+                      value: "gpu"
 
-                ports:
-                - containerPort: 8471
-                - containerPort: 8080
-                - containerPort: 1234
-                securityContext: {}
-                  # privileged: true
-                command:
-                - bash
-                - -c
-                - |
-                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py;
+                  ports:
+                    - containerPort: 8471
+                    - containerPort: 8080
+                    - containerPort: 1234
+                  securityContext:
+                    {}
+                    # privileged: true
+                  command:
+                    - bash
+                    - -c
+                    - |
+                      python3 -u /app/benchmark/checkpointing/multinode/train.py;
               # Uncomment the lines below if using gcsfuse csi driver to mount your bucket to all pods.
               #   volumeMounts:
               #   - name: gcs-fuse-static

@@ -15,22 +15,22 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: {GKE_JOB_NAME}
+  name: { GKE_JOB_NAME }
   labels:
-    kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
+    kueue.x-k8s.io/queue-name: multislice-queue # Name of the LocalQueue
   annotations:
     alpha.jobset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-nodepool # 1:1 job replica to node pool assignment
 spec:
   failurePolicy:
     maxRestarts: 0
   replicatedJobs:
-    - name: {GKE_JOB_NAME}
+    - name: { GKE_JOB_NAME }
       replicas: 1
       template:
         spec:
-          parallelism: {NUM_NODES}    # Equal to the number of VMs per slice
-          completions: {NUM_NODES}    # Same as the above.
-          backoffLimit: 0   # When any pod fails, the job is failed
+          parallelism: { NUM_NODES } # Equal to the number of VMs per slice
+          completions: { NUM_NODES } # Same as the above.
+          backoffLimit: 0 # When any pod fails, the job is failed
           template:
             spec:
               schedulerName: default-scheduler
@@ -41,63 +41,63 @@ spec:
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: {CONTAINER_NAME}
-                image: gcr.io/{PROJECT_NAME}/{CONTAINER_NAME}
+                - name: { CONTAINER_NAME }
+                  image: gcr.io/{PROJECT_NAME}/{CONTAINER_NAME}
 
-                env: 
-                - name: PYTHONPATH
-                  value: /app
-                - name: REPLICATED_JOB_NAME
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
-                - name: JOB_INDEX
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
-                - name: JOB_COMPLETION_INDEX
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
-                - name: PROCESSES_IN_JOB
-                  value: "{NUM_NODES}"
-                - name: WORLD_SIZE
-                  value: "{NUM_NODES}"
+                  env:
+                    - name: PYTHONPATH
+                      value: /app
+                    - name: REPLICATED_JOB_NAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
+                    - name: JOB_INDEX
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
+                    - name: JOB_COMPLETION_INDEX
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+                    - name: PROCESSES_IN_JOB
+                      value: "{NUM_NODES}"
+                    - name: WORLD_SIZE
+                      value: "{NUM_NODES}"
 
-                - name: JOBSET_NAME
-                  value: "{GKE_JOB_NAME}"
-                - name: COORDINATOR_ADDRESS
-                  value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
-                - name: MASTER_PORT
-                  value: "1234"
-                - name: PROJECT
-                  value: "{GCP_PROJECT}"
-                - name: CKPT_DIR_PATH
-                  value: "gs://{GCS_BUCKET_NAME}/"
-                - name: PJRT_DEVICE
-                  value: "CPU"
-                - name: NCCL_SOCKET_IFNAME
-                  value: "eth0"
-                - name: NCCL_DEBUG
-                  value: "WARN"
-                - name: LAYER_SIZE
-                  value: "{LAYER_SIZE}"
-                - name: PADDING_SIZE
-                  value: "{PADDING_SIZE}"
-                - name: USE_FSSPEC
-                  value: "False"
-                - name: SAMPLE_COUNT
-                  value: "8"
+                    - name: JOBSET_NAME
+                      value: "{GKE_JOB_NAME}"
+                    - name: COORDINATOR_ADDRESS
+                      value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
+                    - name: MASTER_PORT
+                      value: "1234"
+                    - name: PROJECT
+                      value: "{GCP_PROJECT}"
+                    - name: CKPT_DIR_PATH
+                      value: "gs://{GCS_BUCKET_NAME}/"
+                    - name: PJRT_DEVICE
+                      value: "CPU"
+                    - name: NCCL_SOCKET_IFNAME
+                      value: "eth0"
+                    - name: NCCL_DEBUG
+                      value: "WARN"
+                    - name: LAYER_SIZE
+                      value: "{LAYER_SIZE}"
+                    - name: PADDING_SIZE
+                      value: "{PADDING_SIZE}"
+                    - name: USE_FSSPEC
+                      value: "False"
+                    - name: SAMPLE_COUNT
+                      value: "8"
 
-
-                ports:
-                - containerPort: 8471
-                - containerPort: 8080
-                - containerPort: 1234
-                securityContext: {}
-                  # privileged: true
-                command:
-                - bash
-                - -c
-                - |
-                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/simulated/benchmark.py;
+                  ports:
+                    - containerPort: 8471
+                    - containerPort: 8080
+                    - containerPort: 1234
+                  securityContext:
+                    {}
+                    # privileged: true
+                  command:
+                    - bash
+                    - -c
+                    - |
+                      python3 -u /app/benchmark/checkpointing/simulated/benchmark.py;

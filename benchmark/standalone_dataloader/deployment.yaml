@@ -5,7 +5,7 @@ metadata:
   # Make sure to modify all occurrences of the name in this file.
   name: dataflux-maxtext-workload
   labels:
-    kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
+    kueue.x-k8s.io/queue-name: multislice-queue # Name of the LocalQueue
     xpk.google.com/workload: dataflux-maxtext-workload
   annotations:
     alpha.jobset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-nodepool # 1:1 job replica to node pool assignment
@@ -17,9 +17,9 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 10    # Equal to the number of VMs per slice
-          completions: 10    # Same as the above.
-          backoffLimit: 0   # When any pod fails, the job is failed
+          parallelism: 10 # Equal to the number of VMs per slice
+          completions: 10 # Same as the above.
+          backoffLimit: 0 # When any pod fails, the job is failed
           template:
             metadata:
               labels:
@@ -32,11 +32,11 @@ spec:
                 nodeAffinity:
                   requiredDuringSchedulingIgnoredDuringExecution:
                     nodeSelectorTerms:
-                    - matchExpressions:
-                      - key: cloud.google.com/gke-nodepool
-                        operator: NotIn
-                        values:
-                        - default-pool
+                      - matchExpressions:
+                          - key: cloud.google.com/gke-nodepool
+                            operator: NotIn
+                            values:
+                              - default-pool
 
               priorityClassName: medium
               hostNetwork: true
@@ -44,66 +44,66 @@ spec:
               terminationGracePeriodSeconds: 30
 
               containers:
-              - name: jax-cpu
-                image: gcr.io/gcs-tess/dataflux-maxtext
+                - name: jax-cpu
+                  image: gcr.io/gcs-tess/dataflux-maxtext
 
-                env:
-                - name: REPLICATED_JOB_NAME
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
-                - name: JOB_INDEX
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
-                - name: JOB_COMPLETION_INDEX
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
-                # Modify the following two values too, if you intend to run the workload in smaller scale.
-                - name: PROCESSES_IN_JOB
-                  value: "10"
-                - name: JAX_PROCESS_COUNT
-                  value: "10"
-                - name: JOBSET_NAME
-                  value: "dataflux-maxtext-workload"
-                - name: JAX_COORDINATOR_ADDRESS
-                  value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
+                  env:
+                    - name: REPLICATED_JOB_NAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
+                    - name: JOB_INDEX
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
+                    - name: JOB_COMPLETION_INDEX
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+                    # Modify the following two values too, if you intend to run the workload in smaller scale.
+                    - name: PROCESSES_IN_JOB
+                      value: "10"
+                    - name: JAX_PROCESS_COUNT
+                      value: "10"
+                    - name: JOBSET_NAME
+                      value: "dataflux-maxtext-workload"
+                    - name: JAX_COORDINATOR_ADDRESS
+                      value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
 
-                ports:
-                - containerPort: 8471
-                - containerPort: 8080
-                - containerPort: 1234
-                securityContext:
-                  privileged: true
-                command:
-                - bash
-                - -c
-                - |
-                  # Modify the parameters here.
-                  # See the instructions of parameters https://github.com/google/maxtext/blob/gcs-distributed-training-benchmark/MaxText/configs/base.yml#L359.
-                  # Please modify the RUN_NAME to distinguish your run from others and add identifiers
-                  # for the storage team (HdML, PStore, GCS, etc).
+                  ports:
+                    - containerPort: 8471
+                    - containerPort: 8080
+                    - containerPort: 1234
+                  securityContext:
+                    privileged: true
+                  command:
+                    - bash
+                    - -c
+                    - |
+                      # Modify the parameters here.
+                      # See the instructions of parameters https://github.com/google/maxtext/blob/gcs-distributed-training-benchmark/MaxText/configs/base.yml#L359.
+                      # Please modify the RUN_NAME to distinguish your run from others and add identifiers
+                      # for the storage team (HdML, PStore, GCS, etc).
 
-                  export RUN_NAME=<YOUR-NAME>-dataflux-maxtext-$(date +"%Y-%m-%d")
+                      export RUN_NAME=<YOUR-NAME>-dataflux-maxtext-$(date +"%Y-%m-%d")
 
-                  export PROJECT="<YOUR-PROJECT>"
-                  export BUCKET="<YOUR-BUCKET>"
-                  export PREFIX="<DATA-PREFIX>"
-                  export EPOCHS=2
-                  export MAX_STEPS=-1
-                  export LOCAL_BATCH_SIZE=32
-                  export PREFETCH_FACTOR=2
-                  export DATA_LOADER_NUM_WORKERS=10
-                  export PER_STEP_INTERVAL=0.1
-                  export GCS_METRICS_BUCKET="<METRICS-BUCKET>"
+                      export PROJECT="<YOUR-PROJECT>"
+                      export BUCKET="<YOUR-BUCKET>"
+                      export PREFIX="<DATA-PREFIX>"
+                      export EPOCHS=2
+                      export MAX_STEPS=-1
+                      export LOCAL_BATCH_SIZE=32
+                      export PREFETCH_FACTOR=2
+                      export DATA_LOADER_NUM_WORKERS=10
+                      export PER_STEP_INTERVAL=0.1
+                      export GCS_METRICS_BUCKET="<METRICS-BUCKET>"
 
-                  export COMMON_RUN_FLAGS="enable_checkpointing=False hardware=cpu"
-                  export BENCHMARK_RUN_FLAGS="run_name=${RUN_NAME} dataset_directory=${DATASET_DIRECTORY} epochs=${EPOCHS} max_steps=${MAX_STEPS} local_batch_size=${LOCAL_BATCH_SIZE} prefetch_factor=${PREFETCH_FACTOR} data_loader_num_workers=${DATA_LOADER_NUM_WORKERS} per_step_interval=${PER_STEP_INTERVAL} gcs_metrics_bucket=${GCS_METRICS_BUCKET}"
-                  echo XPK Start: $(date) ; _sigterm() ( kill -SIGTERM $! 2>/dev/null;); trap _sigterm SIGTERM;(JAX_PLATFORMS=cpu python3 dataflux_pytorch/benchmark/standalone_dataloader/standalone_dataloader.py dataflux_pytorch/benchmark/standalone_dataloader/maxtext/MaxText/configs/base.yml ${BENCHMARK_RUN_FLAGS} ${COMMON_RUN_FLAGS}) & PID=$!; while kill -0 $PID 2>/dev/null; do sleep 5; done; wait $PID; EXIT_CODE=$? ;  echo XPK End: $(date); echo EXIT_CODE=$EXIT_CODE;
-                
-                resources:
-                  requests:
-                    # Requesting 20 CPU cores as the node machine is n2-32, this is to
-                    # ensure that one pod is scheduled per node.
-                    cpu: 20000m
+                      export COMMON_RUN_FLAGS="enable_checkpointing=False hardware=cpu"
+                      export BENCHMARK_RUN_FLAGS="run_name=${RUN_NAME} dataset_directory=${DATASET_DIRECTORY} epochs=${EPOCHS} max_steps=${MAX_STEPS} local_batch_size=${LOCAL_BATCH_SIZE} prefetch_factor=${PREFETCH_FACTOR} data_loader_num_workers=${DATA_LOADER_NUM_WORKERS} per_step_interval=${PER_STEP_INTERVAL} gcs_metrics_bucket=${GCS_METRICS_BUCKET}"
+                      echo XPK Start: $(date) ; _sigterm() ( kill -SIGTERM $! 2>/dev/null;); trap _sigterm SIGTERM;(JAX_PLATFORMS=cpu python3 benchmark/standalone_dataloader/standalone_dataloader.py benchmark/standalone_dataloader/maxtext/MaxText/configs/base.yml ${BENCHMARK_RUN_FLAGS} ${COMMON_RUN_FLAGS}) & PID=$!; while kill -0 $PID 2>/dev/null; do sleep 5; done; wait $PID; EXIT_CODE=$? ;  echo XPK End: $(date); echo EXIT_CODE=$EXIT_CODE;
+
+                  resources:
+                    requests:
+                      # Requesting 20 CPU cores as the node machine is n2-32, this is to
+                      # ensure that one pod is scheduled per node.
+                      cpu: 20000m
