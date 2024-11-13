@@ -1,7 +1,7 @@
 # Copyright Lightning AI. Licensed under the Apache License 2.0, see LICENSE file.
 
 # Borrowed from https://github.com/Lightning-AI/lit-llama/blob/main/lit_llama/packed_dataset.py
-# with minor modificaitons to use Dataflux for data loading.
+# with minor modificaitons to use GCS Connector for Pytorch for data loading.
 
 import io
 import random

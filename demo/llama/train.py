@@ -1,5 +1,8 @@
 # Copyright Lightning AI. Licensed under the Apache License 2.0, see LICENSE file.
 
+# Borrowed from https://github.com/Lightning-AI/lit-llama/blob/main/pretrain/redpajama.py
+# with changes at appropriate places to use GCS Connector for Pytorch for data listing, loading, and checkpointing.
+
 import math
 import os
 import sys
