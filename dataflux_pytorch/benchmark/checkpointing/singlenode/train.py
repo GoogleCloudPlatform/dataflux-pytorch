@@ -194,7 +194,7 @@ def main():
           str((end - start) / args.steps) + " seconds")
 
     # If using async, call finalize to shut down the threadpool executor.
-    if args.checkpoint == 'asynccheckpointio':
+    if args.checkpoint == ASYNC_DF_LIGHTNING:
         ckpt.finalize()
 
     # Measure load checkpoint.
