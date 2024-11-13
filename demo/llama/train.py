@@ -357,28 +357,6 @@ def get_lr(it):
     return min_lr + coeff * (learning_rate - min_lr)
 
 
-def save_model_checkpoint(fabric, model, file_path):
-    """Handles boilerplate logic for retrieving and saving the state_dict.
-
-    This will be upstreamed to Fabric soon.
-    """
-    file_path = Path(file_path)
-
-    if isinstance(fabric.strategy, FSDPStrategy):
-        save_policy = FullStateDictConfig(offload_to_cpu=(fabric.world_size
-                                                          > 1),
-                                          rank0_only=True)
-        with FSDP.state_dict_type(model, StateDictType.SHARDED_STATE_DICT,
-                                  save_policy):
-            state_dict = model._forward_module.state_dict()
-    else:
-        state_dict = model.state_dict()
-
-    if fabric.global_rank == 0:
-        torch.save(state_dict, file_path)
-    fabric.barrier()
-
-
 if __name__ == "__main__":
     # Uncomment this line if you see an error: "Expected is_sm80 to be true, but got false"
     # torch.backends.cuda.enable_flash_sdp(False)
