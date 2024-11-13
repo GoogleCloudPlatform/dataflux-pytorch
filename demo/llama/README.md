@@ -9,7 +9,9 @@ Follow the instructions [here](https://github.com/Lightning-AI/lit-llama/blob/ma
 
 ### Run the pre-training script
 
-The training code leverages the GCS connector for Pytorch library to list and download files quickly and easily from your GCS bucket:
+Changes have been made to `lit-llama`'s training code at appropriate places to leverage GCS connector for Pytorch to quickly and efficiently perform data listing, data loading, and checkopint saving. 
+
+A custom Fully Sharded Data Parallel (FSDP) strategy that inherits the `lightning.fabric.strategies.FSDPStrategy` (see `strategies.py`) has been implemented to save model checkpoints using `dataflux_pytorch.lightning.DatafluxLightningCheckpoint`. 
 
 ```
 # pretrain.py; to list all the files in the dataset.
@@ -37,10 +39,10 @@ def _read(self, path):
     return dtype, chunk_size, bytes_io
 ```
 
-Update the `bucket_name` and `project_name` variables in `pretrain.py` and `dataset.py`. Then run
+Update the `bucket_name` and `project_name` variables in `pretrain.py` and `dataset.py`. Then, from the root of the repo, run
 
 ```
-python pretrain.py --devices 2
+python3 demo.llama.train --devices 2
 ```
 
 ### Download the tokenizer
