@@ -178,9 +178,11 @@ Note that saving or restoring checkpoint files will stage the checkpoint file in
 
 ##### Async Checkpointing
 
-Our lightning checkpointing implementation has built-in support for the experimental [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) featureset. This is an optimzation that allows for non-blocking `save_checkpoint` calls during a training loop. For more details on our support for this feature please see the [checkpoint README](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning/checkpoint/singlenode#using-asynccheckpointio). This lightning feature is only supported for single-node executions.
+PyTorch Lightning Singlenode - Our lightning checkpointing implementation has built-in support for the experimental [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) featureset. This is an optimzation that allows for non-blocking `save_checkpoint` calls during a training loop. For more details on our support for this feature please see the [checkpoint README](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning/checkpoint/singlenode#using-asynccheckpointio). This lightning feature is only supported for single-node executions.
 
-To allow for asyncronous saves with multinode executions we utilize PyTorch's [Async Distributed Save](https://pytorch.org/tutorials/recipes/distributed_async_checkpoint_recipe.html) to allow for similar non-blocking checkpoint operations. This implementation can be found [here](https://github.com/GoogleCloudPlatform/dataflux-pytorch/blob/main/demo/lightning/checkpoint/multinode/strategies.py#L99).
+PyTorch Singlenode - TODO
+
+PyTorch Multinode - To allow for asyncronous saves with multinode executions we utilize PyTorch's [Async Distributed Save](https://pytorch.org/tutorials/recipes/distributed_async_checkpoint_recipe.html) to allow for similar non-blocking checkpoint operations. This implementation can be found [here](https://github.com/GoogleCloudPlatform/dataflux-pytorch/blob/main/demo/lightning/checkpoint/multinode/strategies.py#L99).
 
 ## Performance
 
