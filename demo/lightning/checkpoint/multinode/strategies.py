@@ -11,7 +11,6 @@ from dataflux_pytorch.lightning import DatafluxLightningCheckpoint
 from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
                                                        GCSDistributedWriter)
 from google.cloud import storage
-from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.strategies.fsdp import _METADATA_FILENAME
 from lightning.pytorch.trainer.states import TrainerFn
