@@ -173,7 +173,7 @@ python3 -m dataflux_pytorch.benchmark.checkpointing.multinode.train_async_save
 
 ### GPU Benchmark Results
 
-All Benchmarks were run with VMs co-located in the same region as the bucket under test. Note that performance will vary heavily for different workloads, and different GPU configurations.
+All Benchmarks were run with VMs co-located in the same region as the bucket under test. Note that performance will vary heavily for different workloads and GPU configurations.
 
 We have tested our multi-node benchmark against single VMs on models of up to 13B parameters in size, sharded across 4 GPUs. The unit under test was a single [a3-highgpu-4g](https://cloud.google.com/compute/docs/gpus#a3-high) spot node. Our results were the following:
 
