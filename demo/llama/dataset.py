@@ -1,7 +1,7 @@
 # Copyright Lightning AI. Licensed under the Apache License 2.0, see LICENSE file.
 
-# Very loosely inspired by indexed_dataset in Fairseq, Megatron
-# https://github.com/NVIDIA/Megatron-LM/blob/main/megatron/data/indexed_dataset.py
+# Borrowed from https://github.com/Lightning-AI/lit-llama/blob/main/lit_llama/packed_dataset.py
+# with minor modificaitons to use Dataflux for data loading.
 
 import io
 import random
