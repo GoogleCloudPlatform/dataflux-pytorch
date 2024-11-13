@@ -1,10 +1,10 @@
-# Accelerated Dataloader for PyTorch with Google Cloud Storage
+# Google Cloud Storage Connector for PyTorch
 
-The Accelerated Dataloader for PyTorch with Google Cloud Storage lets you connect directly to a GCS bucket as a PyTorch dataset, without pre-loading the data to local disk, and with optimizations to make training up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
+The Cloud Storage Connector for PyTorch lets you connect directly to a GCS bucket as a PyTorch dataset, without pre-loading the data to local disk, and with optimizations to make training up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
 
-The Accelerated Dataloader for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns and [iterable-style datasets](https://pytorch.org/docs/stable/data.html#iterable-style-datasets) for streaming data access patterns.
+The Connector for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns and [iterable-style datasets](https://pytorch.org/docs/stable/data.html#iterable-style-datasets) for streaming data access patterns.
 
-Furthermore, the Accelerated Dataloader for PyTorch provides a checkpointing interface to conveniently save and load checkpoints directly to and from a Google Cloud Storage (GCS) bucket.
+Furthermore, the Connector for PyTorch provides a checkpointing interface to conveniently save and load checkpoints directly to and from a Google Cloud Storage (GCS) bucket.
 
 All of these features can be used out of the box for performant executions with single-node and multinode ML workflows. Demo code for multinode implementation using FSDP can be found in our [multinode README](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning/checkpoint/multinode).
 
@@ -20,7 +20,7 @@ pip install gcs-torch-dataflux
 ```
 
 ### Configuration
-Authentication must be provided to use the Accelerated Dataloader for PyTorch via [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) through one of the following methods:
+Authentication must be provided to use the Connector for PyTorch via [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) through one of the following methods:
 1. While running this library on a GCE VM, Application Default Credentials will automatically use the VM’s attached service account by default. More details can be found [here](https://cloud.google.com/compute/docs/access/app-authentication-methods).
 2. Application Default Credentials can also be configured manually as described [here](https://cloud.google.com/docs/authentication/application-default-credentials). The quickest way is to log in directly using the gcloud CLI:
 ```shell
@@ -28,7 +28,7 @@ gcloud auth application-default login
 ```
 
 ### Examples
-Please checkout the `demo` directory for a complete set of examples, which includes a [simple starter Jupyter Notebook (hosted by Google Colab)](demo/simple-walkthrough/Getting%20Started%20with%20Dataflux%20Dataset%20for%20PyTorch%20with%20Google%20Cloud%20Storage.ipynb) and an [end-to-end image segmentation training workload walkthrough](demo/image_segmentation/README.md). Those examples will help you understand how the Accelerated Dataloader for PyTorch works and how you can integrate it into your own workload.
+Please checkout the `demo` directory for a complete set of examples, which includes a [simple starter Jupyter Notebook (hosted by Google Colab)](demo/simple-walkthrough/Getting%20Started%20with%20Dataflux%20Dataset%20for%20PyTorch%20with%20Google%20Cloud%20Storage.ipynb) and an [end-to-end image segmentation training workload walkthrough](demo/image-segmentation/README.md). Those examples will help you understand how the Connector for PyTorch works and how you can integrate it into your own workload.
 
 #### Sample Examples
 Before getting started, please make sure you have installed the library and configured authentication following the instructions above.
@@ -78,7 +78,7 @@ for each_object in iterable_dataset:
   print(each_object)
 ```
 
-The Accelerated Dataloader for PyTorch offers the flexibility to transform the downloaded raw bytes of data into any format of choice. This is particularly useful since the `PyTorch DataLoader` works well with Numpy arrays or PyTorch tensors.
+The Connector for PyTorch offers the flexibility to transform the downloaded raw bytes of data into any format of choice. This is particularly useful since the `PyTorch DataLoader` works well with Numpy arrays or PyTorch tensors.
 
 ```python
 # Assume that you have a bucket with image files and you want
@@ -116,7 +116,7 @@ for each_object in dataset:
 
 ##### Checkpointing
 
-The Accelerated Dataloader for PyTorch supports fast data loading and allows the user to save and load model checkpoints directly to/from a Google Cloud Storage (GCS) bucket. The checkpointing implementation leverages multipart file upload to parallelize checkpoint writes to GCS, greatly increasing performance over single-threaded writes.
+The Connector for PyTorch supports fast data loading and allows the user to save and load model checkpoints directly to/from a Google Cloud Storage (GCS) bucket. The checkpointing implementation leverages multipart file upload to parallelize checkpoint writes to GCS, greatly increasing performance over single-threaded writes.
 
 ```python
 import torch
@@ -144,7 +144,7 @@ Note that saving or restoring checkpoint files will stage the checkpoint file in
 
 ##### Lightning Checkpointing
 
-The Accelerated Dataloader for PyTorch also provides an integration for PyTorch Lightning, featuring a DatafluxLightningCheckpoint, an implementation of PyTorch Lightning's CheckpointIO.
+The Connector for PyTorch also provides an integration for PyTorch Lightning, featuring a DatafluxLightningCheckpoint, an implementation of PyTorch Lightning's CheckpointIO.
 
 End to end example and the notebook for the PyTorch Lightning integration can be found in the [demo/lightning](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning) directory.
 
@@ -185,7 +185,7 @@ To allow for asyncronous saves with multinode executions we utilize PyTorch's [A
 ## Performance
 
 ### Map-style Dataset
-We tested the Map-style Dataset's early performance using [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) simulations with standard mean file-sizes and dataset sizes. A total of 5 training epochs were simulated. For small files (100KB, 500KB), the Accelerated Dataloader for PyTorch can be **2-3x** faster than using GCS native APIs.
+We tested the Map-style Dataset's early performance using [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) simulations with standard mean file-sizes and dataset sizes. A total of 5 training epochs were simulated. For small files (100KB, 500KB), the Connector for PyTorch can be **2-3x** faster than using GCS native APIs.
 
 <table>
   <tr>
@@ -205,7 +205,7 @@ We tested the Map-style Dataset's early performance using [DLIO benchmark](https
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Accelerated Dataloader Map-style Dataset</strong>
+   <td style="background-color: #d9d9d9"><strong>Connector Map-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>515</strong>
    </td>
@@ -219,7 +219,7 @@ We tested the Map-style Dataset's early performance using [DLIO benchmark](https
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Accelerated Dataloader Map-style Dataset</strong>
+   <td style="background-color: #f3f3f3"><strong>Connector Map-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>2,058</strong>
    </td>
@@ -233,7 +233,7 @@ We tested the Map-style Dataset's early performance using [DLIO benchmark](https
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Accelerated Dataloader Map-style Dataset</strong>
+   <td style="background-color: #d9d9d9"><strong>Connector Map-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>277</strong>
    </td>
@@ -247,7 +247,7 @@ We tested the Map-style Dataset's early performance using [DLIO benchmark](https
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Accelerated Dataloader Map-style Dataset</strong>
+   <td style="background-color: #f3f3f3"><strong>Connector Map-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>1,173</strong>
    </td>
@@ -275,7 +275,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn�
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Accelerated Dataloader Iterable-style Dataset</strong>
+   <td style="background-color: #d9d9d9"><strong>Connector Iterable-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>611</strong>
    </td>
@@ -289,7 +289,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn�
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Accelerated Dataloader Iterable-style Dataset</strong>
+   <td style="background-color: #f3f3f3"><strong>Connector Iterable-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>2,503</strong>
    </td>
@@ -303,7 +303,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn�
    </td>
   </tr>
   <tr>
-   <td style="background-color: #d9d9d9"><strong>Accelerated Dataloader Iterable-style Dataset</strong>
+   <td style="background-color: #d9d9d9"><strong>Connector Iterable-style Dataset</strong>
    </td>
    <td style="background-color: #d9d9d9"><strong>384</strong>
    </td>
@@ -317,7 +317,7 @@ Since the [DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark) doesn�
    </td>
   </tr>
   <tr>
-   <td style="background-color: #f3f3f3"><strong>Accelerated Dataloader Iterable-style Dataset</strong>
+   <td style="background-color: #f3f3f3"><strong>Connector Iterable-style Dataset</strong>
    </td>
    <td style="background-color: #f3f3f3"><strong>1,143</strong>
    </td>
@@ -333,36 +333,36 @@ Checkpoint benchmarks were taken on a single GCE `n2d-standard-48` node co-locat
 
 | Checkpoint Type | Model Parameters | Checkpoint File Size (MB) | Avg Checkpoint Save Time | Write Throughput (MB/s) |
 | --- | --- | --- | --- | --- |
-| Without Dataflux | 19.8M  | 75.6  | 0.81    | 93.33   |
-| Dataflux         | 19.8M  | 75.6  | 0.56    | 135.00  |
-| Without Dataflux | 77.9 M | 298   | 2.87    | 103.98  |
-| Dataflux         | 77.9 M | 298   | 1.03    | 289.32  |
-| Without Dataflux | 658 M  | 2,500 | 25.61   | 97.61   |
-| Dataflux         | 658 M  | 2,500 | 6.25    | 400.00  |
-| Without Dataflux | 6.5 B  | 24,200| 757.10  | 31.96   |
-| Dataflux         | 6.5 B  | 24,200| 64.50   | 375.19  |
+| Without Connector | 19.8M  | 75.6  | 0.81    | 93.33   |
+| Connector         | 19.8M  | 75.6  | 0.56    | 135.00  |
+| Without Connector | 77.9 M | 298   | 2.87    | 103.98  |
+| Connector         | 77.9 M | 298   | 1.03    | 289.32  |
+| Without Connector | 658 M  | 2,500 | 25.61   | 97.61   |
+| Connector         | 658 M  | 2,500 | 6.25    | 400.00  |
+| Without Connector | 6.5 B  | 24,200| 757.10  | 31.96   |
+| Connector         | 6.5 B  | 24,200| 64.50   | 375.19  |
 
 
 ### Checkpoint Load
 
 | Checkpoint Type | Model Parameters | Checkpoint File Size (MB) | Avg Checkpoint Restore Time | Read Throughput (MB/s) |
 | --- | --- | --- | --- | --- |
-| Without Dataflux   | 19.8M  | 75.6  | 2.38      | 31.76   |
-| Dataflux           | 19.8M  | 75.6  | 0.51      | 148.24  |
-| Without Dataflux   | 77.9 M | 298   | 1.69      | 176.33  |
-| Dataflux           | 77.9 M | 298   | 1.03      | 289.32  |
-| Without Dataflux   | 658 M  | 2,500 | 186.57    | 13.40   |
-| Dataflux           | 658 M  | 2,500 | 14.77     | 169.26  |
-| Without Dataflux   | 6.5 B  | 24,200| 2,093.52  | 11.56   |
-| Dataflux           | 6.5 B  | 24,200| 113.14    | 213.89  |
+| Without Connector   | 19.8M  | 75.6  | 2.38      | 31.76   |
+| Connector           | 19.8M  | 75.6  | 0.51      | 148.24  |
+| Without Connector   | 77.9 M | 298   | 1.69      | 176.33  |
+| Connector           | 77.9 M | 298   | 1.03      | 289.32  |
+| Without Connector   | 658 M  | 2,500 | 186.57    | 13.40   |
+| Connector           | 658 M  | 2,500 | 14.77     | 169.26  |
+| Without Connector   | 6.5 B  | 24,200| 2,093.52  | 11.56   |
+| Connector           | 6.5 B  | 24,200| 113.14    | 213.89  |
 
 ## Limitations
 
 ### Billing
-To optimize listing performance, the Accelerated Dataloader for PyTorch library utilizes a “fast listing” algorithm developed to balance the listing workload among parallelized GCS object listing processes. Therefore, the library will cause more listing API calls to be made than a regular sequential listing, which are charged as [Class A operations](https://cloud.google.com/storage/pricing).
+To optimize listing performance, the Connector for PyTorch library utilizes a “fast listing” algorithm developed to balance the listing workload among parallelized GCS object listing processes. Therefore, the library will cause more listing API calls to be made than a regular sequential listing, which are charged as [Class A operations](https://cloud.google.com/storage/pricing).
 
 ### Composite Objects
-To optimize the download performance of small files, the Accelerated Dataloader for PyTorch library utilizes the [GCS Compose API](https://cloud.google.com/storage/docs/json_api/v1/objects/compose) to concatenate a set of smaller objects into a new and larger one in the same bucket under a folder named “dataflux-composed-objects”. The new composite objects will be removed at the end of your training loop but in rare cases that they don’t, you can run this command to clean the composed files.
+To optimize the download performance of small files, the Connector for PyTorch library utilizes the [GCS Compose API](https://cloud.google.com/storage/docs/json_api/v1/objects/compose) to concatenate a set of smaller objects into a new and larger one in the same bucket under a folder named “dataflux-composed-objects”. The new composite objects will be removed at the end of your training loop but in rare cases that they don’t, you can run this command to clean the composed files.
 ``` shell
 gcloud storage rm --recursive gs://<my-bucket>/dataflux-composed-objects/
 ```
@@ -390,7 +390,7 @@ To avoid storage charges for retaining the temporary composite objects, consider
 Due to the quick creation and deletion of composite objects, we recommend that only the [Standard storage class](https://cloud.google.com/storage/docs/storage-classes) is applied to your bucket to minimize cost and maximize performance.
 
 ### Throughput and QPS Limits
-Many machine learning efforts opt for a highly distributed training model leveraging tools such as Pytorch Lightning and Ray. These models are compatible with Dataflux, but can often trigger the rate limits of Google Cloud Storage. This typically manifest in a 429 error, or slower than expected speeds while running distributed operations. Details on specific quotas and limits can be found [here](https://cloud.google.com/storage/quotas).
+Many machine learning efforts opt for a highly distributed training model leveraging tools such as PyTorch Lightning and Ray. These models are compatible with the Connector, but can often trigger the rate limits of Google Cloud Storage. This typically manifest in a 429 error, or slower than expected speeds while running distributed operations. Details on specific quotas and limits can be found [here](https://cloud.google.com/storage/quotas).
 
 #### Egress Throughput Limits
 429 errors acompanied with messages indicating `This workload is drawing too much egress bandwidth from Google Cloud Storage` or `triggered the Cloud Storage Egress Bandwidth Cap` indicate that the data throughput rate of your workload is exceeding the maximum capacity of your Google Cloud Project. To address these issues, you can take the following steps:
@@ -435,6 +435,6 @@ This project has adopted the Google Open Source Code of Conduct. Please see [cod
 
 ### License
 
-The Accelerated Dataloader for PyTorch library has an Apache License 2.0. Please see the [LICENSE](LICENSE) file for more information.
+The Connector for PyTorch library has an Apache License 2.0. Please see the [LICENSE](LICENSE) file for more information.
 
 *PyTorch, the PyTorch logo and any related marks are trademarks of The Linux Foundation.*
