@@ -185,6 +185,7 @@ PyTorch multi-node - To allow for asyncronous saves with multinode executions we
 Sample code:
 ```python
 import torch.distributed as dist
+from torch.distributed.checkpoint import async_save
 from dataflux_pytorch.lightning.gcs_filesystem import GCSDistributedWriter
 
 # Initialize the process group.
