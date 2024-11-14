@@ -2,9 +2,9 @@ import os
 import socket
 import time
 import lightning as pl
-from model import Unet3DLightning
-from data import Unet3DDataModule
-from arguments import PARSER
+from .model import Unet3DLightning
+from .data import Unet3DDataModule
+from .arguments import PARSER
 
 
 class EpochTimer(pl.Callback):

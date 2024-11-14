@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 
-from dataset import DatafluxPytTrain
+from .dataset import DatafluxPytTrain
 from demo.image_segmentation.pytorch_loader import get_train_transforms
 
 
@@ -67,4 +67,3 @@ class Unet3DDataModule(pl.LightningDataModule):
             drop_last=True,
             persistent_workers=True,
         )
-
