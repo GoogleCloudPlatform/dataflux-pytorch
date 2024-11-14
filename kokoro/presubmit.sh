@@ -52,6 +52,12 @@ function install_requirements() {
 
     echo Installing checkpointing requirements
     pip install -r ./dataflux_pytorch/benchmark/requirements.txt
+
+    echo Installing parquet demo requirements.
+    pip install -r ./demo/lightning/text_based/distributed/requirements.txt
+
+    echo Installing image training demo requirements.
+    pip install -r ./demo/lightning/image_segmentation/requirements.txt
 }
 
 function run_unit_tests() {
