@@ -44,6 +44,6 @@ In the following commands, update `gcs-tess` to your project ID as needed.
 
 ### Run the benchmark
 
-1. Update any needed flags/configs in `dataflux_pytorch/benchmark/standalone_dataloader/deployment.yaml`
+1. Update any needed flags/configs in `benchmark/standalone_dataloader/deployment.yaml`
     * Notably the job name, completions/parallelism, image name, and any flags
-2. `kubectl apply -f dataflux_pytorch/benchmark/standalone_dataloader/deployment.yaml`
+2. `kubectl apply -f benchmark/standalone_dataloader/deployment.yaml`

@@ -47,13 +47,13 @@ Then set the command line variables.
 To execute this demo, run a command like the following:
 
 ```shell
-python dataflux_pytorch/benchmark/checkpointing/singlenode/train.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
+python benchmark/checkpointing/singlenode/train.py --project=my-project --ckpt-dir-path=gs://my-bucket/path/to/dir/ --layers=10 --steps=5
 ```
 
 The time will print out and the checkpoints can be viewed in GCS at the location passed in. A sample output is shown below.
 
 ```shell
-$ python dataflux_pytorch/benchmark/checkpointing/singlenode/train.py
+$ python benchmark/checkpointing/singlenode/train.py
 GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 HPU available: False, using: 0 HPUs

@@ -55,7 +55,7 @@ Set the following environment variables by updating the deployment file to run o
 Install the required dependencies using the following commands:
 
 ```shell
- pip install -r dataflux_pytorch/benchmark/requirements.txt
+ pip install -r benchmark/requirements.txt
  pip install .
 ```
 ### GCS Auth
@@ -95,7 +95,7 @@ docker push gcr.io/{YOUR-GCP-PROJECT}/{YOUR_CONTAINER_NAME}
 5.  Deploy the configuration using the following command:
 
 ```shell
-kubectl apply -f dataflux_pytorch/benchmark/checkpointing/simulated/benchmark-deploy.yaml
+kubectl apply -f benchmark/checkpointing/simulated/benchmark-deploy.yaml
 ```
 
 
