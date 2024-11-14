@@ -123,6 +123,33 @@ and FSSpec these variables must be set to the name of the bucket with the `gs://
    kubectl apply -f dataflux_pytorch/benchmark/checkpointing/multinode/benchmark-deploy.yaml
    ```
 
+### GPU Benchmark Results
+
+All Benchmarks were run with VMs co-located in the same region as the bucket under test. Note that performance will vary heavily for different workloads and GPU configurations.
+
+We have tested our multi-node benchmark against single VMs on models of up to 13B parameters in size, sharded across 4 GPUs. The unit under test was a single [a3-highgpu-4g](https://cloud.google.com/compute/docs/gpus#a3-high) spot node. Our results were the following:
+
+#### A3 Single Node Benchmark Results
+| Model Parameters | Optimizer | GPUs | Shard Size (GB) | Total size (GB) | Save time Dataflux (s) | Save time fsspec (s) | Load time Dataflux (s) | Load time fsspec (s) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 6.5B | SGD | 1 | 24.7 | 24.7 | 52.3 | 260.3 | 289.5 | 1192 |
+| 6.5B | SGD | 2 | 12.4 | 24.7 | 31 | 178.9 | 101.4 | 835.9 |
+| 6.5B | SGD | 4 | 6.2 | 24.7 | 22.7 | 110.9 | 68.7 | 418.5 |
+| 6.5B | AdamW | 4 | 18.6 | 74.4 | 65.3 | 300.7 | 421.2 | 1225.9 |
+| 13B | SGD | 2 | 24.7 | 49.5 | 66.6 | 376.1 | 218.3 | 1929.6 |
+| 13B | SGD | 4 | 12.4 | 49.5 | 43 | 216.9 | 138.4 | 738.6 |
+
+Additionally, we tested our benchmark using a GKE cluster of 16 nodes each with a single [T4 VM](https://cloud.google.com/compute/docs/gpus#t4-gpus). This benchmark iterations exhibited similar trends to the first:
+
+#### T4 Cluster Benchmark Results
+
+| Model Parameters | Optimizer | GPUs | Size of each shard | Total size  |Save time Dataflux (s) | Save time fsspec (s) | Load time Dataflux (s) | Load time fsspec (s) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1B | AdamW | 4 (1 per node) | 2.8 GB | 11.2 GB | 28.1 | 61.0 | 116.4 | 235.3 |
+| 1B | AdamW | 16 (1 per node) | 724.9 MB | 11.2 GB | 31.2 | 53.2 | 119.0 | 161.9 |
+| 1B | SGD | 2 (1 per node) | 1.9 GB | 3.87 GB | 12.2 | 29.9 | 32.8 | 154.5 |
+| 1B | SGD | 16 (1 per node) | 241. 6 MB | 3.87 GB | 9.0 | 29.9 | 27.5 | 61.5 |
+
 
 #### Benchmarking Checkpoint Saves/Loads to/from Boot Disk
 >[!NOTE]
