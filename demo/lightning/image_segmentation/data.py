@@ -22,6 +22,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 
 from dataset import DatafluxPytTrain
+from demo.image_segmentation.pytorch_loader import get_train_transforms
 
 
 class Unet3DDataModule(pl.LightningDataModule):
@@ -67,76 +68,3 @@ class Unet3DDataModule(pl.LightningDataModule):
             persistent_workers=True,
         )
 
-
-def get_train_transforms():
-    rand_flip = RandFlip()
-    cast = Cast(types=(np.float32, np.uint8))
-    rand_scale = RandomBrightnessAugmentation(factor=0.3, prob=0.1)
-    rand_noise = GaussianNoise(mean=0.0, std=0.1, prob=0.1)
-    train_transforms = transforms.Compose(
-        [rand_flip, cast, rand_scale, rand_noise])
-    return train_transforms
-
-
-class RandFlip:
-
-    def __init__(self):
-        self.axis = [1, 2, 3]
-        self.prob = 1 / len(self.axis)
-
-    def flip(self, data, axis):
-        data["image"] = np.flip(data["image"], axis=axis).copy()
-        data["label"] = np.flip(data["label"], axis=axis).copy()
-        return data
-
-    def __call__(self, data):
-        for axis in self.axis:
-            if random.random() < self.prob:
-                data = self.flip(data, axis)
-        return data
-
-
-class Cast:
-
-    def __init__(self, types):
-        self.types = types
-
-    def __call__(self, data):
-        data["image"] = data["image"].astype(self.types[0])
-        data["label"] = data["label"].astype(self.types[1])
-        return data
-
-
-class RandomBrightnessAugmentation:
-
-    def __init__(self, factor, prob):
-        self.prob = prob
-        self.factor = factor
-
-    def __call__(self, data):
-        image = data["image"]
-        if random.random() < self.prob:
-            factor = np.random.uniform(low=1.0 - self.factor,
-                                       high=1.0 + self.factor,
-                                       size=1)
-            image = (image * (1 + factor)).astype(image.dtype)
-            data.update({"image": image})
-        return data
-
-
-class GaussianNoise:
-
-    def __init__(self, mean, std, prob):
-        self.mean = mean
-        self.std = std
-        self.prob = prob
-
-    def __call__(self, data):
-        image = data["image"]
-        if random.random() < self.prob:
-            scale = np.random.uniform(low=0.0, high=self.std)
-            noise = np.random.normal(loc=self.mean,
-                                     scale=scale,
-                                     size=image.shape).astype(image.dtype)
-            data.update({"image": image + noise})
-        return data

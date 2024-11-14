@@ -17,8 +17,8 @@
 import torch
 import time
 import lightning.pytorch as pl
-from unet3d import Unet3D
-from losses import DiceCELoss
+from demo.image_segmentation.model.unet3d import Unet3D
+from demo.image_segmentation.model.losses import DiceCELoss
 
 
 class Unet3DLightning(pl.LightningModule):

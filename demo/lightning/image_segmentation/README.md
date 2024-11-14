@@ -124,7 +124,7 @@ Please note that these demos are for educational and example purposes only, and 
 ## Single Node Local Execution
 
 ```sh
-    python3 demo/lightning/image-segmentation/train.py \
+    python3 demo/lightning/image_segmentation/train.py \
     --gcp_project={YOUR-GCP-PROJECT} \
     --gcs_bucket={YOUR-GCS-BUCKET} \
     --images_prefix={YOUR-GCS-BUCKET}/images \
@@ -163,7 +163,7 @@ _Note: the following instructions assume that you have Jobset and Kueue enabled 
     ```
 1. Apply deployment  
 
-   Update `demo/lightning/image-segmentation/deployment.yaml` at appropriate places. Specifically, `spec.containers.image` and the arguments to `spec.containers.command`. 
+   Update `demo/lightning/image_segmentation/deployment.yaml` at appropriate places. Specifically, `spec.containers.image` and the arguments to `spec.containers.command`. 
    
    This deployment has been tested on a cluster with `4` nodes. If you wish to run the workload on a cluster with different number of nodes, make sure to set `spec.parallelism`, `spec.completions`, the environment variable `WORLD_SIZE`, and the argument `--num_nodes` to `spec.containers.command` are all set to the _same_ value, which is the number of nodes in your cluster.
 
