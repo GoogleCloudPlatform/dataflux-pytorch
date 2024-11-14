@@ -17,7 +17,7 @@ kind: JobSet
 metadata:
   name: dataflux-pytorch-l-multi-node-4-nodes
   labels:
-    kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
+    kueue.x-k8s.io/queue-name: multislice-queue # Name of the LocalQueue
   annotations:
     alpha.jobset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-nodepool # 1:1 job replica to node pool assignment
 spec:
@@ -28,60 +28,61 @@ spec:
       replicas: 1
       template:
         spec:
-          parallelism: 4    # Equal to the number of VMs per slice
-          completions: 4    # Same as the above.
-          backoffLimit: 0   # When any pod fails, the job is failed
+          parallelism: 4 # Equal to the number of VMs per slice
+          completions: 4 # Same as the above.
+          backoffLimit: 0 # When any pod fails, the job is failed
           template:
             spec:
               schedulerName: default-scheduler
               restartPolicy: Never
-                
+
               priorityClassName: medium
               hostNetwork: true
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: workload-cpu
-                image: <YOUR-CONTAINER-IMAGE>
-                env: 
-                - name: REPLICATED_JOB_NAME
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
-                - name: JOB_INDEX
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
-                - name: JOB_COMPLETION_INDEX
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
-                - name: PROCESSES_IN_JOB
-                  value: "2"
-                # WORLD_SIZE must match with num_nodes argument passed to train.py.
-                - name: WORLD_SIZE
-                  value: "4"
-                - name: JOBSET_NAME
-                  value: "dataflux-pytorch-l-multi-node-4-nodes"
-                - name: COORDINATOR_ADDRESS
-                  value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
-                - name: MASTER_PORT
-                  value: "1234"
-  
-                ports:
-                - containerPort: 8471
-                - containerPort: 8080
-                - containerPort: 1234
-                securityContext: {}
-                  # privileged: true
-                volumeMounts:
-                 - mountPath: /dev/shm
-                   name: dshm
-                command:
-                - bash
-                - -c
-                - |
-                  python3 -u /app/demo/lightning/image_segmentation/train.py --gcs_bucket=<YOUR-GCS-BUCKET> --gcp_project=<YOUR-GCP-PROJECT> --images_prefix=<YOUR-IMAGES-PREFIX> --labels_prefix=<YOUR-LABELS-PREFIX> --batch_size=20 --num_workers=10 --prefetch_factor=2 --num_devices=1 --num_nodes=4;
+                - name: workload-cpu
+                  image: <YOUR-CONTAINER-IMAGE>
+                  env:
+                    - name: REPLICATED_JOB_NAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['jobset.sigs.k8s.io/replicatedjob-name']
+                    - name: JOB_INDEX
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['jobset.sigs.k8s.io/job-index']
+                    - name: JOB_COMPLETION_INDEX
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+                    - name: PROCESSES_IN_JOB
+                      value: "2"
+                    # WORLD_SIZE must match with num_nodes argument passed to train.py.
+                    - name: WORLD_SIZE
+                      value: "4"
+                    - name: JOBSET_NAME
+                      value: "dataflux-pytorch-l-multi-node-4-nodes"
+                    - name: COORDINATOR_ADDRESS
+                      value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
+                    - name: MASTER_PORT
+                      value: "1234"
+
+                  ports:
+                    - containerPort: 8471
+                    - containerPort: 8080
+                    - containerPort: 1234
+                  securityContext:
+                    {}
+                    # privileged: true
+                  volumeMounts:
+                    - mountPath: /dev/shm
+                      name: dshm
+                  command:
+                    - bash
+                    - -c
+                    - |
+                      python3 -m app.demo.lightning.image_segmentation.train --gcs_bucket=<YOUR-GCS-BUCKET> --gcp_project=<YOUR-GCP-PROJECT> --images_prefix=<YOUR-IMAGES-PREFIX> --labels_prefix=<YOUR-LABELS-PREFIX> --batch_size=20 --num_workers=10 --prefetch_factor=2 --num_devices=1 --num_nodes=4;
               volumes:
                 - emptyDir:
                     medium: Memory

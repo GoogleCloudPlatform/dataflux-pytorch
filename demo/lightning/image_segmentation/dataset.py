@@ -24,7 +24,6 @@ from dataflux_pytorch import dataflux_mapstyle_dataset
 from demo.image_segmentation.pytorch_loader import RandBalancedCrop
 
 
-
 class DatafluxPytTrain(Dataset):
 
     def __init__(
@@ -68,17 +67,9 @@ class DatafluxPytTrain(Dataset):
         return len(self.images_dataset)
 
     def __getitem__(self, idx):
-        image = np.load(
-            io.BytesIO(
-                self.images_dataset[idx],
-            ),
-        )
+        image = np.load(io.BytesIO(self.images_dataset[idx], ), )
 
-        label = np.load(
-            io.BytesIO(
-                self.labels_dataset[idx],
-            ),
-        )
+        label = np.load(io.BytesIO(self.labels_dataset[idx], ), )
 
         data = {"image": image, "label": label}
         data = self.rand_crop(data)
@@ -98,4 +89,3 @@ class DatafluxPytTrain(Dataset):
             data = self.train_transforms(data)
             res.append((data["image"], data["label"]))
         return res
-

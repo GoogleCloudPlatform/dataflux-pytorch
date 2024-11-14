@@ -124,7 +124,7 @@ Please note that these demos are for educational and example purposes only, and 
 ## Single Node Local Execution
 
 ```sh
-    python3 demo/lightning/image_segmentation/train.py \
+    python3 -m demo.lightning.image_segmentation.train \
     --gcp_project={YOUR-GCP-PROJECT} \
     --gcs_bucket={YOUR-GCS-BUCKET} \
     --images_prefix={YOUR-GCS-BUCKET}/images \
@@ -250,4 +250,3 @@ This code is still being updated and improved, so all benchmark results are subj
         <td> 2710</td>
     </tr>
 </table>
-
