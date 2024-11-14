@@ -15,7 +15,7 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: <my-job-run>
+  name: {GKE_JOB_NAME}
   labels:
     kueue.x-k8s.io/queue-name: multislice-queue  # Name of the LocalQueue
   annotations:
@@ -24,32 +24,25 @@ spec:
   failurePolicy:
     maxRestarts: 0
   replicatedJobs:
-    - name: <checkpoint-job>
+    - name: {GKE_JOB_NAME}
       replicas: 1
       template:
         spec:
-          parallelism: 15    # Equal to the number of VMs per slice
-          completions: 15    # Same as the above.
+          parallelism: {NUM_NODES}    # Equal to the number of VMs per slice
+          completions: {NUM_NODES}    # Same as the above.
           backoffLimit: 0   # When any pod fails, the job is failed
           template:
-            # Uncomment the lines below if using gcsfuse csi driver to mount your bucket to all pods.
-            # metadata:
-            #   annotations:
-            #     gke-gcsfuse/volumes: "true"
             spec:
               schedulerName: default-scheduler
               restartPolicy: Never
+
               priorityClassName: medium
               hostNetwork: true
               dnsPolicy: ClusterFirstWithHostNet
               terminationGracePeriodSeconds: 30
               containers:
-              - name: <my-container>
-                image: gcr.io/<my-project>/<my-container>
-
-                resources:
-                  limits:
-                    nvidia.com/gpu: 1
+              - name: {CONTAINER_NAME}
+                image: gcr.io/{PROJECT_NAME}/{CONTAINER_NAME}
 
                 env: 
                 - name: PYTHONPATH
@@ -67,31 +60,35 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
                 - name: PROCESSES_IN_JOB
-                  value: "15"
-                - name: NUM_NODES
-                  value: "15"
+                  value: "{NUM_NODES}"
+                - name: WORLD_SIZE
+                  value: "{NUM_NODES}"
+
                 - name: JOBSET_NAME
-                  value: "<my-job-run>"
+                  value: "{GKE_JOB_NAME}"
                 - name: COORDINATOR_ADDRESS
                   value: "$(JOBSET_NAME)-$(REPLICATED_JOB_NAME)-0-0.$(JOBSET_NAME)"
                 - name: MASTER_PORT
                   value: "1234"
                 - name: PROJECT
-                  value: "<gcs_project_name>"
+                  value: "{GCP_PROJECT}"
                 - name: CKPT_DIR_PATH
-                  value: "<gs://my-bucket/checkpoint-path/>"
-                - name: CKPT_RESTORE_PATH
-                  value: "<gs://my-bucket/checkpoint-path/>"
+                  value: "gs://{GCS_BUCKET_NAME}/"
                 - name: PJRT_DEVICE
                   value: "CPU"
                 - name: NCCL_SOCKET_IFNAME
                   value: "eth0"
                 - name: NCCL_DEBUG
                   value: "WARN"
-                - name: NUM_LAYERS
-                  value: "10"
-                - name: ACCELERATOR
-                  value: "gpu"
+                - name: LAYER_SIZE
+                  value: "{LAYER_SIZE}"
+                - name: PADDING_SIZE
+                  value: "{PADDING_SIZE}"
+                - name: USE_FSSPEC
+                  value: "False"
+                - name: SAMPLE_COUNT
+                  value: "8"
+
 
                 ports:
                 - containerPort: 8471
@@ -103,13 +100,4 @@ spec:
                 - bash
                 - -c
                 - |
-                  python3 -u /app/dataflux_pytorch/benchmark/checkpointing/multinode/train.py;
-              # Uncomment the lines below if using gcsfuse csi driver to mount your bucket to all pods.
-              #   volumeMounts:
-              #   - name: gcs-fuse-static
-              #     mountPath: /ckpt-dir
-              # serviceAccountName: default
-              # volumes:
-              # - name: gcs-fuse-static
-              #   persistentVolumeClaim:
-              #     claimName: gcs-fuse-csi-static-pvc
+                  python3 -u /app/benchmark/checkpointing/simulated/benchmark.py;
