@@ -57,7 +57,7 @@ function install_requirements() {
     pip install -r ./demo/lightning/text_based/distributed/requirements.txt
 
     echo Installing image training demo requirements.
-    pip install -r ./demo/lightning/image-segmentation/requirements.txt
+    pip install -r ./demo/lightning/image_segmentation/requirements.txt
 
 }
 
