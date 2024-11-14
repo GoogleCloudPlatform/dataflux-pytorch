@@ -7,7 +7,7 @@ Please note that these demos are for educational and example purposes only, and 
 The single node exmaple code here can be run on your local workstation with a command such as the following:
 
 ```
-# python3 ./single-node/model.py --project=<MY-PROJECT> --bucket=<MY-BUCKET> --batch-size=100 --prefix="fineweb/sample/10BT"
+# python3 -m demo.lightning.text_based.single-node.model --project=<MY-PROJECT> --bucket=<MY-BUCKET> --batch-size=100 --prefix="fineweb/sample/10BT"
 ```
 
 This will perform a simple autoencoder training pass that leverages lightning to skip writing a large volume of boilerplate code.
@@ -22,7 +22,7 @@ To execute the demo-code locally and simulate the use of mulltiple nodes, use th
 ### Single process local execution:
 The following command will execute a single-process DDP strategy execution, where the number of processes is dictated by the `--devices` parameter. For local execution, ensure that the parameter `--local` is specified.
 ```
-python3 ./distributed/model.py --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=1 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local --limit-train-batches=10
+python3 -m demo.lightning.text_based.distributed.model --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=1 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local --limit-train-batches=10
 ```
 
 ### Multiprocess local execution:
@@ -30,12 +30,12 @@ To test this code locally with multiple processes (representing multiple nodes),
 
 Execution 1:
 ```
-python3 ./distributed/model.py --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
+python3 -m demo.lightning.text_based.distributed.model --rank=0 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
 ```
 
 Execution 2 (in a separate shell from execution 1):
 ```
-python3 ./distributed/model.py --rank=1 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
+python3 -m demo.lightning.text_based.distributed.model --rank=1 --project=<MY-PROJECT> --bucket=<MY-BUCKET> --prefix=fineweb/sample/10BT/ --num-workers=1 --num-nodes=2 --batch-size=128 --epochs=2 --devices=2 --log-level=INFO --local=True --limit-train-batches=10
 ```
 
 This will set the demo to communicate across two processes, treating them as individual nodes. They will default to communicating via localhost:1234. Both the `--num-nodes` and `--devices` parameters can be configured together, as Lightning will correctly identify the division of labor across both nodes and devices. This can apply in distributed use-cases where you have multiple GPUs per node across a cluster.
