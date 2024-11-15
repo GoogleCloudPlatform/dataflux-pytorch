@@ -7,7 +7,7 @@ import torch
 import torch.distributed as dist
 
 from demo.lightning.checkpoint.simulated.llama2 import (
-    BenchmarkStrategy, cleanup, create_llama2_7b_state_dict,
+    BenchmarkStrategy, cleanup, create_llama2_7b_state_dict, format_size,
     time_checkpoint_operation)
 
 
