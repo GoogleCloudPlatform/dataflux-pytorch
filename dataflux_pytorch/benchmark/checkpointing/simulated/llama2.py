@@ -6,8 +6,8 @@ import time
 import torch
 import torch.distributed as dist
 
-from demo.lightning.checkpoint.simulated.multiprocessing_train import (
-    BenchmarkStrategy, cleanup, format_size, get_tensor_size_bytes,
+from demo.lightning.checkpoint.simulated.llama2 import (
+    BenchmarkStrategy, cleanup, create_llama2_7b_state_dict,
     time_checkpoint_operation)
 
 
@@ -51,9 +51,9 @@ def init_processes() -> None:
                                          world_size=world_size)
 
 
-def run_benchmark(world_size: int, layer_size: int, project: str,
-                  filepath: str, padding_size: int, sample_count: int,
-                  use_fsspec: bool) -> None:
+def run_benchmark(world_size: int, project: str, filepath: str,
+                  sample_count: int, use_fsspec: bool,
+                  model_parameter_size: str) -> None:
 
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
@@ -62,28 +62,24 @@ def run_benchmark(world_size: int, layer_size: int, project: str,
     benchmark_strategy = BenchmarkStrategy(project=project,
                                            path=filepath,
                                            use_fsspec=use_fsspec)
-    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/v2.3.1/torch/distributed/checkpoint/default_planner.py#L227
-    # each key will be read only once from the state_dict, hence assigning different names to different tensor will force the load function to only read
-    # tensor shard corresponding to given node.
-    state_dict = dict()
-    for i in range(padding_size):
-        if i % world_size == rank:
-            state_dict[f'dummy_tensor_{i}'] = torch.randn(layer_size, 1000)
+    print(f'Constructing state dict for LLAMA2 {model_parameter_size}')
+    state_dict = create_llama2_7b_state_dict(world_size=world_size,
+                                             rank=rank,
+                                             parameters=model_parameter_size,
+                                             empty=False)
 
-    # Wait until the state_dict is populated properly accross all the nodes.
     dist.barrier()
-
     save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'save',
                                                       rank, world_size,
-                                                      padding_size, layer_size)
+                                                      model_parameter_size)
 
     load_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'load',
                                                       rank, world_size,
-                                                      padding_size, layer_size)
+                                                      model_parameter_size)
 
     if rank == 0:
         print(f"Time taken to save checkpoint:\
@@ -95,30 +91,29 @@ def run_benchmark(world_size: int, layer_size: int, project: str,
               )
         print(f"All load times: {load_checkpoint_times}")
 
-        tensor_size_per_instance = 1000 * layer_size * state_dict[
-            f'dummy_tensor_0'].element_size()
-        tensors_per_rank = padding_size // world_size
-        total_size_bytes = tensors_per_rank * tensor_size_per_instance * world_size
+        tensor_size_per_instance = sum(v.element_size() * v.numel()
+                                       for v in state_dict.values())
+        total_size_bytes = tensor_size_per_instance * world_size
+
         print(f"Size of distributed tensors (rank {rank}):\
-                 {format_size(tensors_per_rank * tensor_size_per_instance)}")
+                 {format_size(tensor_size_per_instance)}")
         print(f"Total size of all tensors:\
                  {format_size(total_size_bytes)}")
-        print("######################")
 
+        print("######################")
     cleanup()
 
 
 def main() -> None:
     world_size = int(os.getenv("WORLD_SIZE"))
-    layer_size = int(os.getenv("LAYER_SIZE"))
     project = os.getenv("PROJECT")
     ckpt_dir_path = os.getenv("CKPT_DIR_PATH")
     sample_count = int(os.getenv("SAMPLE_COUNT", 8))
-    padding_size = int(os.getenv("PADDING_SIZE", 4000))
     use_fsspec = os.getenv("USE_FSSPEC",
                            "False").lower() in ("true", "1", "yes")
-    run_benchmark(world_size, layer_size, project, ckpt_dir_path, padding_size,
-                  sample_count, use_fsspec)
+    model_parameter_size = os.getenv("MODEL_PARAMATER_SIZE")
+
+    run_benchmark(world_size, project, ckpt_dir_path, sample_count, use_fsspec)
 
 
 if __name__ == "__main__":
