@@ -39,16 +39,6 @@ BYTES_PER_MB = BYTES_PER_KB * 1024
 BYTES_PER_GB = BYTES_PER_MB * 1024
 
 
-def write_state_dict_to_file(state_dict: Dict[str, torch.Tensor],
-                             filename: str) -> None:
-    with open(filename, 'w') as f:
-        f.write("State Dict:\n")
-        for key, value in state_dict.items():
-            f.write(f"{key}:\n")
-            f.write(f"  Shape: {value.shape}\n")
-            f.write(f"  Values: {value}\n")
-
-
 def format_size(size_bytes: int) -> str:
     """Formats bytes into a human-readable size string."""
     if size_bytes < BYTES_PER_KB:
@@ -64,11 +54,6 @@ def format_size(size_bytes: int) -> str:
         return f"{size_gb:.2f} GB"
 
 
-def get_tensor_size_bytes(tensor: torch.Tensor) -> int:
-    """Calculates the size of a tensor in bytes."""
-    return tensor.element_size() * tensor.numel()
-
-
 def parse_args() -> argparse.Namespace:
     """Parses command line arguments."""
     parser = argparse.ArgumentParser(
@@ -81,30 +66,18 @@ def parse_args() -> argparse.Namespace:
                         type=str,
                         required=True,
                         help="Path to GCS bucket for checkpoints.")
-    parser.add_argument("--layer-size",
-                        type=int,
-                        default=100,
-                        help="Size of each layer.")
     parser.add_argument("--clear-kernel-cache",
                         action="store_true",
                         default=False,
                         help="Clear kernel cache.")
     parser.add_argument("--sample-count",
                         type=int,
-                        default=3,
+                        default=8,
                         help="Number of samples for benchmarking.")
-    parser.add_argument("--padding-size",
-                        type=int,
-                        default=1000,
-                        help="Size of dummy tensors for padding.")
     parser.add_argument("--world-size",
                         type=int,
                         required=True,
                         help="Number of processes in the distributed setup.")
-    parser.add_argument("--debug",
-                        action="store_true",
-                        default=False,
-                        help="Enable debug mode.")
     parser.add_argument(
         "--use-fsspec",
         action="store_true",
@@ -113,6 +86,13 @@ def parse_args() -> argparse.Namespace:
         ("Use the gcsfs reader/writer for communication with Google Cloud Storage. "
          "If not specified, the custom GCS reader/writer provided by DataFlux (DF) will be used."
          ))
+    parser.add_argument(
+        "--model-parameter-size",
+        type=str,
+        required=True,
+        help=
+        "Model parameter size to simulate. Valid values include 7b, 13b and 70b (case sensitive)"
+    )
     return parser.parse_args()
 
 
@@ -188,38 +168,151 @@ def cleanup() -> None:
     dist.destroy_process_group()
 
 
+class ModelConfig:
+
+    def __init__(self, model_layers, intermediate_size, hidden_size,
+                 attention_head, kv_heads):
+        self.model_layers = model_layers
+        self.intermediate_size = intermediate_size
+        self.hidden_size = hidden_size
+        self.attention_head = attention_head
+        self.kv_heads = kv_heads
+
+    def __repr__(self):
+        return (f"ModelConfig(layers={self.model_layers}, "
+                f"intermediate_size={self.intermediate_size}, "
+                f"hidden_size={self.hidden_size}, "
+                f"attention_head={self.attention_head}, "
+                f"kv_heads={self.kv_heads})")
+
+
+model_7b = ModelConfig(32, 11008, 4096, 32, 32)
+model_13b = ModelConfig(40, 13824, 5120, 40, 40)
+model_70b = ModelConfig(80, 28672, 8192, 64, 8)
+
+models = {"7b": model_7b, "13b": model_13b, "70b": model_70b}
+
+
+def create_llama2_7b_state_dict(world_size: int,
+                                rank: int,
+                                parameters: str,
+                                empty: bool = False):
+    """
+    Creates a state dictionary matching LLAMA2 7B architecture dimensions.
+
+    Parameters:
+    world_size (int): The total number of processes/devices.
+    rank (int): The current process/device index.
+    parameters (str): The parameter size, must be one of '7b', '13b', or '70b'.
+    empty (bool, optional): If True, creates an empty state dictionary. Defaults to False.
+    """
+    state_dict = {}
+    if parameters not in models:
+        raise ValueError(
+            "Invalid parameter size, only valid values are 7b, 13b and 70b")
+    model = models[parameters]
+
+    # Model dimensions
+    vocab_size = 32000
+    hidden_dim = model.hidden_size
+    intermediate_dim = model.intermediate_size
+    num_layers = model.model_layers
+
+    # Initial embeddings and output normalization and output layer
+    if empty:
+        state_dict['tok_embeddings.weight'] = torch.empty(
+            vocab_size, hidden_dim, dtype=torch.float32).normal_()
+        state_dict['norm.weight'] = torch.empty(hidden_dim,
+                                                dtype=torch.float32).normal_()
+        state_dict['output.weight'] = torch.empty(
+            vocab_size, hidden_dim, dtype=torch.float32).normal_()
+    else:
+        state_dict['tok_embeddings.weight'] = torch.randn(vocab_size,
+                                                          hidden_dim,
+                                                          dtype=torch.float32)
+        state_dict['norm.weight'] = torch.randn(hidden_dim,
+                                                dtype=torch.float32)
+        state_dict['output.weight'] = torch.randn(vocab_size,
+                                                  hidden_dim,
+                                                  dtype=torch.float32)
+
+    # Generate layers
+    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/v2.3.1/torch/distributed/checkpoint/default_planner.py#L227
+    # each key will be read only once from the state_dict, hence assigning different names to different tensor will force the load function to only read
+    # tensor shard corresponding to given node.
+    for layer in range(num_layers):
+        if layer % world_size == rank:
+            prefix = f'layers.{layer}.'
+
+            # Attention weights
+            if empty:
+                state_dict[prefix + 'attention.wq.weight'] = torch.empty(
+                    hidden_dim, hidden_dim, dtype=torch.float32).normal_()
+                state_dict[prefix + 'attention.wk.weight'] = torch.empty(
+                    hidden_dim, hidden_dim, dtype=torch.float32).normal_()
+                state_dict[prefix + 'attention.wv.weight'] = torch.empty(
+                    hidden_dim, hidden_dim, dtype=torch.float32).normal_()
+                state_dict[prefix + 'attention.wo.weight'] = torch.empty(
+                    hidden_dim, hidden_dim, dtype=torch.float32).normal_()
+            else:
+                state_dict[prefix + 'attention.wq.weight'] = torch.randn(
+                    hidden_dim, hidden_dim, dtype=torch.float32)
+                state_dict[prefix + 'attention.wk.weight'] = torch.randn(
+                    hidden_dim, hidden_dim, dtype=torch.float32)
+                state_dict[prefix + 'attention.wv.weight'] = torch.randn(
+                    hidden_dim, hidden_dim, dtype=torch.float32)
+                state_dict[prefix + 'attention.wo.weight'] = torch.randn(
+                    hidden_dim, hidden_dim, dtype=torch.float32)
+
+            # Attention normalization
+            if empty:
+                state_dict[prefix + 'attention_norm.weight'] = torch.empty(
+                    hidden_dim, dtype=torch.float32).normal_()
+            else:
+                state_dict[prefix + 'attention_norm.weight'] = torch.randn(
+                    hidden_dim, dtype=torch.float32)
+
+            # Feed forward weights
+            if empty:
+                state_dict[prefix + 'feed_forward.w1.weight'] = torch.empty(
+                    intermediate_dim, hidden_dim,
+                    dtype=torch.float32).normal_()
+                state_dict[prefix + 'feed_forward.w2.weight'] = torch.empty(
+                    hidden_dim, intermediate_dim,
+                    dtype=torch.float32).normal_()
+                state_dict[prefix + 'feed_forward.w3.weight'] = torch.empty(
+                    intermediate_dim, hidden_dim,
+                    dtype=torch.float32).normal_()
+            else:
+                state_dict[prefix + 'feed_forward.w1.weight'] = torch.randn(
+                    intermediate_dim, hidden_dim, dtype=torch.float32)
+                state_dict[prefix + 'feed_forward.w2.weight'] = torch.randn(
+                    hidden_dim, intermediate_dim, dtype=torch.float32)
+                state_dict[prefix + 'feed_forward.w3.weight'] = torch.randn(
+                    intermediate_dim, hidden_dim, dtype=torch.float32)
+
+            # FFN normalization
+            if empty:
+                state_dict[prefix + 'ffn_norm.weight'] = torch.empty(
+                    hidden_dim, dtype=torch.float32).normal_()
+            else:
+                state_dict[prefix + 'ffn_norm.weight'] = torch.randn(
+                    hidden_dim, dtype=torch.float32)
+
+    return state_dict
+
+
 def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
                               distributed_state_dict: Dict[str, torch.Tensor],
                               filepath: str, sample_count: int, operation: str,
-                              rank: int, world_size: int, tensor_count: int,
-                              tensor_size: int) -> list:
-    """
-    Times the save or load operations for checkpoints.
-
-    Args:
-        benchmark_strategy (BenchmarkStrategy): The strategy for managing
-        checkpoint operations.
-        distributed_state_dict (Dict[str, torch.Tensor]): The model's state
-        dictionary split across processes.
-        filepath (str): The path to store/load checkpoints.
-        sample_count (int): The number of samples to benchmark.
-        operation (str): The operation to perform ('save' or 'load').
-
-    Returns:
-        list: A list of times taken for each operation in seconds.
-
-    This function facilitates performance evaluation of checkpoint
-    saving/loading under distributed settings.
-    """
+                              rank: int, world_size: int,
+                              model_parameter_size: str) -> list:
     times = []
-    template_state_dict = dict()
-    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/main/torch/distributed/checkpoint/default_planner.py#L343
-    # each key will be read only once from the state_dict, hence assigning different names to different tensor will force the load function to only read
-    # tensor shard corresponding to given node.
-    for i in range(tensor_count):
-        if i % world_size == rank:
-            template_state_dict[f'dummy_tensor_{i}'] = torch.empty(
-                tensor_size, 1000)
+    template_state_dict = create_llama2_7b_state_dict(
+        world_size=world_size,
+        rank=rank,
+        parameters=model_parameter_size,
+        empty=True)
 
     for i in range(sample_count):
         checkpoint_path = os.path.join(filepath, f'checkpoints/ckpt_{i}.ckpt')
@@ -240,40 +333,32 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
     return times
 
 
-def run_benchmark(rank, world_size: int, layer_size: int, project: str,
-                  filepath: str, padding_size: int, sample_count: int,
-                  debug: bool, use_fsspec: bool) -> None:
+def run_benchmark(rank, world_size: int, project: str, filepath: str,
+                  sample_count: int, use_fsspec: bool,
+                  model_parameter_size: str) -> None:
     setup(rank, world_size)
 
     benchmark_strategy = BenchmarkStrategy(project=project,
                                            path=filepath,
                                            use_fsspec=use_fsspec)
-
-    state_dict = dict()
-    for i in range(padding_size):
-        if i % world_size == rank:
-            state_dict[f'dummy_tensor_{i}'] = torch.randn(layer_size, 1000)
-
-    if rank == 0 and debug:
-        print("Writing state dict before saving to file...")
-        write_state_dict_to_file(state_dict, "state_dict_before_save.txt")
-        print("Shapes before saving:", {
-            k: v.shape
-            for k, v in state_dict.items()
-        })
+    print(f'Constructing state dict for LLAMA2 {model_parameter_size}')
+    state_dict = create_llama2_7b_state_dict(world_size=world_size,
+                                             rank=rank,
+                                             parameters=model_parameter_size,
+                                             empty=False)
 
     dist.barrier()
     save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'save',
                                                       rank, world_size,
-                                                      padding_size, layer_size)
+                                                      model_parameter_size)
 
     load_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
                                                       state_dict, filepath,
                                                       sample_count, 'load',
                                                       rank, world_size,
-                                                      padding_size, layer_size)
+                                                      model_parameter_size)
 
     if rank == 0:
         print(f"Time taken to save checkpoint:\
@@ -285,23 +370,16 @@ def run_benchmark(rank, world_size: int, layer_size: int, project: str,
               )
         print(f"All load times: {load_checkpoint_times}")
 
-        tensor_size_per_instance = 1000 * layer_size * state_dict[
-            f'dummy_tensor_0'].element_size()
-        tensors_per_rank = padding_size // world_size
-        total_size_bytes = tensors_per_rank * tensor_size_per_instance * world_size
+        tensor_size_per_instance = sum(v.element_size() * v.numel()
+                                       for v in state_dict.values())
+        total_size_bytes = tensor_size_per_instance * world_size
+
         print(f"Size of distributed tensors (rank {rank}):\
-                 {format_size(tensors_per_rank * tensor_size_per_instance)}")
+                 {format_size(tensor_size_per_instance)}")
         print(f"Total size of all tensors:\
                  {format_size(total_size_bytes)}")
-        print("######################")
 
-        if debug:
-            print("State dict after loading:")
-            write_state_dict_to_file(state_dict, "state_dict_after_load.txt")
-            print("Shapes after loading:", {
-                k: v.shape
-                for k, v in state_dict.items()
-            })
+        print("######################")
 
     cleanup()
 
@@ -311,18 +389,18 @@ def main() -> None:
     Typical usage example:
 
       python3 -u demo/lightning/checkpoint/simulated/multiprocessing_train.py \
-      --project=<gcs_project_id> \
+      --project=<gcs_project> \
       --ckpt-dir-path=<path_to_gcs_bucket> \
-      --layer-size=300 \
-      --world-size=5
+      --world-size=4 \
+      --model-parameter-size=7b
     """
     args = parse_args()
 
     mp.set_start_method('spawn')
     mp.spawn(run_benchmark,
-             args=(args.world_size, args.layer_size, args.project,
-                   args.ckpt_dir_path, args.padding_size, args.sample_count,
-                   args.debug, args.use_fsspec),
+             args=(args.world_size, args.project, args.ckpt_dir_path,
+                   args.sample_count, args.use_fsspec,
+                   args.model_parameter_size),
              nprocs=args.world_size,
              join=True)
 
