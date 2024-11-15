@@ -220,6 +220,7 @@ def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
         if i % world_size == rank:
             template_state_dict[f'dummy_tensor_{i}'] = torch.empty(
                 tensor_size, 1000)
+
     for i in range(sample_count):
         checkpoint_path = os.path.join(filepath, f'checkpoints/ckpt_{i}.ckpt')
         dist.barrier()

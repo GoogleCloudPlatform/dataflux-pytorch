@@ -113,7 +113,8 @@ def main() -> None:
                            "False").lower() in ("true", "1", "yes")
     model_parameter_size = os.getenv("MODEL_PARAMATER_SIZE")
 
-    run_benchmark(world_size, project, ckpt_dir_path, sample_count, use_fsspec)
+    run_benchmark(world_size, project, ckpt_dir_path, sample_count, use_fsspec,
+                  model_parameter_size)
 
 
 if __name__ == "__main__":
