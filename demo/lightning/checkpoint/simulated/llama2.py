@@ -29,6 +29,8 @@ from torch.distributed.checkpoint import _fsspec_filesystem as FF
 
 from dataflux_pytorch.lightning.gcs_filesystem import (GCSDistributedReader,
                                                        GCSDistributedWriter)
+from demo.lightning.checkpoint.simulated.llama2_utils import (
+    ModelConfig, create_llama2_state_dict)
 
 # Constants for distributed setup
 MASTER_ADDR = 'localhost'
@@ -93,6 +95,15 @@ def parse_args() -> argparse.Namespace:
         help=
         "Model parameter size to simulate. Valid values include 7b, 13b and 70b (case sensitive)"
     )
+    parser.add_argument(
+        "--optimizer",
+        type=str,
+        default="sgd",
+        help=
+        ("Optimizer to use for training. Choose from 'sgd' (Stochastic Gradient Descent) "
+         "or 'adamw' (Adam with weight decay). The choice is case-sensitive. "
+         "Default is 'sgd'."))
+
     return parser.parse_args()
 
 
@@ -168,150 +179,18 @@ def cleanup() -> None:
     dist.destroy_process_group()
 
 
-class ModelConfig:
-
-    def __init__(self, model_layers, intermediate_size, hidden_size,
-                 attention_head, kv_heads):
-        self.model_layers = model_layers
-        self.intermediate_size = intermediate_size
-        self.hidden_size = hidden_size
-        self.attention_head = attention_head
-        self.kv_heads = kv_heads
-
-    def __repr__(self):
-        return (f"ModelConfig(layers={self.model_layers}, "
-                f"intermediate_size={self.intermediate_size}, "
-                f"hidden_size={self.hidden_size}, "
-                f"attention_head={self.attention_head}, "
-                f"kv_heads={self.kv_heads})")
-
-
-model_7b = ModelConfig(32, 11008, 4096, 32, 32)
-model_13b = ModelConfig(40, 13824, 5120, 40, 40)
-model_70b = ModelConfig(80, 28672, 8192, 64, 8)
-
-models = {"7b": model_7b, "13b": model_13b, "70b": model_70b}
-
-
-def create_llama2_7b_state_dict(world_size: int,
-                                rank: int,
-                                parameters: str,
-                                empty: bool = False):
-    """
-    Creates a state dictionary matching LLAMA2 7B architecture dimensions.
-
-    Parameters:
-    world_size (int): The total number of processes/devices.
-    rank (int): The current process/device index.
-    parameters (str): The parameter size, must be one of '7b', '13b', or '70b'.
-    empty (bool, optional): If True, creates an empty state dictionary. Defaults to False.
-    """
-    state_dict = {}
-    if parameters not in models:
-        raise ValueError(
-            "Invalid parameter size, only valid values are 7b, 13b and 70b")
-    model = models[parameters]
-
-    # Model dimensions
-    vocab_size = 32000
-    hidden_dim = model.hidden_size
-    intermediate_dim = model.intermediate_size
-    num_layers = model.model_layers
-
-    # Initial embeddings and output normalization and output layer
-    if empty:
-        state_dict['tok_embeddings.weight'] = torch.empty(
-            vocab_size, hidden_dim, dtype=torch.float32).normal_()
-        state_dict['norm.weight'] = torch.empty(hidden_dim,
-                                                dtype=torch.float32).normal_()
-        state_dict['output.weight'] = torch.empty(
-            vocab_size, hidden_dim, dtype=torch.float32).normal_()
-    else:
-        state_dict['tok_embeddings.weight'] = torch.randn(vocab_size,
-                                                          hidden_dim,
-                                                          dtype=torch.float32)
-        state_dict['norm.weight'] = torch.randn(hidden_dim,
-                                                dtype=torch.float32)
-        state_dict['output.weight'] = torch.randn(vocab_size,
-                                                  hidden_dim,
-                                                  dtype=torch.float32)
-
-    # Generate layers
-    # According to `create_default_local_load_plan` https://github.com/pytorch/pytorch/blob/v2.3.1/torch/distributed/checkpoint/default_planner.py#L227
-    # each key will be read only once from the state_dict, hence assigning different names to different tensor will force the load function to only read
-    # tensor shard corresponding to given node.
-    for layer in range(num_layers):
-        if layer % world_size == rank:
-            prefix = f'layers.{layer}.'
-
-            # Attention weights
-            if empty:
-                state_dict[prefix + 'attention.wq.weight'] = torch.empty(
-                    hidden_dim, hidden_dim, dtype=torch.float32).normal_()
-                state_dict[prefix + 'attention.wk.weight'] = torch.empty(
-                    hidden_dim, hidden_dim, dtype=torch.float32).normal_()
-                state_dict[prefix + 'attention.wv.weight'] = torch.empty(
-                    hidden_dim, hidden_dim, dtype=torch.float32).normal_()
-                state_dict[prefix + 'attention.wo.weight'] = torch.empty(
-                    hidden_dim, hidden_dim, dtype=torch.float32).normal_()
-            else:
-                state_dict[prefix + 'attention.wq.weight'] = torch.randn(
-                    hidden_dim, hidden_dim, dtype=torch.float32)
-                state_dict[prefix + 'attention.wk.weight'] = torch.randn(
-                    hidden_dim, hidden_dim, dtype=torch.float32)
-                state_dict[prefix + 'attention.wv.weight'] = torch.randn(
-                    hidden_dim, hidden_dim, dtype=torch.float32)
-                state_dict[prefix + 'attention.wo.weight'] = torch.randn(
-                    hidden_dim, hidden_dim, dtype=torch.float32)
-
-            # Attention normalization
-            if empty:
-                state_dict[prefix + 'attention_norm.weight'] = torch.empty(
-                    hidden_dim, dtype=torch.float32).normal_()
-            else:
-                state_dict[prefix + 'attention_norm.weight'] = torch.randn(
-                    hidden_dim, dtype=torch.float32)
-
-            # Feed forward weights
-            if empty:
-                state_dict[prefix + 'feed_forward.w1.weight'] = torch.empty(
-                    intermediate_dim, hidden_dim,
-                    dtype=torch.float32).normal_()
-                state_dict[prefix + 'feed_forward.w2.weight'] = torch.empty(
-                    hidden_dim, intermediate_dim,
-                    dtype=torch.float32).normal_()
-                state_dict[prefix + 'feed_forward.w3.weight'] = torch.empty(
-                    intermediate_dim, hidden_dim,
-                    dtype=torch.float32).normal_()
-            else:
-                state_dict[prefix + 'feed_forward.w1.weight'] = torch.randn(
-                    intermediate_dim, hidden_dim, dtype=torch.float32)
-                state_dict[prefix + 'feed_forward.w2.weight'] = torch.randn(
-                    hidden_dim, intermediate_dim, dtype=torch.float32)
-                state_dict[prefix + 'feed_forward.w3.weight'] = torch.randn(
-                    intermediate_dim, hidden_dim, dtype=torch.float32)
-
-            # FFN normalization
-            if empty:
-                state_dict[prefix + 'ffn_norm.weight'] = torch.empty(
-                    hidden_dim, dtype=torch.float32).normal_()
-            else:
-                state_dict[prefix + 'ffn_norm.weight'] = torch.randn(
-                    hidden_dim, dtype=torch.float32)
-
-    return state_dict
-
-
 def time_checkpoint_operation(benchmark_strategy: BenchmarkStrategy,
                               distributed_state_dict: Dict[str, torch.Tensor],
                               filepath: str, sample_count: int, operation: str,
                               rank: int, world_size: int,
-                              model_parameter_size: str) -> list:
+                              model_parameter_size: str,
+                              optimizer: str) -> list:
     times = []
-    template_state_dict = create_llama2_7b_state_dict(
+    template_state_dict = create_llama2_state_dict(
         world_size=world_size,
         rank=rank,
         parameters=model_parameter_size,
+        optimizer=optimizer,
         empty=True)
 
     for i in range(sample_count):
@@ -342,10 +221,10 @@ def run_benchmark(rank, world_size: int, project: str, filepath: str,
                                            path=filepath,
                                            use_fsspec=use_fsspec)
     print(f'Constructing state dict for LLAMA2 {model_parameter_size}')
-    state_dict = create_llama2_7b_state_dict(world_size=world_size,
-                                             rank=rank,
-                                             parameters=model_parameter_size,
-                                             empty=False)
+    state_dict = create_llama2_state_dict(world_size=world_size,
+                                          rank=rank,
+                                          parameters=model_parameter_size,
+                                          empty=False)
 
     dist.barrier()
     save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
@@ -389,10 +268,11 @@ def main() -> None:
     Typical usage example:
 
       python3 -u demo/lightning/checkpoint/simulated/multiprocessing_train.py \
-      --project=<gcs_project> \
+      --project=gcs-tess \
       --ckpt-dir-path=<path_to_gcs_bucket> \
       --world-size=4 \
-      --model-parameter-size=7b
+      --model-parameter-size=7b \
+      --optimizer="sgd"
     """
     args = parse_args()
 

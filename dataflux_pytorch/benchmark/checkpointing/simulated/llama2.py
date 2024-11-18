@@ -7,8 +7,9 @@ import torch
 import torch.distributed as dist
 
 from demo.lightning.checkpoint.simulated.llama2 import (
-    BenchmarkStrategy, cleanup, create_llama2_7b_state_dict, format_size,
-    time_checkpoint_operation)
+    BenchmarkStrategy, cleanup, format_size, time_checkpoint_operation)
+from demo.lightning.checkpoint.simulated.llama2_utils import \
+    create_llama2_state_dict
 
 
 def configure_master_addr():
@@ -53,7 +54,7 @@ def init_processes() -> None:
 
 def run_benchmark(world_size: int, project: str, filepath: str,
                   sample_count: int, use_fsspec: bool,
-                  model_parameter_size: str) -> None:
+                  model_parameter_size: str, optimizer: str) -> None:
 
     if os.environ.get("COORDINATOR_ADDRESS"):
         init_processes()
@@ -63,23 +64,20 @@ def run_benchmark(world_size: int, project: str, filepath: str,
                                            path=filepath,
                                            use_fsspec=use_fsspec)
     print(f'Constructing state dict for LLAMA2 {model_parameter_size}')
-    state_dict = create_llama2_7b_state_dict(world_size=world_size,
-                                             rank=rank,
-                                             parameters=model_parameter_size,
-                                             empty=False)
+    state_dict = create_llama2_state_dict(world_size=world_size,
+                                          rank=rank,
+                                          parameters=model_parameter_size,
+                                          optimizer=optimizer,
+                                          empty=False)
 
     dist.barrier()
-    save_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
-                                                      state_dict, filepath,
-                                                      sample_count, 'save',
-                                                      rank, world_size,
-                                                      model_parameter_size)
+    save_checkpoint_times = time_checkpoint_operation(
+        benchmark_strategy, state_dict, filepath, sample_count, 'save', rank,
+        world_size, model_parameter_size, optimizer)
 
-    load_checkpoint_times = time_checkpoint_operation(benchmark_strategy,
-                                                      state_dict, filepath,
-                                                      sample_count, 'load',
-                                                      rank, world_size,
-                                                      model_parameter_size)
+    load_checkpoint_times = time_checkpoint_operation(
+        benchmark_strategy, state_dict, filepath, sample_count, 'load', rank,
+        world_size, model_parameter_size, optimizer)
 
     if rank == 0:
         print(f"Time taken to save checkpoint:\
@@ -112,9 +110,9 @@ def main() -> None:
     use_fsspec = os.getenv("USE_FSSPEC",
                            "False").lower() in ("true", "1", "yes")
     model_parameter_size = os.getenv("MODEL_PARAMATER_SIZE")
-
+    optimizer = os.getenv("OPTIMIZER", "sgd")
     run_benchmark(world_size, project, ckpt_dir_path, sample_count, use_fsspec,
-                  model_parameter_size)
+                  model_parameter_size, optimizer)
 
 
 if __name__ == "__main__":
