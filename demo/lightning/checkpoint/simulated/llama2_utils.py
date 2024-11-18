@@ -119,6 +119,8 @@ def create_llama2_state_dict(world_size: int,
                              empty: bool = False) -> Dict[str, torch.Tensor]:
     """
     Creates a state dictionary matching LLAMA2 architecture dimensions.
+    The state dict is distributed over all the nodes in order to replicate FSDP style split.
+    Each node is approximately of size 1/WORLD_SIZE.
     Optimized version using direct assignments.
 
     Args:
@@ -140,7 +142,6 @@ def create_llama2_state_dict(world_size: int,
         return ValueError("Invalid optmizer. Must be either sgd or adamW")
     use_adamw = optimizer.lower() == 'adamw'
 
-    # Pre-allocate dictionary with estimated size
     state_dict = {}
 
     # Global weights (embeddings, norm, output)

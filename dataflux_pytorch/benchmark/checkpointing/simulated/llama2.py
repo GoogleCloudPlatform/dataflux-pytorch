@@ -79,24 +79,28 @@ def run_benchmark(world_size: int, project: str, filepath: str,
         benchmark_strategy, state_dict, filepath, sample_count, 'load', rank,
         world_size, model_parameter_size, optimizer)
 
+    # Calculate tensor size for current rank
+    local_tensor_size = sum(v.element_size() * v.numel()
+                            for v in state_dict.values())
+    # Gather sizes from all ranks
+    sizes = [0] * world_size
+    dist.all_gather_object(sizes, local_tensor_size)
+    total_size_bytes = sum(sizes)
+
     if rank == 0:
         print(f"Time taken to save checkpoint:\
                 {statistics.mean(save_checkpoint_times):.4f} seconds (stdev {statistics.stdev(save_checkpoint_times):.4f})"
               )
         print(f"All save times: {save_checkpoint_times}")
         print(f"Time taken to load checkpoint:\
-                 {statistics.mean(load_checkpoint_times):.4f} seconds (stdev {statistics.stdev(load_checkpoint_times):.4f})"
+                    {statistics.mean(load_checkpoint_times):.4f} seconds (stdev {statistics.stdev(load_checkpoint_times):.4f})"
               )
         print(f"All load times: {load_checkpoint_times}")
 
-        tensor_size_per_instance = sum(v.element_size() * v.numel()
-                                       for v in state_dict.values())
-        total_size_bytes = tensor_size_per_instance * world_size
-
-        print(f"Size of distributed tensors (rank {rank}):\
-                 {format_size(tensor_size_per_instance)}")
-        print(f"Total size of all tensors:\
-                 {format_size(total_size_bytes)}")
+        print(f"Size of distributed tensors per rank:")
+        for r, size in enumerate(sizes):
+            print(f"Rank {r}: {format_size(size)}")
+        print(f"Total size of all tensors: {format_size(total_size_bytes)}")
 
         print("######################")
     cleanup()
