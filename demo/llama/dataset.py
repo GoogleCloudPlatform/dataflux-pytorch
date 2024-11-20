@@ -5,12 +5,26 @@
 
 import io
 import struct
+from typing import Optional, Tuple
 
 import numpy as np
 from dataflux_core.download import download_single
+from dataflux_pytorch import dataflux_iterable_dataset
 from google.cloud import storage
-from lit_llama.packed_dataset import PackedDataset, PackedDatasetIterator
-from torch.utils.data import get_worker_info
+from lit_llama.packed_dataset import (CombinedDataset, PackedDataset,
+                                      PackedDatasetIterator)
+from torch.utils.data import DataLoader, get_worker_info
+
+# Data proportions from https://arxiv.org/pdf/2302.13971.pdf Table 1
+data_config = [
+    ("arxiv", 2.5),
+    ("book", 4.5),
+    ("c4", 15.0),
+    ("cc", 67.0),
+    ("github", 4.5),
+    ("stackexchange", 2.0),
+    ("wikipedia", 4.5),
+]
 
 dtypes = {
     1: np.uint8,
@@ -121,3 +135,84 @@ class DatafluxPackedDatasetIterator(PackedDatasetIterator):
                             if self._shuffle else range(n_all_blocks))
 
         self._curr_idx = 0
+
+
+def list_with_dataflux(project_name, bucket_name):
+    dataset = dataflux_iterable_dataset.DataFluxIterableDataset(
+        project_name=project_name, bucket_name=bucket_name)
+    filenames = [name for name, _ in dataset.objects]
+    return filenames
+
+
+def create_dataloader(
+    project_name: str,
+    batch_size: int,
+    block_size: int,
+    data_dir: str,
+    fabric,
+    shuffle: bool = True,
+    seed: int = 12345,
+) -> DataLoader:
+    datasets = []
+    filenames = list_with_dataflux(project_name, bucket_name)
+    for prefix, _ in data_config:
+        files_in_this_dataset = [
+            name for name in filenames if name.startswith(prefix)
+        ]
+
+        dataset = DatafluxPackedDataset(files_in_this_dataset,
+                                        n_chunks=4,
+                                        block_size=block_size,
+                                        shuffle=shuffle,
+                                        seed=seed,
+                                        num_processes=fabric.world_size,
+                                        process_rank=fabric.global_rank,
+                                        bucket_name=bucket_name)
+        datasets.append(dataset)
+
+    if not datasets:
+        raise RuntimeError(
+            f"No data found at {data_dir}. Make sure you ran prepare_redpajama.py to create the dataset."
+        )
+
+    weights = [weight for _, weight in data_config]
+    sum_weights = sum(weights)
+    weights = [el / sum_weights for el in weights]
+
+    combined_dataset = CombinedDataset(datasets=datasets,
+                                       seed=seed,
+                                       weights=weights)
+
+    return DataLoader(combined_dataset,
+                      batch_size=batch_size,
+                      shuffle=False,
+                      pin_memory=True)
+
+
+def create_dataloaders(
+    batch_size: int,
+    block_size: int,
+    fabric,
+    train_data_dir: str = "data/lit-redpajama",
+    val_data_dir: Optional[str] = None,
+    seed: int = 12345,
+) -> Tuple[DataLoader, DataLoader]:
+    # Increase by one because we need the next word as well
+    effective_block_size = block_size + 1
+    train_dataloader = create_dataloader(
+        batch_size=batch_size,
+        block_size=effective_block_size,
+        fabric=fabric,
+        data_dir=train_data_dir,
+        shuffle=True,
+        seed=seed,
+    )
+    val_dataloader = (create_dataloader(
+        batch_size=batch_size,
+        block_size=effective_block_size,
+        fabric=fabric,
+        data_dir=val_data_dir,
+        shuffle=False,
+        seed=seed,
+    ) if val_data_dir else None)
+    return train_dataloader, val_dataloader

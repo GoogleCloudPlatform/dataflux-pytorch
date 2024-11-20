@@ -3,24 +3,21 @@
 # Borrowed from https://github.com/Lightning-AI/lit-llama/blob/main/pretrain/redpajama.py
 # with changes at appropriate places to use GCS Connector for Pytorch for data listing, loading, and checkpointing.
 
-import math
 import os
 import sys
 import time
 from functools import partial
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 import lightning as L
 import torch
-from dataflux_pytorch import dataflux_iterable_dataset
 from google.cloud import storage
 from lit_llama.model import Block, LLaMA, LLaMAConfig
-from lit_llama.packed_dataset import CombinedDataset
+from pretrain.redpajama import get_lr, validate
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
 
-from .dataset import DatafluxPackedDataset
 from .strategies import DatafluxFSDPStrategy
 
 # dataflux vars
@@ -52,17 +49,6 @@ decay_lr = True
 warmup_iters = 2000
 lr_decay_iters = max_iters
 min_lr = 6e-5
-
-# Data proportions from https://arxiv.org/pdf/2302.13971.pdf Table 1
-data_config = [
-    ("arxiv", 2.5),
-    ("book", 4.5),
-    ("c4", 15.0),
-    ("cc", 67.0),
-    ("github", 4.5),
-    ("stackexchange", 2.0),
-    ("wikipedia", 4.5),
-]
 
 
 def main(
@@ -235,121 +221,6 @@ def train(
 
         if iter_num > max_iters:
             break
-
-
-@torch.no_grad()
-def validate(fabric: L.Fabric, model: torch.nn.Module,
-             val_dataloader: DataLoader) -> torch.Tensor:
-    fabric.print("Validating ...")
-    model.eval()
-    losses = torch.zeros(eval_iters)
-    for k, val_data in enumerate(val_dataloader):
-        input_ids = val_data[:, 0:model.config.block_size].contiguous()
-        targets = val_data[:, 1:model.config.block_size + 1].contiguous()
-        logits = model(input_ids)
-        loss = torch.nn.functional.cross_entropy(logits.view(
-            -1, logits.size(-1)),
-                                                 targets.view(-1),
-                                                 ignore_index=-1)
-        losses[k] = loss.item()
-    out = losses.mean()
-    model.train()
-    return out
-
-
-def list_with_dataflux(project_name, bucket_name):
-    dataset = dataflux_iterable_dataset.DataFluxIterableDataset(
-        project_name=project_name, bucket_name=bucket_name)
-    filenames = [name for name, _ in dataset.objects]
-    return filenames
-
-
-def create_dataloader(
-    batch_size: int,
-    block_size: int,
-    data_dir: str,
-    fabric,
-    shuffle: bool = True,
-    seed: int = 12345,
-) -> DataLoader:
-    datasets = []
-    filenames = list_with_dataflux(project_name, bucket_name)
-    for prefix, _ in data_config:
-        files_in_this_dataset = [
-            name for name in filenames if name.startswith(prefix)
-        ]
-
-        dataset = DatafluxPackedDataset(files_in_this_dataset,
-                                        n_chunks=4,
-                                        block_size=block_size,
-                                        shuffle=shuffle,
-                                        seed=seed,
-                                        num_processes=fabric.world_size,
-                                        process_rank=fabric.global_rank,
-                                        bucket_name=bucket_name)
-        datasets.append(dataset)
-
-    if not datasets:
-        raise RuntimeError(
-            f"No data found at {data_dir}. Make sure you ran prepare_redpajama.py to create the dataset."
-        )
-
-    weights = [weight for _, weight in data_config]
-    sum_weights = sum(weights)
-    weights = [el / sum_weights for el in weights]
-
-    combined_dataset = CombinedDataset(datasets=datasets,
-                                       seed=seed,
-                                       weights=weights)
-
-    return DataLoader(combined_dataset,
-                      batch_size=batch_size,
-                      shuffle=False,
-                      pin_memory=True)
-
-
-def create_dataloaders(
-    batch_size: int,
-    block_size: int,
-    fabric,
-    train_data_dir: str = "data/lit-redpajama",
-    val_data_dir: Optional[str] = None,
-    seed: int = 12345,
-) -> Tuple[DataLoader, DataLoader]:
-    # Increase by one because we need the next word as well
-    effective_block_size = block_size + 1
-    train_dataloader = create_dataloader(
-        batch_size=batch_size,
-        block_size=effective_block_size,
-        fabric=fabric,
-        data_dir=train_data_dir,
-        shuffle=True,
-        seed=seed,
-    )
-    val_dataloader = (create_dataloader(
-        batch_size=batch_size,
-        block_size=effective_block_size,
-        fabric=fabric,
-        data_dir=val_data_dir,
-        shuffle=False,
-        seed=seed,
-    ) if val_data_dir else None)
-    return train_dataloader, val_dataloader
-
-
-# learning rate decay scheduler (cosine with warmup)
-def get_lr(it):
-    # 1) linear warmup for warmup_iters steps
-    if it < warmup_iters:
-        return learning_rate * it / warmup_iters
-    # 2) if it > lr_decay_iters, return min learning rate
-    if it > lr_decay_iters:
-        return min_lr
-    # 3) in between, use cosine decay down to min learning rate
-    decay_ratio = (it - warmup_iters) / (lr_decay_iters - warmup_iters)
-    assert 0 <= decay_ratio <= 1
-    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
-    return min_lr + coeff * (learning_rate - min_lr)
 
 
 if __name__ == "__main__":
