@@ -84,7 +84,7 @@ def main(
         limit_all_gathers=True,
     )
 
-    fabric = L.Fabric(accelerator="cuda",
+    fabric = L.Fabric(accelerator="gpu",
                       devices=devices,
                       precision="bf16-mixed",
                       strategy=strategy)
