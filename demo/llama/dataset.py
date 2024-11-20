@@ -61,8 +61,8 @@ class DatafluxPackedDataset(PackedDataset):
                  wrap=False,
                  num_processes=1,
                  process_rank=0):
-        super().__init(filenames, n_chunks, block_size, seed, shuffle, wrap,
-                       num_processes, process_rank)
+        super().__init__(filenames, n_chunks, block_size, seed, shuffle, wrap,
+                         num_processes, process_rank)
         self.bucket_name = bucket_name
 
     def __iter__(self):
@@ -88,10 +88,9 @@ class DatafluxPackedDatasetIterator(PackedDatasetIterator):
 
     def __init__(self, filenames, n_chunks, block_size, seed, shuffle, wrap,
                  bucket_name):
-        super().__init__(filenames, n_chunks, block_size, seed, shuffle, wrap)
         self.storage_client = storage.Client()
         self.bucket_name = bucket_name
-        self._load_n_chunks()
+        super().__init__(filenames, n_chunks, block_size, seed, shuffle, wrap)
 
     def _read(self, path):
         bytes_content = download_single(self.storage_client, self.bucket_name,
