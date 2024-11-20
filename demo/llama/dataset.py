@@ -4,14 +4,13 @@
 # with minor modificaitons to use GCS Connector for Pytorch for data loading.
 
 import io
-import random
 import struct
 
 import numpy as np
-import torch
 from dataflux_core.download import download_single
 from google.cloud import storage
-from torch.utils.data import IterableDataset, get_worker_info
+from lit_llama.packed_dataset import PackedDataset, PackedDatasetIterator
+from torch.utils.data import get_worker_info
 
 dtypes = {
     1: np.uint8,
@@ -38,10 +37,11 @@ HDR_MAGIC = b"LITPKDS"
 HDR_SIZE = 24  # bytes
 
 
-class PackedDataset(IterableDataset):
+class DatafluxPackedDataset(PackedDataset):
 
     def __init__(self,
                  filenames,
+                 bucket_name,
                  n_chunks,
                  block_size,
                  seed=12345,
@@ -49,14 +49,9 @@ class PackedDataset(IterableDataset):
                  wrap=False,
                  num_processes=1,
                  process_rank=0):
-        self._filenames = filenames
-        self._n_chunks = n_chunks
-        self._block_size = block_size
-        self._seed = seed
-        self._shuffle = shuffle
-        self._wrap = wrap
-        self._num_processes = num_processes
-        self._process_rank = process_rank
+        super().__init(filenames, n_chunks, block_size, seed, shuffle, wrap,
+                       num_processes, process_rank)
+        self.bucket_name = bucket_name
 
     def __iter__(self):
         worker_info = get_worker_info()
@@ -68,41 +63,20 @@ class PackedDataset(IterableDataset):
         max_num_files = len(self._filenames) // num_shards * num_shards
         filenames = self._filenames[shard_id:max_num_files:num_shards]
 
-        return PackedDatasetIterator(
-            filenames=filenames,
-            n_chunks=self._n_chunks,
-            block_size=self._block_size,
-            seed=self._seed,
-            shuffle=self._shuffle,
-            wrap=self._wrap,
-        )
+        return DatafluxPackedDatasetIterator(filenames=filenames,
+                                             n_chunks=self._n_chunks,
+                                             block_size=self._block_size,
+                                             seed=self._seed,
+                                             shuffle=self._shuffle,
+                                             wrap=self._wrap,
+                                             bucket_name=self.bucket_name)
 
 
-class PackedDatasetIterator:
+class DatafluxPackedDatasetIterator(PackedDatasetIterator):
 
-    def __init__(self, filenames, n_chunks, block_size, seed, shuffle, wrap):
-        self._seed = seed
-        self._shuffle = shuffle
-        self._rng = np.random.default_rng(seed) if shuffle else None
-        self._block_idxs = None
-
-        self._wrap = wrap
-
-        self._filenames = filenames
-        self._file_idx = 0
-
-        self._n_chunks = n_chunks
-
-        self._dtype = None
-        self._block_size = block_size
-        self._n_blocks = None
-
-        self._mmaps = []
-        self._buffers = []
-
-        self._block_idxs = []
-        self._curr_idx = 0
-
+    def __init__(self, filenames, n_chunks, block_size, seed, shuffle, wrap,
+                 bucket_name):
+        super().__init__(filenames, n_chunks, block_size, seed, shuffle, wrap)
         self.storage_client = storage.Client()
         self.bucket_name = bucket_name
         self._load_n_chunks()
@@ -119,10 +93,6 @@ class PackedDatasetIterator:
         dtype = dtypes[dtype_code]
         (chunk_size, ) = struct.unpack("<Q", bytes_io.read(8))
         return dtype, chunk_size, bytes_io
-
-    def _close_mmaps(self):
-        for mmap in self._mmaps:
-            mmap._mmap.close()
 
     def _load_n_chunks(self):
         self._close_mmaps()
@@ -151,56 +121,3 @@ class PackedDatasetIterator:
                             if self._shuffle else range(n_all_blocks))
 
         self._curr_idx = 0
-
-    def __del__(self):
-        self._close_mmaps()
-        del self._mmaps
-        del self._buffers
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self._curr_idx >= len(self._block_idxs):
-            self._load_n_chunks()
-
-        block_idx = self._block_idxs[self._curr_idx]
-        chunk_id = block_idx // self._n_blocks
-        buffer = self._buffers[chunk_id]
-        elem_id = (block_idx % self._n_blocks) * self._block_size
-        offset = np.dtype(self._dtype).itemsize * elem_id
-        arr = np.frombuffer(buffer,
-                            dtype=self._dtype,
-                            count=self._block_size,
-                            offset=offset)
-        self._curr_idx += 1
-        return torch.from_numpy(arr.astype(np.int64))
-
-
-class CombinedDataset(IterableDataset):
-
-    def __init__(self, datasets, seed, weights=None):
-        self._seed = seed
-        self._datasets = datasets
-        self._weights = weights
-        n_datasets = len(datasets)
-        if weights is None:
-            self._weights = [1 / n_datasets] * n_datasets
-
-    def __iter__(self):
-        return CombinedDatasetIterator(self._datasets, self._seed,
-                                       self._weights)
-
-
-class CombinedDatasetIterator:
-
-    def __init__(self, datasets, seed, weights):
-        self._datasets = [iter(el) for el in datasets]
-        self._weights = weights
-        self._rng = random.Random(seed)
-
-    def __next__(self):
-        dataset, = self._rng.choices(self._datasets,
-                                     weights=self._weights,
-                                     k=1)
-        return next(dataset)

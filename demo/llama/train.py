@@ -14,17 +14,13 @@ from typing import Optional, Tuple
 import lightning as L
 import torch
 from dataflux_pytorch import dataflux_iterable_dataset
-from demo.lightning.checkpoint.multinode.strategies import DatafluxFSDPStrategy
 from google.cloud import storage
-from lightning.fabric.strategies import FSDPStrategy
 from lit_llama.model import Block, LLaMA, LLaMAConfig
-from torch.distributed.fsdp import FullStateDictConfig
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp import StateDictType
+from lit_llama.packed_dataset import CombinedDataset
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
 
-from .dataset import CombinedDataset, PackedDataset
+from .dataset import DatafluxPackedDataset
 from .strategies import DatafluxFSDPStrategy
 
 # dataflux vars
@@ -283,15 +279,14 @@ def create_dataloader(
             name for name in filenames if name.startswith(prefix)
         ]
 
-        dataset = PackedDataset(
-            files_in_this_dataset,
-            n_chunks=4,
-            block_size=block_size,
-            shuffle=shuffle,
-            seed=seed,
-            num_processes=fabric.world_size,
-            process_rank=fabric.global_rank,
-        )
+        dataset = DatafluxPackedDataset(files_in_this_dataset,
+                                        n_chunks=4,
+                                        block_size=block_size,
+                                        shuffle=shuffle,
+                                        seed=seed,
+                                        num_processes=fabric.world_size,
+                                        process_rank=fabric.global_rank,
+                                        bucket_name=bucket_name)
         datasets.append(dataset)
 
     if not datasets:
