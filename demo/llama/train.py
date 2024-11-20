@@ -14,7 +14,6 @@ import lightning as L
 import torch
 from google.cloud import storage
 from lit_llama.model import Block, LLaMA, LLaMAConfig
-from pretrain.redpajama import get_lr, validate
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
 
@@ -224,6 +223,41 @@ def train(
 
         if iter_num > max_iters:
             break
+
+
+@torch.no_grad()
+def validate(fabric: L.Fabric, model: torch.nn.Module,
+             val_dataloader: DataLoader) -> torch.Tensor:
+    fabric.print("Validating ...")
+    model.eval()
+    losses = torch.zeros(eval_iters)
+    for k, val_data in enumerate(val_dataloader):
+        input_ids = val_data[:, 0:model.config.block_size].contiguous()
+        targets = val_data[:, 1:model.config.block_size + 1].contiguous()
+        logits = model(input_ids)
+        loss = torch.nn.functional.cross_entropy(logits.view(
+            -1, logits.size(-1)),
+                                                 targets.view(-1),
+                                                 ignore_index=-1)
+        losses[k] = loss.item()
+    out = losses.mean()
+    model.train()
+    return out
+
+
+# learning rate decay scheduler (cosine with warmup)
+def get_lr(it):
+    # 1) linear warmup for warmup_iters steps
+    if it < warmup_iters:
+        return learning_rate * it / warmup_iters
+    # 2) if it > lr_decay_iters, return min learning rate
+    if it > lr_decay_iters:
+        return min_lr
+    # 3) in between, use cosine decay down to min learning rate
+    decay_ratio = (it - warmup_iters) / (lr_decay_iters - warmup_iters)
+    assert 0 <= decay_ratio <= 1
+    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
+    return min_lr + coeff * (learning_rate - min_lr)
 
 
 if __name__ == "__main__":

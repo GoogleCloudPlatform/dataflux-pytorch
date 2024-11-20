@@ -159,15 +159,16 @@ def create_dataloader(
             name for name in filenames if name.startswith(prefix)
         ]
 
-        dataset = DatafluxPackedDataset(files_in_this_dataset,
-                                        bucket_name=bucket_name,
-                                        n_chunks=4,
-                                        block_size=block_size,
-                                        shuffle=shuffle,
-                                        seed=seed,
-                                        num_processes=fabric.world_size,
-                                        process_rank=fabric.global_rank,
-                                        bucket_name=bucket_name)
+        dataset = DatafluxPackedDataset(
+            files_in_this_dataset,
+            bucket_name=bucket_name,
+            n_chunks=4,
+            block_size=block_size,
+            shuffle=shuffle,
+            seed=seed,
+            num_processes=fabric.world_size,
+            process_rank=fabric.global_rank,
+        )
         datasets.append(dataset)
 
     if not datasets:
