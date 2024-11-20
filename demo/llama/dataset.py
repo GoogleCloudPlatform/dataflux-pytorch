@@ -37,14 +37,6 @@ dtypes = {
     8: np.uint16,
 }
 
-
-def code(dtype):
-    for k in dtypes.keys():
-        if dtypes[k] == dtype:
-            return k
-    raise ValueError(dtype)
-
-
 HDR_MAGIC = b"LITPKDS"
 HDR_SIZE = 24  # bytes
 
