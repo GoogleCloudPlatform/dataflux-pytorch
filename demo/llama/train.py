@@ -18,6 +18,7 @@ from pretrain.redpajama import get_lr, validate
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
 
+from .dataset import create_dataloaders
 from .strategies import DatafluxFSDPStrategy
 
 # dataflux vars
@@ -76,6 +77,8 @@ def main(
     config = LLaMAConfig.from_name("7B")
 
     train_dataloader, val_dataloader = create_dataloaders(
+        project_name=project_name,
+        bucket_name=bucket_name,
         batch_size=micro_batch_size,
         block_size=config.block_size,
         fabric=fabric,

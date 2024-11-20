@@ -37,8 +37,6 @@ dtypes = {
     8: np.uint16,
 }
 
-bucket_name = "<YOUR-BUCKET>"
-
 
 def code(dtype):
     for k in dtypes.keys():
@@ -146,6 +144,7 @@ def list_with_dataflux(project_name, bucket_name):
 
 def create_dataloader(
     project_name: str,
+    bucket_name: str,
     batch_size: int,
     block_size: int,
     data_dir: str,
@@ -161,6 +160,7 @@ def create_dataloader(
         ]
 
         dataset = DatafluxPackedDataset(files_in_this_dataset,
+                                        bucket_name=bucket_name,
                                         n_chunks=4,
                                         block_size=block_size,
                                         shuffle=shuffle,
@@ -190,6 +190,8 @@ def create_dataloader(
 
 
 def create_dataloaders(
+    project_name: str,
+    bucket_name: str,
     batch_size: int,
     block_size: int,
     fabric,
@@ -200,6 +202,8 @@ def create_dataloaders(
     # Increase by one because we need the next word as well
     effective_block_size = block_size + 1
     train_dataloader = create_dataloader(
+        project_name=project_name,
+        bucket_name=bucket_name,
         batch_size=batch_size,
         block_size=effective_block_size,
         fabric=fabric,
@@ -208,6 +212,8 @@ def create_dataloaders(
         seed=seed,
     )
     val_dataloader = (create_dataloader(
+        project_name=project_name,
+        bucket_name=bucket_name,
         batch_size=batch_size,
         block_size=effective_block_size,
         fabric=fabric,
