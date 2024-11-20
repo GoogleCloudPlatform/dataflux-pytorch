@@ -157,8 +157,8 @@ def main(args: argparse.Namespace):
     print(f'Average checkpoint save time: '
           f'{statistics.mean(save_checkpoint_times):.4f} seconds '
           f'(stdev {statistics.stdev(save_checkpoint_times):.4f})')
-    duration = time.time() - total_time
-    print(f'Total run time: {int(duration//60)}m{int(duration%60)}s')
+    duration = int(time.time() - total_time)
+    print(f'Total run time: {duration//60}m{duration%60}s')
 
 
 if __name__ == '__main__':
