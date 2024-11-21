@@ -40,7 +40,7 @@ dataflux_ckpt = DatafluxLightningAsyncCheckpoint(project_name=<PROJECT NAME>)
 ```
 
 > [!Warning]
-> According to the documentation, [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) is currently an experimental feature.
+> According to the documentation, [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) is an experimental feature and currently does not verify if the save has succeeded.
 
 ## Running on GKE
 

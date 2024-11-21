@@ -178,9 +178,42 @@ Note that saving or restoring checkpoint files will stage the checkpoint file in
 
 ##### Async Checkpointing
 
-Our lightning checkpointing implementation has built-in support for the experimental [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) featureset. This is an optimzation that allows for non-blocking `save_checkpoint` calls during a training loop. For more details on our support for this feature please see the [checkpoint README](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning/checkpoint/singlenode#using-asynccheckpointio). This lightning feature is only supported for single-node executions.
+PyTorch Lightning single-node - Our lightning checkpointing implementation has built-in support for the experimental [AsyncCheckpointIO](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.plugins.io.AsyncCheckpointIO.html#asynccheckpointio) featureset. This is an optimzation that allows for non-blocking `save_checkpoint` calls during a training loop. For more details on our support for this feature please see the [checkpoint README](https://github.com/GoogleCloudPlatform/dataflux-pytorch/tree/main/demo/lightning/checkpoint/singlenode#using-asynccheckpointio). This lightning feature is only supported for single-node executions.
 
-To allow for asyncronous saves with multinode executions we utilize PyTorch's [Async Distributed Save](https://pytorch.org/tutorials/recipes/distributed_async_checkpoint_recipe.html) to allow for similar non-blocking checkpoint operations. This implementation can be found [here](https://github.com/GoogleCloudPlatform/dataflux-pytorch/blob/main/demo/lightning/checkpoint/multinode/strategies.py#L99).
+PyTorch multi-node - To allow for asyncronous saves with multinode executions we utilize PyTorch's [Async Distributed Save](https://pytorch.org/tutorials/recipes/distributed_async_checkpoint_recipe.html) to allow for similar non-blocking checkpoint operations. To leverage this feature, initialize [DatafluxFSDPStrategy](https://github.com/GoogleCloudPlatform/dataflux-pytorch/blob/05ce5af3d2a2efdffcea71292170054652bc80bf/demo/lightning/checkpoint/multinode/strategies.py#L44) with the `use_async=True` parameter. An example usage can be found [here](https://github.com/GoogleCloudPlatform/dataflux-pytorch/blob/main/dataflux_pytorch/benchmark/checkpointing/multinode/train_async_save.py).
+
+> [!NOTE]
+> Async checkpointing is experimental and currently does not verify if the save has succeeded. 
+
+Sample code:
+```python
+import torch.distributed as dist
+from torch.distributed.checkpoint import async_save
+from dataflux_pytorch.lightning.gcs_filesystem import GCSDistributedWriter
+
+# Initialize the process group.
+default_ranks = list(range(dist.get_world_size()))
+checkpoint_group = dist.new_group(default_ranks, backend='nccl')
+
+# Create GCS Distributed Writer for checkpoint saves.
+writer = GCSDistributedWriter(path, project, storage_client)
+
+# Do work...
+checkpoint_future = None
+for _ in range(num_epochs):
+    # Workload step
+    # ...
+
+    # Avoid queuing more then one checkpoint request at a time.
+    if checkpoint_future is not None:
+        checkpoint_future.result()
+
+    checkpoint_future = async_save(
+        state_dict,
+        checkpoint_id=path,
+        storage_writer=writer,
+        process_group=checkpoint_group)
+```
 
 ## Performance
 
