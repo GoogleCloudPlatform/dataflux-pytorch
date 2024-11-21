@@ -64,7 +64,7 @@ We will spin up a [Ray cluster](https://docs.ray.io/en/latest/cluster/key-concep
    git clone --recurse-submodules https://github.com/GoogleCloudPlatform/dataflux-pytorch
    cd dataflux-pytorch
    pip install gcs-torch-dataflux
-   cd demo/image-segmentation
+   cd demo/image_segmentation
    ```
 2. [Install Ray](https://docs.ray.io/en/latest/ray-overview/installation.html).
    ```shell

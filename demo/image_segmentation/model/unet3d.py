@@ -15,8 +15,8 @@
  """
 
 import torch.nn as nn
-from model.layers import (DownsampleBlock, InputBlock, OutputLayer,
-                          UpsampleBlock)
+from demo.image_segmentation.model.layers import (DownsampleBlock, InputBlock, OutputLayer,
+                    UpsampleBlock)
 
 
 class Unet3D(nn.Module):
@@ -26,10 +26,16 @@ class Unet3D(nn.Module):
                  n_class,
                  normalization,
                  activation,
-                 weights_init_scale=1.0):
+                 weights_init_scale=1.0,
+                 benchmark=False):
         super(Unet3D, self).__init__()
 
-        filters = [32, 64, 128, 256, 320]
+        if benchmark:
+            # Make the model smaller so benchmarking finishes quickly.
+            filters = [2, 2, 2, 2, 2]
+        else:
+            filters = [32, 64, 128, 256, 320]
+
         self.filters = filters
 
         self.inp = filters[:-1]
