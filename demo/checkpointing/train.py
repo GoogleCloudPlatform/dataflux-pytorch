@@ -152,7 +152,7 @@ def main(args: argparse.Namespace):
 
     # Clean up and report measurements.
     ckpt.teardown()
-    use_async_str = "async" if args.use_async else ''
+    use_async_str = 'async' if args.use_async else ''
     print(f'Average checkpoint {use_async_str} save time: '
           f'{statistics.mean(save_checkpoint_times):.4f} seconds '
           f'(stdev {statistics.stdev(save_checkpoint_times):.4f})')
