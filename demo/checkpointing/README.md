@@ -2,7 +2,7 @@
 
 The Connector for PyTorch allows the user to save and load model checkpoints directly to/from a Google Cloud Storage (GCS) bucket. This demo presents a simple example of checkpoint saving within a training workload. 
 
-The demo can optionally be run using the `--use-async` flag to enable asynchrenous checkpoint saving. This is useful when training a model that results in a large checkpoint file size and avoid blocking network calls during saving.
+The demo can optionally be run using the `--use-async` flag to enable asynchrenous checkpoint saving. This is useful when training a model that results in a large checkpoint file size and avoid blocking training during saving until the upload has finished.
 
 ## Demo usage
 

@@ -128,7 +128,6 @@ def main(args: argparse.Namespace):
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
-    losses = []
     save_checkpoint_times = []
     total_time = time.time()
 
@@ -143,7 +142,6 @@ def main(args: argparse.Namespace):
             loss.backward()
             optimizer.step()
 
-        losses.append(loss.detach().numpy())
         print(f"Epoch {epoch+1}/{args.num_epochs}, Train Loss: {loss:.4f}")
 
         # Save checkpoint
@@ -154,7 +152,8 @@ def main(args: argparse.Namespace):
 
     # Clean up and report measurements.
     ckpt.teardown()
-    print(f'Average checkpoint save time: '
+    use_async_str = "async" if args.use_async else ''
+    print(f'Average checkpoint {use_async_str} save time: '
           f'{statistics.mean(save_checkpoint_times):.4f} seconds '
           f'(stdev {statistics.stdev(save_checkpoint_times):.4f})')
     duration = int(time.time() - total_time)
