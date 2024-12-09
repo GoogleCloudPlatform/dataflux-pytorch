@@ -393,9 +393,6 @@ Checkpoint benchmarks were taken on a single GCE `n2d-standard-48` node co-locat
 
 ## Limitations
 
-### Billing
-To optimize listing performance, the Connector for PyTorch library utilizes a “fast listing” algorithm developed to balance the listing workload among parallelized GCS object listing processes. Therefore, the library will cause more listing API calls to be made than a regular sequential listing, which are charged as [Class A operations](https://cloud.google.com/storage/pricing).
-
 ### Composite Objects
 To optimize the download performance of small files, the Connector for PyTorch library utilizes the [GCS Compose API](https://cloud.google.com/storage/docs/json_api/v1/objects/compose) to concatenate a set of smaller objects into a new and larger one in the same bucket under a folder named “dataflux-composed-objects”. The new composite objects will be removed at the end of your training loop but in rare cases that they don’t, you can run this command to clean the composed files.
 ``` shell
@@ -416,16 +413,6 @@ dataset = dataflux_mapstyle_dataset.DataFluxMapStyleDataset(
 ```
 
 Note that turning off this behavior may cause the training loop to take significantly longer to complete when working with small files. However, composed download will hit QPS and throughput limits at a lower scale than downloading files directly, so you should disable this behavior when running at high multi-node scales where you are able to hit project QPS or throughput limits without composed download.
-
-
-### Soft Delete
-To avoid storage charges for retaining the temporary composite objects, consider disabling the [Soft Delete](https://cloud.google.com/storage/docs/soft-delete) retention duration on the bucket.
-
-### Google Cloud Storage Class
-Due to the quick creation and deletion of composite objects, we recommend that only the [Standard storage class](https://cloud.google.com/storage/docs/storage-classes) is applied to your bucket to minimize cost and maximize performance.
-
-### Throughput and QPS Limits
-Many machine learning efforts opt for a highly distributed training model leveraging tools such as PyTorch Lightning and Ray. These models are compatible with the Connector, but can often trigger the rate limits of Google Cloud Storage. This typically manifest in a 429 error, or slower than expected speeds while running distributed operations. Details on specific quotas and limits can be found [here](https://cloud.google.com/storage/quotas).
 
 #### Egress Throughput Limits
 429 errors acompanied with messages indicating `This workload is drawing too much egress bandwidth from Google Cloud Storage` or `triggered the Cloud Storage Egress Bandwidth Cap` indicate that the data throughput rate of your workload is exceeding the maximum capacity of your Google Cloud Project. To address these issues, you can take the following steps:
@@ -453,11 +440,6 @@ Many machine learning efforts opt for a highly distributed training model levera
         ),
     )
     ```
-
-#### QPS Limits
-QPS limits can trigger 429 errors with a body message indicating `Too many Requests`, but more commonly manifest in slower than expected execution times. QPS bottlenecks are more common when operating on high volumes of small files. Note that bucket QPS limits will [naturally scale over time](https://cloud.google.com/storage/docs/request-rate#best-practices), so allowing a grace period for warmup can often lead to faster performance. To get more detail on the performance of a target bucket, look at the `Observability` tab when viewing your bucket from the Cloud Console.
-
-If your workload is failing with messages similar to `TooManyRequests: 429 GET https://storage.googleapis.com/download/storage/v1/b/<MY-BUCKET>/o/dataflux-composed-objects%2Fa80727ae-7bc9-4ba3-8f9b-13ff001d6418` that contain the "dataflux-composed-objects" keyword, [disabling](#composite-objects) composed objects is the best first troubleshooting step. This can reduce QPS load brought on by the compose API when used at scale.
 
 ## Contributing
 We welcome your feedback, issues, and bug fixes. If you have a major feature or change in functionality you'd like to contribute, please open a GitHub Issue for discussion prior to sending a pull request. Please see [CONTRIBUTING](docs/contributing.md) for more information on how to report bugs or submit pull requests.
