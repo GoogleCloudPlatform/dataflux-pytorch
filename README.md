@@ -1,6 +1,6 @@
 # Google Cloud Storage Connector for PyTorch
 
-The Cloud Storage Connector for PyTorch lets you connect directly to a GCS bucket as a PyTorch dataset, without pre-loading the data to local disk, and with optimizations to make training up to **3X faster** when the dataset consists of many small files (e.g., 100 - 500 KB).
+Cloud Storage's Connector for PyTorch is an open source product supported by Google that provides a direct Cloud Storage integration with PyTorch. To learn more, see the official documentation [here](https://cloud.google.com/storage/docs/pytorch-connector).
 
 The Connector for PyTorch implements PyTorch’s [dataset primitive](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html) that can be used to efficiently load training data from GCS. The library currently supports [map-style datasets](https://pytorch.org/docs/stable/data.html#map-style-datasets) for random data access patterns and [iterable-style datasets](https://pytorch.org/docs/stable/data.html#iterable-style-datasets) for streaming data access patterns.
 
