@@ -391,7 +391,9 @@ Checkpoint benchmarks were taken on a single GCE `n2d-standard-48` node co-locat
 | Without Connector   | 6.5 B  | 24,200| 2,093.52  | 11.56   |
 | Connector           | 6.5 B  | 24,200| 113.14    | 213.89  |
 
-## Limitations
+## Additional Technical Limitations
+
+For more detail on technical limitations please see our [official documentation](https://cloud.google.com/storage/docs/pytorch-connector).
 
 ### Composite Objects
 To optimize the download performance of small files, the Connector for PyTorch library utilizes the [GCS Compose API](https://cloud.google.com/storage/docs/json_api/v1/objects/compose) to concatenate a set of smaller objects into a new and larger one in the same bucket under a folder named “dataflux-composed-objects”. The new composite objects will be removed at the end of your training loop but in rare cases that they don’t, you can run this command to clean the composed files.
