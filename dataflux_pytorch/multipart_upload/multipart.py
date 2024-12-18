@@ -21,19 +21,28 @@ from google.cloud.storage import Blob
 from google.cloud.storage.blob import _get_host_name
 from google.cloud.storage.blob import _quote
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
-from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 from google.cloud.storage.retry import DEFAULT_RETRY
-from google.cloud.storage.transfer_manager import (
-    _api_core_retry_to_resumable_media_retry, )
 from google.cloud.storage.transfer_manager import _headers_from_metadata
 from google.cloud.storage.transfer_manager import _get_pool_class_and_requirements
-from google.resumable_media import _helpers
+
+try:
+    # Forwards compatibility with google-cloud-storage v3.x
+    from google.cloud.storage._media import _helpers
+    from google.cloud.storage._media.requests.upload import XMLMPUContainer
+    from google.cloud.storage._media.requests.upload import XMLMPUPart
+    from google.cloud.storage.exceptions import DataCorruption
+    # This method is no longer needed in x3.x
+    _api_core_retry_to_resumable_media_retry = lambda x: x
+except ImportError:
+    # Backwards compatibility with google-cloud-storage v2.x
+    from google.resumable_media import _helpers
+    from google.resumable_media.requests.upload import XMLMPUContainer
+    from google.resumable_media.requests.upload import XMLMPUPart
+    from google.resumable_media.common import DataCorruption
+    from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 
 import google_crc32c
 
-from google.resumable_media.requests.upload import XMLMPUContainer
-from google.resumable_media.requests.upload import XMLMPUPart
-from google.resumable_media.common import DataCorruption
 
 TM_DEFAULT_CHUNK_SIZE = 32 * 1024 * 1024
 DEFAULT_MAX_WORKERS = 8
@@ -160,6 +169,8 @@ def upload_chunks_concurrently_from_bytesio(
         headers["x-goog-encryption-kms-key-name"] = blob.kms_key_name
 
     container = XMLMPUContainer(url, None, headers=headers)
+    # This _retry_strategy assignment can be removed, and "retry=retry" added
+    # to the constructor above, when v2.x compatibility is removed.
     container._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
 
     container.initiate(transport=transport, content_type=content_type)
@@ -291,6 +302,8 @@ def _buffer_view_upload_part(
         checksum=checksum,
         headers=headers,
     )
+    # This _retry_strategy assignment can be removed, and "retry=retry" added
+    # to the constructor above, when v2.x compatibility is removed.
     part._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
     part.upload(client._http)
     return (part_number, part.etag)
